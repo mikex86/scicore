@@ -21,7 +21,7 @@ public class Tensor implements ITensor {
         this.tensorImpl = backend.createTensor(dataType, shape);
     }
 
-    Tensor(@NotNull TensorImpl tensorImpl, @NotNull SciCoreBackend backend) {
+    public Tensor(@NotNull TensorImpl tensorImpl, @NotNull SciCoreBackend backend) {
         this.tensorImpl = tensorImpl;
         this.backend = backend;
     }
@@ -208,6 +208,11 @@ public class Tensor implements ITensor {
             throw new IllegalArgumentException("Tensor shapes do not match");
         }
         this.tensorImpl.setContents(tensor);
+    }
+
+    @Override
+    public void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView) {
+        this.tensorImpl.setContents(dimension, tensor, useView);
     }
 
     @Override

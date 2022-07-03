@@ -100,6 +100,8 @@ public interface ITensor extends IValue {
 
     void setContents(@NotNull ITensor tensor);
 
+    void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView);
+
     default long getNumberOfElements() {
         return ShapeUtils.getNumElements(getShape());
     }
@@ -377,7 +379,9 @@ public interface ITensor extends IValue {
         DataType otherDataType = other.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
 
-        JvmTensorImpl result = new JvmTensorImpl(resultDataType, resultShape);
+        SciCoreBackend sc = getSciCore();
+
+        TensorImpl result = sc.createTensor(resultDataType, resultShape);
 
         long[] index = new long[resultShape.length];
         for (int i = 0; i < resultShape[0]; i++) {
@@ -468,7 +472,8 @@ public interface ITensor extends IValue {
     default ITensor exp() {
         long[] shape = getShape();
         long nElements = ShapeUtils.getNumElements(shape);
-        TensorImpl result = new JvmTensorImpl(getDataType(), shape);
+        SciCoreBackend sc = getSciCore();
+        TensorImpl result = sc.createTensor(getDataType(), shape);
         for (long i = 0; i < nElements; i++) {
             result.setDoubleFlat(Math.exp(getDoubleFlat(i)), i);
         }
@@ -478,60 +483,31 @@ public interface ITensor extends IValue {
     @NotNull
     default ITensor softmax(int dimension) {
         ITensor exponentiated = exp();
-        ITensor sum = exponentiated.reduceSum(dimension);
+        ITensor sum = exponentiated.reduceSum(dimension, true);
         return exponentiated.divided(sum);
     }
 
     @NotNull
-    default ITensor divided(@NotNull ITensor sum) {
-        long[] shape = getShape();
-        long[] otherShape = sum.getShape();
-        if (ShapeUtils.equals(shape, otherShape)) {
-            throw new IllegalArgumentException("Shapes must not be equal");
-        }
-        long nElements = ShapeUtils.getNumElements(shape);
-        DataType ownDataType = getDataType();
-        DataType otherDataType = sum.getDataType();
-        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
-        TensorImpl result = new JvmTensorImpl(resultDataType, shape);
-        for (long i = 0; i < nElements; i++) {
-            if (resultDataType.isFloatingPoint()) {
-                double a = switch (ownDataType) {
-                    case FLOAT32 -> getFloatFlat(i);
-                    case FLOAT64 -> getDoubleFlat(i);
-                    default -> throw new IllegalStateException("Unexpected data type: " + ownDataType);
-                };
-                double b = switch (otherDataType) {
-                    case FLOAT32 -> sum.getFloatFlat(i);
-                    case FLOAT64 -> sum.getDoubleFlat(i);
-                    default -> throw new IllegalStateException("Unexpected data type: " + otherDataType);
-                };
-                switch (resultDataType) {
-                    case FLOAT32 -> result.setFloatFlat((float) (a / b), i);
-                    case FLOAT64 -> result.setDoubleFlat(a / b, i);
-                }
+    default ITensor divided(@NotNull ITensor other) {
+        long[] shapeA = getShape();
+        long nElementsA = ShapeUtils.getNumElements(shapeA);
+        long[] shapeB = other.getShape();
+        long nElementsB = ShapeUtils.getNumElements(shapeB);
+        long[] outputShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
+        SciCoreBackend sc = getSciCore();
+        DataType dataType = DataType.getLarger(getDataType(), other.getDataType());
+        TensorImpl result = sc.createTensor(dataType, outputShape);
+
+        long[] index = new long[outputShape.length];
+
+        while (true) {
+            if (dataType.isFloatingPoint()) {
+
             } else {
-                long a = switch (ownDataType) {
-                    case INT8 -> getByteFlat(i);
-                    case INT16 -> getShortFlat(i);
-                    case INT32 -> getIntFlat(i);
-                    case INT64 -> getLongFlat(i);
-                    default -> throw new IllegalStateException("Unexpected data type: " + ownDataType);
-                };
-                long b = switch (otherDataType) {
-                    case INT8 -> sum.getByteFlat(i);
-                    case INT16 -> sum.getShortFlat(i);
-                    case INT32 -> sum.getIntFlat(i);
-                    case INT64 -> sum.getLongFlat(i);
-                    default -> throw new IllegalStateException("Unexpected data type: " + otherDataType);
-                };
-                switch (resultDataType) {
-                    case INT8 -> result.setByteFlat((byte) (a / b), i);
-                    case INT16 -> result.setShortFlat((short) (a / b), i);
-                    case INT32 -> result.setIntFlat((int) (a / b), i);
-                    case INT64 -> result.setLongFlat(a / b, i);
-                    default -> throw new IllegalStateException("Unexpected data type: " + resultDataType);
-                }
+
+            }
+            if (!ShapeUtils.incrementIndex(outputShape, index)) {
+                break;
             }
         }
         return new Tensor(result, getSciCore());
@@ -539,61 +515,136 @@ public interface ITensor extends IValue {
 
     @NotNull
     default ITensor reduceSum(int dimension) {
-        long[] shape = getShape();
-        if (dimension < 0 || dimension >= shape.length) {
-            throw new IllegalArgumentException("Dimension out of bounds: " + dimension);
-        }
-        long[] resultingShape;
-        long nNumSums = 1;
-        long nElementsToSum = shape[dimension];
-        {
-            resultingShape = new long[shape.length];
-            int j = 0;
-            for (int i = 0; i < shape.length; i++) {
-                long dimSize = shape[i];
-                if (i != dimension) {
-                    resultingShape[j++] = dimSize;
-                    nNumSums *= dimSize;
-                }
-            }
-            resultingShape = Arrays.copyOf(resultingShape, j);
-        }
+        return reduceSum(dimension, false);
+    }
 
+    @NotNull
+    default ITensor reduceSum(int dimension, boolean keepDimensions) {
+        // TODO: OPTIMIZE
+        SciCoreBackend sc = getSciCore();
         DataType dataType = getDataType();
-        TensorImpl result = new JvmTensorImpl(dataType, resultingShape);
-        for (long s = 0; s < nNumSums; s++) {
+        long[] shape = getShape();
+        if (dimension == -1) {
+            TensorImpl result = keepDimensions ? sc.createTensor(dataType, new long[]{1, 1}) : sc.createTensor(dataType, new long[]{1});
+            long numElements = ShapeUtils.getNumElements(shape);
             if (dataType.isFloatingPoint()) {
                 double sum = 0;
-                for (long e = 0; e < nElementsToSum; e++) {
-                    long index = s * sumStride + e * elementStride;
+                for (long i = 0; i < numElements; i++) {
                     switch (dataType) {
-                        case FLOAT32 -> sum += getFloatFlat(index);
-                        case FLOAT64 -> sum += getDoubleFlat(index);
+                        case FLOAT32 -> sum += getFloatFlat(i);
+                        case FLOAT64 -> sum += getDoubleFlat(i);
                         default -> throw new IllegalStateException("Unexpected data type: " + dataType);
                     }
                 }
                 switch (dataType) {
-                    case FLOAT32 -> result.setFloatFlat((float) sum, s);
-                    case FLOAT64 -> result.setDoubleFlat(sum, s);
+                    case FLOAT32 -> result.setFloatFlat((float) sum, 0);
+                    case FLOAT64 -> result.setDoubleFlat(sum, 0);
+                    default -> throw new IllegalStateException("Unexpected data type: " + dataType);
                 }
             } else {
                 long sum = 0;
-                for (long e = 0; e < nElementsToSum; e++) {
-                    long index = s * sumStride + e * elementStride;
+                for (long i = 0; i < numElements; i++) {
                     switch (dataType) {
-                        case INT8 -> sum += getByteFlat(index);
-                        case INT16 -> sum += getShortFlat(index);
-                        case INT32 -> sum += getIntFlat(index);
-                        case INT64 -> sum += getLongFlat(index);
+                        case INT8 -> sum += getByteFlat(i);
+                        case INT16 -> sum += getShortFlat(i);
+                        case INT32 -> sum += getIntFlat(i);
+                        case INT64 -> sum += getLongFlat(i);
                         default -> throw new IllegalStateException("Unexpected data type: " + dataType);
                     }
                 }
                 switch (dataType) {
-                    case INT8 -> result.setByteFlat((byte) sum, s);
-                    case INT16 -> result.setShortFlat((short) sum, s);
-                    case INT32 -> result.setIntFlat((int) sum, s);
-                    case INT64 -> result.setLongFlat(sum, s);
+                    case INT8 -> result.setByteFlat((byte) sum, 0);
+                    case INT16 -> result.setShortFlat((short) sum, 0);
+                    case INT32 -> result.setIntFlat((int) sum, 0);
+                    case INT64 -> result.setLongFlat(sum, 0);
                     default -> throw new IllegalStateException("Unexpected data type: " + dataType);
+                }
+            }
+            return new Tensor(result, sc);
+        }
+        if (dimension < 0 || dimension >= shape.length) {
+            throw new IllegalArgumentException("Dimension out of bounds: " + dimension);
+        }
+        long[] reducedShape = new long[shape.length - (keepDimensions ? 0 : 1)];
+        for (int i = 0; i < shape.length; i++) {
+            long dimSize = shape[i];
+            if (keepDimensions) {
+                if (i == dimension) {
+                    dimSize = 1;
+                }
+                reducedShape[i] = dimSize;
+            } else {
+                if (i < dimension) {
+                    reducedShape[i] = dimSize;
+                } else if (i > dimension) {
+                    reducedShape[i - 1] = dimSize;
+                }
+            }
+        }
+
+        TensorImpl result = sc.createTensor(dataType, reducedShape);
+        long[] completeIndex = new long[shape.length];
+        long[] reducedIndex = new long[reducedShape.length];
+
+        while (true) {
+            if (dataType.isFloatingPoint()) {
+                double sum = 0;
+                for (long i = 0; i < shape[dimension]; i++) {
+                    completeIndex[dimension] = i;
+                    sum += switch (dataType) {
+                        case FLOAT32 -> getFloat(completeIndex);
+                        case FLOAT64 -> getDouble(completeIndex);
+                        default -> throw new IllegalStateException("Unexpected data type: " + dataType);
+                    };
+                }
+
+                switch (dataType) {
+                    case FLOAT32 -> result.setFloat((float) sum, reducedIndex);
+                    case FLOAT64 -> result.setDouble(sum, reducedIndex);
+                }
+            } else {
+                long sum = 0;
+
+                for (long i = 0; i < shape[dimension]; i++) {
+                    completeIndex[dimension] = i;
+                    sum += switch (dataType) {
+                        case INT8 -> getByte(completeIndex);
+                        case INT16 -> getShort(completeIndex);
+                        case INT32 -> getInt(completeIndex);
+                        case INT64 -> getLong(completeIndex);
+                        default -> throw new IllegalStateException("Unexpected data type: " + dataType);
+                    };
+                }
+
+                switch (dataType) {
+                    case INT8 -> result.setByte((byte) sum, reducedIndex);
+                    case INT16 -> result.setShort((short) sum, reducedIndex);
+                    case INT32 -> result.setInt((int) sum, reducedIndex);
+                    case INT64 -> result.setLong(sum, reducedIndex);
+                    default -> throw new IllegalStateException("Unexpected data type: " + dataType);
+                }
+            }
+            // increment index, but only for dimensions that are not being summed along
+            {
+                boolean hasNext = false;
+                for (int dim = 0; dim < completeIndex.length; dim++) {
+                    if (dim == dimension) {
+                        continue;
+                    }
+                    if (completeIndex[dim] < shape[dim] - 1) {
+                        completeIndex[dim]++;
+                        if (dim > dimension) {
+                            reducedIndex[dim - 1] = completeIndex[dim];
+                        } else {
+                            reducedIndex[dim] = completeIndex[dim];
+                        }
+                        hasNext = true;
+                        break;
+                    }
+                    completeIndex[dim] = 0;
+                }
+                if (!hasNext) {
+                    break;
                 }
             }
         }

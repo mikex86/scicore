@@ -18,7 +18,6 @@ class View implements ITensor {
         this.localStrides = localStrides;
     }
 
-
     @Override
     public @NotNull DataType getDataType() {
         return this.viewed.getDataType();
@@ -174,6 +173,11 @@ class View implements ITensor {
 
     @Override
     public void setContents(@NotNull ITensor tensor) {
+        throw new UnsupportedOperationException("Views are read-only");
+    }
+
+    @Override
+    public void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView) {
         throw new UnsupportedOperationException("Views are read-only");
     }
 

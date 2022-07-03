@@ -12,8 +12,8 @@ repositories {
 val lwjglVersion = "3.3.1"
 
 val lwjglNatives = Pair(
-        System.getProperty("os.name")!!,
-        System.getProperty("os.arch")!!
+    System.getProperty("os.name")!!,
+    System.getProperty("os.arch")!!
 ).let { (name, arch) ->
     when {
         arrayOf("Linux", "FreeBSD", "SunOS", "Unit").any { name.startsWith(it) } ->
@@ -21,9 +21,9 @@ val lwjglNatives = Pair(
                 "natives-linux${if (arch.contains("64") || arch.startsWith("armv8")) "-arm64" else "-arm32"}"
             else
                 "natives-linux"
-        arrayOf("Mac OS X", "Darwin").any { name.startsWith(it) }                ->
+        arrayOf("Mac OS X", "Darwin").any { name.startsWith(it) } ->
             "natives-macos${if (arch.startsWith("aarch64")) "-arm64" else ""}"
-        arrayOf("Windows").any { name.startsWith(it) }                           ->
+        arrayOf("Windows").any { name.startsWith(it) } ->
             if (arch.contains("64"))
                 "natives-windows${if (arch.startsWith("aarch64")) "-arm64" else ""}"
             else
@@ -33,8 +33,10 @@ val lwjglNatives = Pair(
 }
 
 dependencies {
-    implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
+    implementation("org.jetbrains:annotations:23.0.0")
 
+    // LWJGL
+    implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
     implementation("org.lwjgl", "lwjgl")
     implementation("org.lwjgl", "lwjgl-cuda")
     implementation("org.lwjgl", "lwjgl-jemalloc")
@@ -42,9 +44,9 @@ dependencies {
     runtimeOnly("org.lwjgl", "lwjgl-jemalloc", classifier = lwjglNatives)
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.8.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
-    implementation("org.jetbrains:annotations:23.0.0")
-
+    testImplementation("me.tongfei:progressbar:0.9.3")
 }
 
 tasks.getByName<Test>("test") {

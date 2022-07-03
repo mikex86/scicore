@@ -2,7 +2,10 @@ package me.mikex86.scicore.utils;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Utility functions operating on shapes.
@@ -19,8 +22,8 @@ public class ShapeUtils {
      * @param shape the specified shape
      * @return the number of elements in the shape
      */
-    public static int getNumElements(long @NotNull [] shape) {
-        int numElements = 1;
+    public static long getNumElements(long @NotNull [] shape) {
+        long numElements = 1;
         for (long l : shape) {
             numElements *= l;
         }
@@ -116,5 +119,82 @@ public class ShapeUtils {
      */
     public static boolean equals(long @NotNull [] shapeA, long @NotNull [] shapeB) {
         return Arrays.equals(shapeA, shapeB);
+    }
+
+    /**
+     * Increments an n-dimensional index constrained by a specific shape.
+     *
+     * @param shape the shape to constrain the index to
+     * @param index the index to increment (will be modified in place)
+     * @return the true if the index was incremented, false if the index was already at the last element of the shape
+     */
+    public static boolean incrementIndex(long @NotNull [] shape, long @NotNull [] index) {
+        for (int dim = 0; dim < index.length; dim++) {
+            if (index[dim] < shape[dim] - 1) {
+                index[dim]++;
+                return true;
+            }
+            index[dim] = 0;
+        }
+        return false;
+    }
+
+    /**
+     * Returns the larger of the two supplied shapes.
+     *
+     * @param shapeA the first shape
+     * @param shapeB the second shape
+     * @return the larger shape
+     * @throws IllegalArgumentException if the two shapes are not broadcast-able
+     */
+    public static long @NotNull [] broadcastShapes(long @NotNull [] shapeA, long @NotNull [] shapeB) {
+        if (shapeA.length == shapeB.length) {
+            return shapeA;
+        }
+        if (shapeA.length > shapeB.length) {
+            if (!ArrayUtils.contains(shapeA, shapeB)) {
+                throw new IllegalArgumentException("Shapes are not broadcast-able. shapeA: " + Arrays.toString(shapeA) + " shapeB: " + Arrays.toString(shapeB));
+            }
+            return shapeA;
+        } else {
+            if (!ArrayUtils.contains(shapeB, shapeA)) {
+                throw new IllegalArgumentException("Shapes are not broadcast-able. shapeA: " + Arrays.toString(shapeA) + " shapeB: " + Arrays.toString(shapeB));
+            }
+        }
+        return shapeB;
+    }
+
+    /**
+     * Returns the shape of the supplied java array.
+     *
+     * @param array the supplied java array. The shape of the array must conform to a tensor (all elements of given dimension must have the same size).
+     * @return the shape of the java array
+     */
+    public static long @NotNull [] getArrayShape(@NotNull Object array) {
+        List<Long> shape = new ArrayList<>();
+        Object current = array;
+        while (current.getClass().isArray()) {
+            int currentLength = Array.getLength(current);
+            shape.add((long) currentLength);
+
+            Object firstOfDim = Array.get(current, 0);
+            if (firstOfDim.getClass().isArray()) {
+                int firstOfDimLength = Array.getLength(firstOfDim);
+                // iterate over current dimension and check if all elements are arrays of the same length (check if match first element)
+                for (int i = 1; i < currentLength; i++) {
+                    Object otherArrayOnSameDim = Array.get(current, i);
+                    int lengthOfOtherArrayOnSameDim = Array.getLength(otherArrayOnSameDim);
+                    if (lengthOfOtherArrayOnSameDim != firstOfDimLength) {
+                        throw new IllegalArgumentException("Array must be n-dimensional");
+                    }
+                }
+            }
+            current = firstOfDim;
+        }
+        long[] shapeArray = new long[shape.size()];
+        for (int i = 0; i < shape.size(); i++) {
+            shapeArray[i] = shape.get(i);
+        }
+        return shapeArray;
     }
 }

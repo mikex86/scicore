@@ -2,9 +2,12 @@ package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.SciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
+import me.mikex86.scicore.utils.ArrayUtils;
+import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Random;
 
@@ -311,6 +314,46 @@ public class SciCore {
                 index[1] = j;
                 tensor.setDouble(array[i][j], index);
             }
+        }
+        return tensor;
+    }
+
+    @NotNull
+    public ITensor ndarray(Object array) {
+        Class<?> arrayClass = array.getClass();
+        Class<?> componentClass = ArrayUtils.getComponentType(array);
+        long[] arrayShape = ShapeUtils.getArrayShape(array);
+        int nElements = Math.toIntExact(ShapeUtils.getNumElements(arrayShape));
+        DataType dataType = DataType.fromClass(componentClass);
+        Object elements = ArrayUtils.getElementsFlat(array);
+        ITensor tensor = new Tensor(dataType, arrayShape, getBackend());
+        // TODO: Make this more efficient by not having a second (flattened) copy of the array.
+        if (elements instanceof byte[] byteArray) {
+            for (int i = 0; i < nElements; i++) {
+                tensor.setByteFlat((byteArray[i]), i);
+            }
+        } else if (elements instanceof short[] shortArray) {
+            for (int i = 0; i < nElements; i++) {
+                tensor.setShortFlat((shortArray[i]), i);
+            }
+        } else if (elements instanceof int[] intArray) {
+            for (int i = 0; i < nElements; i++) {
+                tensor.setIntFlat((intArray[i]), i);
+            }
+        } else if (elements instanceof long[] longArray) {
+            for (int i = 0; i < nElements; i++) {
+                tensor.setLongFlat((longArray[i]), i);
+            }
+        } else if (elements instanceof float[] floatArray) {
+            for (int i = 0; i < nElements; i++) {
+                tensor.setFloatFlat((floatArray[i]), i);
+            }
+        } else if (elements instanceof double[] doubleArray) {
+            for (int i = 0; i < nElements; i++) {
+                tensor.setDoubleFlat((doubleArray[i]), i);
+            }
+        } else {
+            throw new IllegalArgumentException("Unsupported array type: " + arrayClass.getName());
         }
         return tensor;
     }

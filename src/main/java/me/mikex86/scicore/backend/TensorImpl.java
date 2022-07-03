@@ -65,6 +65,8 @@ public interface TensorImpl {
 
     void setContents(@NotNull ITensor tensor);
 
+    void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView);
+
     @NotNull
     JvmTensorImpl multiplied(@NotNull JvmScalarImpl b);
 

@@ -191,6 +191,11 @@ public class JvmTensorImpl implements TensorImpl {
     }
 
     @Override
+    public void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView) {
+        throw new UnsupportedOperationException("TODO"); // TODO: IMPLEMENT
+    }
+
+    @Override
     public @NotNull
     JvmTensorImpl multiplied(@NotNull JvmScalarImpl b) {
         DataType ownDataType = getDataType();
@@ -495,12 +500,12 @@ public class JvmTensorImpl implements TensorImpl {
             this.dataType = dataType;
             this.shape = shape;
             switch (dataType) {
-                case INT8 -> this.byteData = new byte[ShapeUtils.getNumElements(shape)];
-                case INT16 -> this.shortData = new short[ShapeUtils.getNumElements(shape)];
-                case INT32 -> this.intData = new int[ShapeUtils.getNumElements(shape)];
-                case INT64 -> this.longData = new long[ShapeUtils.getNumElements(shape)];
-                case FLOAT32 -> this.floatData = new float[ShapeUtils.getNumElements(shape)];
-                case FLOAT64 -> this.doubleData = new double[ShapeUtils.getNumElements(shape)];
+                case INT8 -> this.byteData = new byte[Math.toIntExact(ShapeUtils.getNumElements(shape))];
+                case INT16 -> this.shortData = new short[Math.toIntExact(ShapeUtils.getNumElements(shape))];
+                case INT32 -> this.intData = new int[Math.toIntExact(ShapeUtils.getNumElements(shape))];
+                case INT64 -> this.longData = new long[Math.toIntExact(ShapeUtils.getNumElements(shape))];
+                case FLOAT32 -> this.floatData = new float[Math.toIntExact(ShapeUtils.getNumElements(shape))];
+                case FLOAT64 -> this.doubleData = new double[Math.toIntExact(ShapeUtils.getNumElements(shape))];
             }
         }
 

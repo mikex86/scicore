@@ -19,6 +19,25 @@ public enum DataType {
     }
 
     @NotNull
+    public static DataType fromClass(@NotNull Class<?> componentClass) {
+        if (componentClass == byte.class) {
+            return INT8;
+        } else if (componentClass == short.class) {
+            return INT16;
+        } else if (componentClass == int.class) {
+            return INT32;
+        } else if (componentClass == long.class) {
+            return INT64;
+        } else if (componentClass == float.class) {
+            return FLOAT32;
+        } else if (componentClass == double.class) {
+            return FLOAT64;
+        } else {
+            throw new IllegalArgumentException("Unsupported component class: " + componentClass);
+        }
+    }
+
+    @NotNull
     public static DataType getLarger(DataType a, DataType b) {
         DataType largerByBitSize = a.bits > b.bits ? a : b;
         if (a.isFp) {
