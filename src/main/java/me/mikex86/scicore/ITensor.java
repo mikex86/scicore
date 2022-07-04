@@ -7,6 +7,7 @@ import me.mikex86.scicore.backend.impl.jvm.JvmTensorImpl;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.util.Arrays;
 
 public interface ITensor extends IValue {
@@ -95,8 +96,7 @@ public interface ITensor extends IValue {
 
     void setDoubleFlat(double value, long flatIndex);
 
-    @NotNull
-    ITensor copy();
+    @NotNull ITensor copy();
 
     void setContents(@NotNull ITensor tensor);
 
@@ -490,26 +490,84 @@ public interface ITensor extends IValue {
     @NotNull
     default ITensor divided(@NotNull ITensor other) {
         long[] shapeA = getShape();
-        long nElementsA = ShapeUtils.getNumElements(shapeA);
+        long[] stridesA = ShapeUtils.makeStrides(shapeA);
         long[] shapeB = other.getShape();
-        long nElementsB = ShapeUtils.getNumElements(shapeB);
+        long[] stridesB = ShapeUtils.makeStrides(shapeB);
         long[] outputShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
+        long[] stridesOut = ShapeUtils.makeStrides(outputShape);
+
         SciCoreBackend sc = getSciCore();
-        DataType dataType = DataType.getLarger(getDataType(), other.getDataType());
+        DataType ownDataType = getDataType();
+        DataType otherDataType = other.getDataType();
+        DataType dataType = DataType.getLarger(ownDataType, otherDataType);
         TensorImpl result = sc.createTensor(dataType, outputShape);
 
-        long[] index = new long[outputShape.length];
+        long[] outputIndex = new long[outputShape.length];
+        long[] indexA = new long[shapeA.length];
+        long[] indexB = new long[shapeB.length];
 
-        while (true) {
+        do {
+            // copy common dimensions into indexA and indexB
+            for (int i = 0; i < indexA.length; i++) {
+                indexA[indexA.length - 1 - i] = outputIndex[outputIndex.length - 1 - i];
+            }
+            for (int i = 0; i < indexB.length; i++) {
+                indexB[indexB.length - 1 - i] = outputIndex[outputIndex.length - 1 - i];
+            }
+            // constrain indices
+            ShapeUtils.constrainIndex(indexA, shapeA);
+            ShapeUtils.constrainIndex(indexB, shapeB);
+
+            long outputIndexFlat = ShapeUtils.getFlatIndex(outputIndex, stridesOut);
+            long indexAFlat = ShapeUtils.getFlatIndex(indexA, stridesA);
+            long indexBFlat = ShapeUtils.getFlatIndex(indexB, stridesB);
+
             if (dataType.isFloatingPoint()) {
-
+                double a = switch (ownDataType) {
+                    case INT8 -> getByteFlat(indexAFlat);
+                    case INT16 -> getShortFlat(indexAFlat);
+                    case INT32 -> getIntFlat(indexAFlat);
+                    case INT64 -> getLongFlat(indexAFlat);
+                    case FLOAT32 -> getFloatFlat(indexAFlat);
+                    case FLOAT64 -> getDoubleFlat(indexAFlat);
+                };
+                double b = switch (otherDataType) {
+                    case INT8 -> other.getByteFlat(indexBFlat);
+                    case INT16 -> other.getShortFlat(indexBFlat);
+                    case INT32 -> other.getIntFlat(indexBFlat);
+                    case INT64 -> other.getLongFlat(indexBFlat);
+                    case FLOAT32 -> other.getFloatFlat(indexBFlat);
+                    case FLOAT64 -> other.getDoubleFlat(indexBFlat);
+                };
+                double aDivB = a / b;
+                switch (dataType) {
+                    case FLOAT32 -> result.setFloatFlat((float) aDivB, outputIndexFlat);
+                    case FLOAT64 -> result.setDoubleFlat(aDivB, outputIndexFlat);
+                }
             } else {
-
+                long a = switch (ownDataType) {
+                    case INT8 -> getByteFlat(indexAFlat);
+                    case INT16 -> getShortFlat(indexAFlat);
+                    case INT32 -> getIntFlat(indexAFlat);
+                    case INT64 -> getLongFlat(indexAFlat);
+                    default -> throw new IllegalStateException("Illegal data type");
+                };
+                long b = switch (ownDataType) {
+                    case INT8 -> other.getByteFlat(indexBFlat);
+                    case INT16 -> other.getShortFlat(indexBFlat);
+                    case INT32 -> other.getIntFlat(indexBFlat);
+                    case INT64 -> other.getLongFlat(indexBFlat);
+                    default -> throw new IllegalStateException("Illegal data type");
+                };
+                long aDivB = a / b;
+                switch (dataType) {
+                    case INT8 -> result.setByteFlat((byte) aDivB, outputIndexFlat);
+                    case INT16 -> result.setShortFlat((byte) aDivB, outputIndexFlat);
+                    case INT32 -> result.setIntFlat((byte) aDivB, outputIndexFlat);
+                    case INT64 -> result.setLongFlat((byte) aDivB, outputIndexFlat);
+                }
             }
-            if (!ShapeUtils.incrementIndex(outputShape, index)) {
-                break;
-            }
-        }
+        } while (ShapeUtils.incrementIndex(outputShape, outputIndex));
         return new Tensor(result, getSciCore());
     }
 
@@ -651,8 +709,7 @@ public interface ITensor extends IValue {
         return new Tensor(result, getSciCore());
     }
 
-    @NotNull
-    ITensorIterator iterator();
+    @NotNull ITensorIterator iterator();
 
     @NotNull SciCoreBackend getSciCore();
 }

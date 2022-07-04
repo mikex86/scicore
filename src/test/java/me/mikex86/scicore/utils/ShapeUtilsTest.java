@@ -1,15 +1,11 @@
 package me.mikex86.scicore.utils;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -157,7 +153,8 @@ class ShapeUtilsTest {
                 Arguments.of(new long[]{15, 1, 5}, new long[]{15, 3, 5}, new long[]{15, 3, 5}),
                 Arguments.of(new long[]{15, 3, 5}, new long[]{3, 5}, new long[]{15, 3, 5}),
                 Arguments.of(new long[]{15, 3, 5}, new long[]{3, 1}, new long[]{15, 3, 5}),
-                Arguments.of(new long[]{2, 3, 4}, new long[]{1, 2, 3, 4}, new long[]{1, 2, 3, 4})
+                Arguments.of(new long[]{2, 3, 4}, new long[]{1, 2, 3, 4}, new long[]{1, 2, 3, 4}),
+                Arguments.of(new long[]{1, 2, 3}, new long[]{3, 4, 1, 2, 3}, new long[]{3, 4, 1, 2, 3})
         );
     }
 
@@ -170,6 +167,7 @@ class ShapeUtilsTest {
 
     Stream<Arguments> broadcastShapes_failureData() {
         return Stream.of(
+                // shapeA, shapeB
                 Arguments.of(new long[]{3}, new long[]{4}),
                 Arguments.of(new long[]{2, 3, 4}, new long[]{2, 3, 3}),
                 Arguments.of(new long[]{2, 3, 4}, new long[]{3, 3, 4}),
@@ -181,6 +179,21 @@ class ShapeUtilsTest {
     @MethodSource("broadcastShapes_failureData")
     void broadcastShapes_failure(long[] shapeA, long[] shapeB) {
         assertThrows(IllegalArgumentException.class, () -> ShapeUtils.broadcastShapes(shapeA, shapeB));
+    }
+
+    Stream<Arguments> constrainIndexData() {
+        return Stream.of(
+                // index, shape, expected constrained index
+                Arguments.of(new long[]{15, 32, 4}, new long[]{3, 4, 5}, new long[]{15 % 3, 32 % 4, 4 % 5}),
+                Arguments.of(new long[]{4, 4, 4}, new long[]{10, 20, 30}, new long[]{4, 4, 4})
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("constrainIndexData")
+    void constrainIndex(long[] index, long[] shape, long[] expectedConstrainedIndex) {
+        ShapeUtils.constrainIndex(index, shape);
+        assertArrayEquals(expectedConstrainedIndex, index);
     }
 
     Stream<Arguments> getArrayShapeData() {

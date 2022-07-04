@@ -178,6 +178,22 @@ public class ShapeUtils {
     }
 
     /**
+     * Constrains the index in the specified shape. This means that every dimension of the index will be modulo-ed by the
+     * length of said dimension as specified at shape[dimension].
+     *
+     * @param index the index to constrain. The output will be written back into this array.
+     * @param shape the shape to constrain the index in.
+     */
+    public static void constrainIndex(long @NotNull [] index, long @NotNull [] shape) {
+        if (index.length != shape.length) {
+            throw new IllegalArgumentException("index.length (" + index.length + ") must match shape.length (" + shape.length + ")");
+        }
+        for (int i = 0; i < shape.length; i++) {
+            index[i] = index[i] % shape[i];
+        }
+    }
+
+    /**
      * Returns the shape of the supplied java array.
      *
      * @param array the supplied java array. The shape of the array must conform to a tensor (all elements of given dimension must have the same size).
