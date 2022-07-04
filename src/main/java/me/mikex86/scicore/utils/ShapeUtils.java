@@ -51,7 +51,7 @@ public class ShapeUtils {
 
     /**
      * Computes the strides for a specified shape.
-     * Strides ar the defined as the number of scalars
+     * Strides are defined as the number of scalars
      * (value in the lowest dimension (the dimension with size shape[shape.length -1]))
      * to jump from one element to the next in a specified dimension.
      * This is used to compute the flat index of an element in an
@@ -76,18 +76,18 @@ public class ShapeUtils {
     /**
      * Computes a flat index from a n-dimension index given an array of strides.
      *
-     * @param indices the n-dimensional index. indices.length may be less than strides.length, when the offset
+     * @param index   the n-dimensional index. indices.length may be less than strides.length, when the offset
      *                to the first element of a particular dimension that is not the lowest-level dimension (individual scalars).
      * @param strides the strides as defined byte {@link #makeStrides(long[])}
      * @return the flat index
      */
-    public static long getFlatIndex(long @NotNull [] indices, long @NotNull [] strides) {
-        if (indices.length > strides.length) {
+    public static long getFlatIndex(long @NotNull [] index, long @NotNull [] strides) {
+        if (index.length > strides.length) {
             throw new IllegalArgumentException("Indices length must be less than or equal to strides length");
         }
         long flatIndex = 0;
-        for (int dim = 0; dim < indices.length; dim++) {
-            flatIndex += indices[dim] * strides[dim];
+        for (int dim = 0; dim < index.length; dim++) {
+            flatIndex += index[dim] * strides[dim];
         }
         return flatIndex;
     }
@@ -129,7 +129,7 @@ public class ShapeUtils {
      * @return the true if the index was incremented, false if the index was already at the last element of the shape
      */
     public static boolean incrementIndex(long @NotNull [] shape, long @NotNull [] index) {
-        for (int dim = 0; dim < index.length; dim++) {
+        for (int dim = index.length - 1; dim >= 0; dim--) {
             if (index[dim] < shape[dim] - 1) {
                 index[dim]++;
                 return true;
@@ -146,22 +146,35 @@ public class ShapeUtils {
      * @param shapeB the second shape
      * @return the larger shape
      * @throws IllegalArgumentException if the two shapes are not broadcast-able
+     * @see <a href="https://numpy.org/doc/stable/user/basics.broadcasting.html">Numpy Broadcasting</a>
      */
     public static long @NotNull [] broadcastShapes(long @NotNull [] shapeA, long @NotNull [] shapeB) {
-        if (shapeA.length == shapeB.length) {
-            return shapeA;
+        long[] broadcastShape;
+
+        if (shapeB.length > shapeA.length) {
+            // swap shapes, make shapeA always larger
+            // this is just a reference swap because java, making this cheap
+            long[] tmp = shapeB;
+            shapeB = shapeA;
+            shapeA = tmp;
         }
-        if (shapeA.length > shapeB.length) {
-            if (!ArrayUtils.contains(shapeA, shapeB)) {
-                throw new IllegalArgumentException("Shapes are not broadcast-able. shapeA: " + Arrays.toString(shapeA) + " shapeB: " + Arrays.toString(shapeB));
+
+        broadcastShape = new long[shapeA.length];
+        for (int i = 0; i < shapeA.length; i++) {
+            long elementA = shapeA[shapeA.length - 1 - i];
+            long elementB = i < shapeB.length ? shapeB[shapeB.length - 1 - i] : -1;
+            long dimSize;
+            if (elementA == elementB || elementB == 1 || elementB == -1) {
+                dimSize = elementA;
+            } else if (elementA == 1) {
+                dimSize = elementB;
+            } else {
+                throw new IllegalArgumentException("Shapes are not broadcast-able: shapeA: " + ShapeUtils.toString(shapeA) + ", shapeB: " + ShapeUtils.toString(shapeB));
             }
-            return shapeA;
-        } else {
-            if (!ArrayUtils.contains(shapeB, shapeA)) {
-                throw new IllegalArgumentException("Shapes are not broadcast-able. shapeA: " + Arrays.toString(shapeA) + " shapeB: " + Arrays.toString(shapeB));
-            }
+            broadcastShape[broadcastShape.length - 1 - i] = dimSize;
         }
-        return shapeB;
+
+        return broadcastShape;
     }
 
     /**
