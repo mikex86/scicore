@@ -38,6 +38,11 @@ public class JvmTensorImpl implements TensorImpl {
     }
 
     @Override
+    public long @NotNull [] getStrides() {
+        return this.strides;
+    }
+
+    @Override
     public byte getByte(long @NotNull [] indices) {
         long index = ShapeUtils.getFlatIndex(indices, this.strides);
         return this.dataContainer.getByte(index);

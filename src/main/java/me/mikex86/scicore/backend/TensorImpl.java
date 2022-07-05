@@ -15,6 +15,8 @@ public interface TensorImpl {
 
     long @NotNull [] getShape();
 
+    long @NotNull [] getStrides();
+
     byte getByte(long @NotNull [] indices);
 
     short getShort(long @NotNull [] indices);

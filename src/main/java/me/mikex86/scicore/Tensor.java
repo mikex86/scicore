@@ -37,6 +37,11 @@ public class Tensor implements ITensor {
     }
 
     @Override
+    public long @NotNull [] getStrides() {
+        return this.tensorImpl.getStrides();
+    }
+
+    @Override
     public byte getByte(long @NotNull ... indices) {
         validateDataType(DataType.INT8);
         validateIndices(indices);

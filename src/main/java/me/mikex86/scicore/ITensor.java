@@ -35,6 +35,8 @@ public interface ITensor extends IValue {
 
     long @NotNull [] getShape();
 
+    long @NotNull [] getStrides();
+
     @NotNull
     default ITensor getView(long @NotNull ... indices) {
         long[] shape = getShape();
@@ -50,51 +52,315 @@ public interface ITensor extends IValue {
 
     byte getByte(long @NotNull ... indices);
 
+    default byte getAsByte(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> (byte) getShort(indices);
+            case INT32 -> (byte) getInt(indices);
+            case INT64 -> (byte) getLong(indices);
+            case FLOAT32 -> (byte) getFloat(indices);
+            case FLOAT64 -> (byte) getDouble(indices);
+        };
+    }
+
     short getShort(long @NotNull ... indices);
+
+    default short getAsShort(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> getShort(indices);
+            case INT32 -> (short) getInt(indices);
+            case INT64 -> (short) getLong(indices);
+            case FLOAT32 -> (short) getFloat(indices);
+            case FLOAT64 -> (short) getDouble(indices);
+        };
+    }
 
     int getInt(long @NotNull ... indices);
 
+    default int getAsInt(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> getShort(indices);
+            case INT32 -> getInt(indices);
+            case INT64 -> (int) getLong(indices);
+            case FLOAT32 -> (int) getFloat(indices);
+            case FLOAT64 -> (int) getDouble(indices);
+        };
+    }
+
     long getLong(long @NotNull ... indices);
+
+    default long getAsLong(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> getShort(indices);
+            case INT32 -> getInt(indices);
+            case INT64 -> getLong(indices);
+            case FLOAT32 -> (long) getFloat(indices);
+            case FLOAT64 -> (long) getDouble(indices);
+        };
+    }
 
     float getFloat(long @NotNull ... indices);
 
+    default float getAsFloat(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> getShort(indices);
+            case INT32 -> getInt(indices);
+            case INT64 -> getLong(indices);
+            case FLOAT32 -> getFloat(indices);
+            case FLOAT64 -> (float) getDouble(indices);
+        };
+    }
+
     double getDouble(long @NotNull ... indices);
+
+    default double getAsDouble(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> getShort(indices);
+            case INT32 -> getInt(indices);
+            case INT64 -> getLong(indices);
+            case FLOAT32 -> getFloat(indices);
+            case FLOAT64 -> getDouble(indices);
+        };
+    }
 
     void setByte(byte value, long @NotNull ... indices);
 
+    default void setByByte(byte value, long @NotNull ... indices) {
+        switch (getDataType()) {
+            case INT8 -> setByte(value, indices);
+            case INT16 -> setShort(value, indices);
+            case INT32 -> setInt(value, indices);
+            case INT64 -> setLong(value, indices);
+            case FLOAT32 -> setFloat(value, indices);
+            case FLOAT64 -> setDouble(value, indices);
+        }
+    }
+
     void setShort(short value, long @NotNull ... indices);
+
+    default void setByShort(short value, long @NotNull ... indices) {
+        switch (getDataType()) {
+            case INT8 -> setByte((byte) value, indices);
+            case INT16 -> setShort(value, indices);
+            case INT32 -> setInt(value, indices);
+            case INT64 -> setLong(value, indices);
+            case FLOAT32 -> setFloat(value, indices);
+            case FLOAT64 -> setDouble(value, indices);
+        }
+    }
 
     void setInt(int value, long @NotNull ... indices);
 
+    default void setByInt(int value, long @NotNull ... indices) {
+        switch (getDataType()) {
+            case INT8 -> setByte((byte) value, indices);
+            case INT16 -> setShort((short) value, indices);
+            case INT32 -> setInt(value, indices);
+            case INT64 -> setLong(value, indices);
+            case FLOAT32 -> setFloat(value, indices);
+            case FLOAT64 -> setDouble(value, indices);
+        }
+    }
+
     void setLong(long value, long @NotNull ... indices);
+
+    default void setByLong(long value, long @NotNull ... indices) {
+        switch (getDataType()) {
+            case INT8 -> setByte((byte) value, indices);
+            case INT16 -> setShort((short) value, indices);
+            case INT32 -> setInt((int) value, indices);
+            case INT64 -> setLong(value, indices);
+            case FLOAT32 -> setFloat(value, indices);
+            case FLOAT64 -> setDouble(value, indices);
+        }
+    }
 
     void setFloat(float value, long @NotNull ... indices);
 
+    default void setByFloat(float value, long @NotNull ... indices) {
+        switch (getDataType()) {
+            case INT8 -> setByte((byte) value, indices);
+            case INT16 -> setShort((short) value, indices);
+            case INT32 -> setInt((int) value, indices);
+            case INT64 -> setLong((long) value, indices);
+            case FLOAT32 -> setFloat(value, indices);
+            case FLOAT64 -> setDouble(value, indices);
+        }
+    }
+
     void setDouble(double value, long @NotNull ... indices);
+
+    default void setByDouble(double value, long @NotNull ... indices) {
+        switch (getDataType()) {
+            case INT8 -> setByte((byte) value, indices);
+            case INT16 -> setShort((short) value, indices);
+            case INT32 -> setInt((int) value, indices);
+            case INT64 -> setLong((long) value, indices);
+            case FLOAT32 -> setFloat((float) value, indices);
+            case FLOAT64 -> setDouble(value, indices);
+        }
+    }
 
     byte getByteFlat(long flatIndex);
 
+    default byte getAsByteFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> (byte) getShortFlat(flatIndex);
+            case INT32 -> (byte) getIntFlat(flatIndex);
+            case INT64 -> (byte) getLongFlat(flatIndex);
+            case FLOAT32 -> (byte) getFloatFlat(flatIndex);
+            case FLOAT64 -> (byte) getDoubleFlat(flatIndex);
+        };
+    }
+
     short getShortFlat(long flatIndex);
+
+    default short getAsShortFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> getShortFlat(flatIndex);
+            case INT32 -> (short) getIntFlat(flatIndex);
+            case INT64 -> (short) getLongFlat(flatIndex);
+            case FLOAT32 -> (short) getFloatFlat(flatIndex);
+            case FLOAT64 -> (short) getDoubleFlat(flatIndex);
+        };
+    }
 
     int getIntFlat(long flatIndex);
 
+    default int getAsIntFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> getShortFlat(flatIndex);
+            case INT32 -> getIntFlat(flatIndex);
+            case INT64 -> (int) getLongFlat(flatIndex);
+            case FLOAT32 -> (int) getFloatFlat(flatIndex);
+            case FLOAT64 -> (int) getDoubleFlat(flatIndex);
+        };
+    }
+
     long getLongFlat(long flatIndex);
+
+    default long getAsLongFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> getShortFlat(flatIndex);
+            case INT32 -> getIntFlat(flatIndex);
+            case INT64 -> getLongFlat(flatIndex);
+            case FLOAT32 -> (long) getFloatFlat(flatIndex);
+            case FLOAT64 -> (long) getDoubleFlat(flatIndex);
+        };
+    }
 
     float getFloatFlat(long flatIndex);
 
+    default float getAsFloatFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> getShortFlat(flatIndex);
+            case INT32 -> getIntFlat(flatIndex);
+            case INT64 -> getLongFlat(flatIndex);
+            case FLOAT32 -> getFloatFlat(flatIndex);
+            case FLOAT64 -> (float) getDoubleFlat(flatIndex);
+        };
+    }
+
     double getDoubleFlat(long flatIndex);
+
+    default double getAsDoubleFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> getShortFlat(flatIndex);
+            case INT32 -> getIntFlat(flatIndex);
+            case INT64 -> getLongFlat(flatIndex);
+            case FLOAT32 -> getFloatFlat(flatIndex);
+            case FLOAT64 -> getDoubleFlat(flatIndex);
+        };
+    }
 
     void setByteFlat(byte value, long flatIndex);
 
+    default void setByByteFlat(byte value, long flatIndex) {
+        switch (getDataType()) {
+            case INT8 -> setByteFlat(value, flatIndex);
+            case INT16 -> setShortFlat(value, flatIndex);
+            case INT32 -> setIntFlat(value, flatIndex);
+            case INT64 -> setLongFlat(value, flatIndex);
+            case FLOAT32 -> setFloatFlat(value, flatIndex);
+            case FLOAT64 -> setDoubleFlat(value, flatIndex);
+        }
+    }
+
     void setShortFlat(short value, long flatIndex);
+
+    default void setByShortFlat(short value, long flatIndex) {
+        switch (getDataType()) {
+            case INT8 -> setByteFlat((byte) value, flatIndex);
+            case INT16 -> setShortFlat(value, flatIndex);
+            case INT32 -> setIntFlat(value, flatIndex);
+            case INT64 -> setLongFlat(value, flatIndex);
+            case FLOAT32 -> setFloatFlat(value, flatIndex);
+            case FLOAT64 -> setDoubleFlat(value, flatIndex);
+        }
+    }
 
     void setIntFlat(int value, long flatIndex);
 
+    default void setByIntFlat(int value, long flatIndex) {
+        switch (getDataType()) {
+            case INT8 -> setByteFlat((byte) value, flatIndex);
+            case INT16 -> setShortFlat((short) value, flatIndex);
+            case INT32 -> setIntFlat(value, flatIndex);
+            case INT64 -> setLongFlat(value, flatIndex);
+            case FLOAT32 -> setFloatFlat(value, flatIndex);
+            case FLOAT64 -> setDoubleFlat(value, flatIndex);
+        }
+    }
+
     void setLongFlat(long value, long flatIndex);
+
+    default void setByLongFlat(long value, long flatIndex) {
+        switch (getDataType()) {
+            case INT8 -> setByteFlat((byte) value, flatIndex);
+            case INT16 -> setShortFlat((short) value, flatIndex);
+            case INT32 -> setIntFlat((int) value, flatIndex);
+            case INT64 -> setLongFlat(value, flatIndex);
+            case FLOAT32 -> setFloatFlat(value, flatIndex);
+            case FLOAT64 -> setDoubleFlat(value, flatIndex);
+        }
+    }
 
     void setFloatFlat(float value, long flatIndex);
 
+    default void setByFloatFlat(float value, long flatIndex) {
+        switch (getDataType()) {
+            case INT8 -> setByteFlat((byte) value, flatIndex);
+            case INT16 -> setShortFlat((short) value, flatIndex);
+            case INT32 -> setIntFlat((int) value, flatIndex);
+            case INT64 -> setLongFlat((long) value, flatIndex);
+            case FLOAT32 -> setFloatFlat(value, flatIndex);
+            case FLOAT64 -> setDoubleFlat(value, flatIndex);
+        }
+    }
+
     void setDoubleFlat(double value, long flatIndex);
+
+    default void setByDoubleFlat(double value, long flatIndex) {
+        switch (getDataType()) {
+            case INT8 -> setByteFlat((byte) value, flatIndex);
+            case INT16 -> setShortFlat((short) value, flatIndex);
+            case INT32 -> setIntFlat((int) value, flatIndex);
+            case INT64 -> setLongFlat((long) value, flatIndex);
+            case FLOAT32 -> setFloatFlat((float) value, flatIndex);
+            case FLOAT64 -> setDoubleFlat(value, flatIndex);
+        }
+    }
 
     @NotNull ITensor copy();
 
@@ -382,6 +648,7 @@ public interface ITensor extends IValue {
         SciCoreBackend sc = getSciCore();
 
         TensorImpl result = sc.createTensor(resultDataType, resultShape);
+        ITensor resultTensor = new Tensor(result, sc);
 
         long[] index = new long[resultShape.length];
         for (int i = 0; i < resultShape[0]; i++) {
@@ -391,69 +658,33 @@ public interface ITensor extends IValue {
                     for (int k = 0; k < shape[1]; k++) {
                         index[0] = i;
                         index[1] = k;
-                        double aValue = switch (ownDataType) {
-                            case INT8 -> getByte(index);
-                            case INT16 -> getShort(index);
-                            case INT32 -> getInt(index);
-                            case INT64 -> getLong(index);
-                            case FLOAT32 -> getFloat(index);
-                            case FLOAT64 -> getDouble(index);
-                        };
+                        double aValue = getAsDouble(index);
                         index[0] = k;
                         index[1] = j;
-                        double bValue = switch (otherDataType) {
-                            case INT8 -> other.getByte(index);
-                            case INT16 -> other.getShort(index);
-                            case INT32 -> other.getInt(index);
-                            case INT64 -> other.getLong(index);
-                            case FLOAT32 -> other.getFloat(index);
-                            case FLOAT64 -> other.getDouble(index);
-                        };
+                        double bValue = other.getAsDouble(index);
                         sum += aValue * bValue;
                     }
                     index[0] = i;
                     index[1] = j;
-                    switch (resultDataType) {
-                        case FLOAT32 -> result.setFloat((float) sum, index);
-                        case FLOAT64 -> result.setDouble(sum, index);
-                        default -> throw new IllegalStateException("Unexpected data type: " + resultDataType);
-                    }
+                    resultTensor.setByDouble(sum, index);
                 } else {
                     long sum = 0;
                     for (int k = 0; k < shape[1]; k++) {
                         index[0] = i;
                         index[1] = k;
-                        long aValue = switch (ownDataType) {
-                            case INT8 -> getByte(index);
-                            case INT16 -> getShort(index);
-                            case INT32 -> getInt(index);
-                            case INT64 -> getLong(index);
-                            default -> throw new IllegalStateException("Unexpected data type: " + ownDataType);
-                        };
+                        long aValue = getAsLong(index);
                         index[0] = k;
                         index[1] = j;
-                        long bValue = switch (otherDataType) {
-                            case INT8 -> other.getByte(index);
-                            case INT16 -> other.getShort(index);
-                            case INT32 -> other.getInt(index);
-                            case INT64 -> other.getLong(index);
-                            default -> throw new IllegalStateException("Unexpected data type: " + otherDataType);
-                        };
+                        long bValue = other.getAsLong(index);
                         sum += aValue * bValue;
                     }
                     index[0] = i;
                     index[1] = j;
-                    switch (resultDataType) {
-                        case INT8 -> result.setByte((byte) sum, index);
-                        case INT16 -> result.setShort((short) sum, index);
-                        case INT32 -> result.setInt((int) sum, index);
-                        case INT64 -> result.setLong(sum, index);
-                        default -> throw new IllegalStateException("Unexpected data type: " + resultDataType);
-                    }
+                    resultTensor.setByLong(sum, index);
                 }
             }
         }
-        return new Tensor(result, getSciCore());
+        return resultTensor;
     }
 
     void fill(byte i);
@@ -490,9 +721,9 @@ public interface ITensor extends IValue {
     @NotNull
     default ITensor divided(@NotNull ITensor other) {
         long[] shapeA = getShape();
-        long[] stridesA = ShapeUtils.makeStrides(shapeA);
+        long[] stridesA = getStrides();
         long[] shapeB = other.getShape();
-        long[] stridesB = ShapeUtils.makeStrides(shapeB);
+        long[] stridesB = other.getStrides();
         long[] outputShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
         long[] stridesOut = ShapeUtils.makeStrides(outputShape);
 
@@ -501,6 +732,7 @@ public interface ITensor extends IValue {
         DataType otherDataType = other.getDataType();
         DataType dataType = DataType.getLarger(ownDataType, otherDataType);
         TensorImpl result = sc.createTensor(dataType, outputShape);
+        ITensor resultTensor = new Tensor(result, sc);
 
         long[] outputIndex = new long[outputShape.length];
         long[] indexA = new long[shapeA.length];
@@ -523,52 +755,18 @@ public interface ITensor extends IValue {
             long indexBFlat = ShapeUtils.getFlatIndex(indexB, stridesB);
 
             if (dataType.isFloatingPoint()) {
-                double a = switch (ownDataType) {
-                    case INT8 -> getByteFlat(indexAFlat);
-                    case INT16 -> getShortFlat(indexAFlat);
-                    case INT32 -> getIntFlat(indexAFlat);
-                    case INT64 -> getLongFlat(indexAFlat);
-                    case FLOAT32 -> getFloatFlat(indexAFlat);
-                    case FLOAT64 -> getDoubleFlat(indexAFlat);
-                };
-                double b = switch (otherDataType) {
-                    case INT8 -> other.getByteFlat(indexBFlat);
-                    case INT16 -> other.getShortFlat(indexBFlat);
-                    case INT32 -> other.getIntFlat(indexBFlat);
-                    case INT64 -> other.getLongFlat(indexBFlat);
-                    case FLOAT32 -> other.getFloatFlat(indexBFlat);
-                    case FLOAT64 -> other.getDoubleFlat(indexBFlat);
-                };
+                double a = getAsDoubleFlat(indexAFlat);
+                double b = other.getAsDoubleFlat(indexBFlat);
                 double aDivB = a / b;
-                switch (dataType) {
-                    case FLOAT32 -> result.setFloatFlat((float) aDivB, outputIndexFlat);
-                    case FLOAT64 -> result.setDoubleFlat(aDivB, outputIndexFlat);
-                }
+                resultTensor.setByDoubleFlat(aDivB, outputIndexFlat);
             } else {
-                long a = switch (ownDataType) {
-                    case INT8 -> getByteFlat(indexAFlat);
-                    case INT16 -> getShortFlat(indexAFlat);
-                    case INT32 -> getIntFlat(indexAFlat);
-                    case INT64 -> getLongFlat(indexAFlat);
-                    default -> throw new IllegalStateException("Illegal data type");
-                };
-                long b = switch (ownDataType) {
-                    case INT8 -> other.getByteFlat(indexBFlat);
-                    case INT16 -> other.getShortFlat(indexBFlat);
-                    case INT32 -> other.getIntFlat(indexBFlat);
-                    case INT64 -> other.getLongFlat(indexBFlat);
-                    default -> throw new IllegalStateException("Illegal data type");
-                };
+                long a = getAsLongFlat(indexAFlat);
+                long b = other.getAsLongFlat(indexBFlat);
                 long aDivB = a / b;
-                switch (dataType) {
-                    case INT8 -> result.setByteFlat((byte) aDivB, outputIndexFlat);
-                    case INT16 -> result.setShortFlat((byte) aDivB, outputIndexFlat);
-                    case INT32 -> result.setIntFlat((byte) aDivB, outputIndexFlat);
-                    case INT64 -> result.setLongFlat((byte) aDivB, outputIndexFlat);
-                }
+                resultTensor.setByLongFlat(aDivB, outputIndexFlat);
             }
         } while (ShapeUtils.incrementIndex(outputShape, outputIndex));
-        return new Tensor(result, getSciCore());
+        return resultTensor;
     }
 
     @NotNull
@@ -584,41 +782,22 @@ public interface ITensor extends IValue {
         long[] shape = getShape();
         if (dimension == -1) {
             TensorImpl result = keepDimensions ? sc.createTensor(dataType, new long[]{1, 1}) : sc.createTensor(dataType, new long[]{1});
+            ITensor resultTensor = new Tensor(result, sc);
             long numElements = ShapeUtils.getNumElements(shape);
             if (dataType.isFloatingPoint()) {
                 double sum = 0;
                 for (long i = 0; i < numElements; i++) {
-                    switch (dataType) {
-                        case FLOAT32 -> sum += getFloatFlat(i);
-                        case FLOAT64 -> sum += getDoubleFlat(i);
-                        default -> throw new IllegalStateException("Unexpected data type: " + dataType);
-                    }
+                    sum += getAsDoubleFlat(i);
                 }
-                switch (dataType) {
-                    case FLOAT32 -> result.setFloatFlat((float) sum, 0);
-                    case FLOAT64 -> result.setDoubleFlat(sum, 0);
-                    default -> throw new IllegalStateException("Unexpected data type: " + dataType);
-                }
+                resultTensor.setByDoubleFlat(sum, 0);
             } else {
                 long sum = 0;
                 for (long i = 0; i < numElements; i++) {
-                    switch (dataType) {
-                        case INT8 -> sum += getByteFlat(i);
-                        case INT16 -> sum += getShortFlat(i);
-                        case INT32 -> sum += getIntFlat(i);
-                        case INT64 -> sum += getLongFlat(i);
-                        default -> throw new IllegalStateException("Unexpected data type: " + dataType);
-                    }
+                    sum += getAsLongFlat(i);
                 }
-                switch (dataType) {
-                    case INT8 -> result.setByteFlat((byte) sum, 0);
-                    case INT16 -> result.setShortFlat((short) sum, 0);
-                    case INT32 -> result.setIntFlat((int) sum, 0);
-                    case INT64 -> result.setLongFlat(sum, 0);
-                    default -> throw new IllegalStateException("Unexpected data type: " + dataType);
-                }
+                resultTensor.setByLongFlat(sum, 0);
             }
-            return new Tensor(result, sc);
+            return resultTensor;
         }
         if (dimension < 0 || dimension >= shape.length) {
             throw new IllegalArgumentException("Dimension out of bounds: " + dimension);
@@ -641,6 +820,8 @@ public interface ITensor extends IValue {
         }
 
         TensorImpl result = sc.createTensor(dataType, reducedShape);
+        ITensor resultTensor = new Tensor(result, sc);
+
         long[] completeIndex = new long[shape.length];
         long[] reducedIndex = new long[reducedShape.length];
 
@@ -649,38 +830,19 @@ public interface ITensor extends IValue {
                 double sum = 0;
                 for (long i = 0; i < shape[dimension]; i++) {
                     completeIndex[dimension] = i;
-                    sum += switch (dataType) {
-                        case FLOAT32 -> getFloat(completeIndex);
-                        case FLOAT64 -> getDouble(completeIndex);
-                        default -> throw new IllegalStateException("Unexpected data type: " + dataType);
-                    };
+                    sum += getAsDouble(completeIndex);
                 }
 
-                switch (dataType) {
-                    case FLOAT32 -> result.setFloat((float) sum, reducedIndex);
-                    case FLOAT64 -> result.setDouble(sum, reducedIndex);
-                }
+                resultTensor.setByDouble(sum, reducedIndex);
             } else {
                 long sum = 0;
 
                 for (long i = 0; i < shape[dimension]; i++) {
                     completeIndex[dimension] = i;
-                    sum += switch (dataType) {
-                        case INT8 -> getByte(completeIndex);
-                        case INT16 -> getShort(completeIndex);
-                        case INT32 -> getInt(completeIndex);
-                        case INT64 -> getLong(completeIndex);
-                        default -> throw new IllegalStateException("Unexpected data type: " + dataType);
-                    };
+                    sum += getAsLong(completeIndex);
                 }
 
-                switch (dataType) {
-                    case INT8 -> result.setByte((byte) sum, reducedIndex);
-                    case INT16 -> result.setShort((short) sum, reducedIndex);
-                    case INT32 -> result.setInt((int) sum, reducedIndex);
-                    case INT64 -> result.setLong(sum, reducedIndex);
-                    default -> throw new IllegalStateException("Unexpected data type: " + dataType);
-                }
+                resultTensor.setLong(sum, reducedIndex);
             }
             // increment index, but only for dimensions that are not being summed along
             {
@@ -706,7 +868,7 @@ public interface ITensor extends IValue {
                 }
             }
         }
-        return new Tensor(result, getSciCore());
+        return resultTensor;
     }
 
     @NotNull ITensorIterator iterator();

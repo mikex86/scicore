@@ -29,6 +29,11 @@ class View implements ITensor {
     }
 
     @Override
+    public long @NotNull [] getStrides() {
+        return this.localStrides;
+    }
+
+    @Override
     public byte getByte(long @NotNull ... indices) {
         validateDataType(DataType.INT8);
         validateIndices(indices);
