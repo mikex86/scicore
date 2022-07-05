@@ -3,13 +3,13 @@ package me.mikex86.scicore.backend.impl.jvm;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.backend.ScalarImpl;
 import me.mikex86.scicore.backend.SciCoreBackend;
-import me.mikex86.scicore.backend.TensorImpl;
+import me.mikex86.scicore.backend.ITensorImpl;
 import org.jetbrains.annotations.NotNull;
 
 public class JvmBackend implements SciCoreBackend {
 
     @Override
-    public @NotNull TensorImpl createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
+    public @NotNull ITensorImpl createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
         return new JvmTensorImpl(dataType, shape);
     }
 

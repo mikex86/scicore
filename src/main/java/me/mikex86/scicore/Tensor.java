@@ -1,9 +1,10 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.SciCoreBackend;
-import me.mikex86.scicore.backend.TensorImpl;
+import me.mikex86.scicore.backend.ITensorImpl;
 import me.mikex86.scicore.backend.impl.jvm.JvmScalarImpl;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensorImpl;
+import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -11,7 +12,7 @@ import java.util.Arrays;
 public class Tensor implements ITensor {
 
     @NotNull
-    private final TensorImpl tensorImpl;
+    private final ITensorImpl tensorImpl;
 
     @NotNull
     private final SciCoreBackend backend;
@@ -21,7 +22,7 @@ public class Tensor implements ITensor {
         this.tensorImpl = backend.createTensor(dataType, shape);
     }
 
-    public Tensor(@NotNull TensorImpl tensorImpl, @NotNull SciCoreBackend backend) {
+    public Tensor(@NotNull ITensorImpl tensorImpl, @NotNull SciCoreBackend backend) {
         this.tensorImpl = tensorImpl;
         this.backend = backend;
     }
@@ -199,9 +200,8 @@ public class Tensor implements ITensor {
 
     @Override
     public @NotNull ITensor copy() {
-        Tensor tensor = new Tensor(this.getDataType(), this.getShape(), this.backend);
-        tensor.setContents(this);
-        return tensor;
+        ITensorImpl tensor = this.tensorImpl.copy();
+        return new Tensor(tensor, getSciCore());
     }
 
     @Override
@@ -279,12 +279,43 @@ public class Tensor implements ITensor {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ITensor other)) {
+            return false;
+        }
+        long[] shape = getShape();
+        if (!ShapeUtils.equals(shape, other.getShape())) {
+            return false;
+        }
+        long nElements = ShapeUtils.getNumElements(shape);
+        boolean oneIsFloatingPoint = getDataType().isFloatingPoint() || other.getDataType().isFloatingPoint();
+        if (oneIsFloatingPoint) {
+            for (long i = 0; i < nElements; i++) {
+                double a = getAsDoubleFlat(i);
+                double b = other.getAsDoubleFlat(i);
+                if (Math.abs(a - b) > EPSILON) {
+                    return false;
+                }
+            }
+        } else {
+            for (long i = 0; i < nElements; i++) {
+                long a = getAsLongFlat(i);
+                long b = getAsLongFlat(i);
+                if (a != b) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
     public @NotNull SciCoreBackend getSciCore() {
         return this.backend;
     }
 
     @NotNull
-    public TensorImpl getTensorImpl() {
+    public ITensorImpl getTensorImpl() {
         return tensorImpl;
     }
 

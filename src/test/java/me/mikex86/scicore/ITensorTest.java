@@ -1,10 +1,17 @@
 package me.mikex86.scicore;
 
+import me.mikex86.scicore.utils.ShapeUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ITensorTest {
 
     private static final float EPSILON = 1E-6f;
@@ -40,6 +47,30 @@ class ITensorTest {
         assertEquals(42.0f, view2.getFloat(1));
     }
 
+    Stream<Object> testNdArrayShapeData() {
+        return Stream.of(
+                // nd-shaped java array
+                new byte[1],
+                new byte[1][1][1],
+                new byte[1][1][1][1],
+                new short[1],
+                new short[1][1][1][1][1][1],
+                new short[2][3][4][5],
+                new float[12][12][12],
+                new float[1][1][1],
+                new float[4][4][4],
+                new double[1][4][1]
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("testNdArrayShapeData")
+    void testNdArrayShape(Object javaArray) {
+        long[] shape = ShapeUtils.getArrayShape(javaArray);
+        ITensor ndArray = sciCore.ndarray(javaArray);
+        assertArrayEquals(shape, ndArray.getShape());
+    }
+
     @Test
     void copy() {
         ITensor array = sciCore.array(new float[]{1.0f, 2.0f, 3.0f, 4.0f});
@@ -56,6 +87,52 @@ class ITensorTest {
         ITensor exp = matrix.exp();
         assertEquals((float) Math.exp(3.8f), exp.getFloat(0, 0), EPSILON);
         assertEquals((float) Math.exp(46.3f), exp.getFloat(0, 1), EPSILON);
+    }
+
+    @Test
+    void matmul_test_2x2by2x2() {
+        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+        ITensor matrixB = sciCore.matrix(new float[][]{{5, 6}, {7, 8}});
+        ITensor result = matrixA.matmul(matrixB);
+        assertEquals(sciCore.matrix(new float[][]{{19, 22}, {43, 50}}), result);
+    }
+
+    @Test
+    void matmul_test_2x3by2x3_failure() {
+        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
+        ITensor matrixB = sciCore.matrix(new float[][]{{7, 8, 9}, {10, 11, 12}});
+        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
+    }
+
+    @Test
+    void matmul_test_3d_failure() {
+        ITensor matrixA = sciCore.ndarray(new float[3][4][5]);
+        ITensor matrixB = sciCore.ndarray(new float[8][9][10]);
+        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
+    }
+
+    @Test
+    void matmul_test_2x3by3x2() {
+        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
+        ITensor matrixB = sciCore.matrix(new float[][]{{7, 8}, {9, 10}, {11, 12}});
+        ITensor result = matrixA.matmul(matrixB);
+        assertEquals(sciCore.matrix(new float[][]{{58, 64}, {139, 154}}), result);
+    }
+
+    @Test
+    void matmul_test_withDimView() {
+        ITensor bigNdArrayA = sciCore.ndarray(new float[][][]{
+                {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
+                {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}
+        });
+        ITensor matrixA = bigNdArrayA.getView(0);
+        ITensor matrixB = bigNdArrayA.getView(1);
+
+        assertEquals(sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}), matrixA);
+        assertEquals(sciCore.matrix(new float[][]{{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}), matrixB);
+
+        ITensor result = matrixA.matmul(matrixB);
+        assertEquals(sciCore.matrix(new float[][]{{84, 90, 96}, {201, 216, 231}, {318, 342, 366}}), result);
     }
 
     @Test
@@ -85,7 +162,7 @@ class ITensorTest {
     }
 
     @Test
-    void softmax_dim1() {
+    void softmax_test_dim1() {
         ITensor matrix = sciCore.matrix(new float[][]{{3.8f, 46.3f}, {2.7f, 1.9f}});
         ITensor softmax = matrix.softmax(1);
         assertEquals(3.4872616e-19, softmax.getFloat(0, 0), EPSILON);
@@ -95,14 +172,14 @@ class ITensorTest {
     }
 
     @Test
-    void reduceSum_1x10_dim_minusOne_noKeepDims() {
+    void reduceSum_test_1x10_dim_minusOne_noKeepDims() {
         ITensor matrix = sciCore.matrix(new float[][]{{3.8f, 3.35f, 81.3f, 39.1f, 9.3f, 1.9f}});
         ITensor reduced = matrix.reduceSum(-1);
         assertEquals(138.75f, reduced.getFloat(0), EPSILON);
     }
 
     @Test
-    void reduceSum_3x3_dim0_noKeepDims() {
+    void reduceSum_test_3x3_dim0_noKeepDims() {
         ITensor matrix = sciCore.matrix(new float[][]{{3.0f, 1.0f, 4.0f}, {7.0f, 8.0f, 2.0f}, {11.0f, 2.0f, 1.0f}});
         ITensor sum = matrix.reduceSum(0);
         assertArrayEquals(new long[]{3}, sum.getShape());
@@ -112,7 +189,7 @@ class ITensorTest {
     }
 
     @Test
-    void reduceSum_4x3_dim0_noKeepDims() {
+    void reduceSum_test_4x3_dim0_noKeepDims() {
         ITensor matrix = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}, {7.0f, 8.0f, 9.0f}, {10.0f, 11.0f, 12.0f}});
         ITensor sum = matrix.reduceSum(0);
         assertArrayEquals(new long[]{3}, sum.getShape());
@@ -122,7 +199,7 @@ class ITensorTest {
     }
 
     @Test
-    void reduceSum4x3_dim1_noKeepDims() {
+    void reduceSum_test_4x3_dim1_noKeepDims() {
         ITensor matrix = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}, {7.0f, 8.0f, 9.0f}, {10.0f, 11.0f, 12.0f}});
         ITensor sum = matrix.reduceSum(1);
         assertArrayEquals(new long[]{4}, sum.getShape());
@@ -133,15 +210,16 @@ class ITensorTest {
     }
 
     @Test
-    void reduceSum_5x3x4_noKeepDims() {
-        ITensor tensor = sciCore.random(DataType.FLOAT32, 5, 3, 4);
+    void reduceSum_test_5x3x4_noKeepDims() {
+        ITensor tensor = sciCore.uniform(DataType.FLOAT32, 5, 3, 4);
         ITensor sum = tensor.reduceSum(1);
         assertArrayEquals(new long[]{5, 4}, sum.getShape());
     }
 
     // TODO: TEST OPERATIONS UTILIZING STRIDES WITH VIEWS
-
     // TODO: IDEA STOLEN FROM GEORGE HOTZ. IMPLEMENT BROADCASTING WITH "VIRTUALLY EXPANDED TENSORS"
     //  MEANING TENSORS REPEATING ELEMENTS BY SETTING STRIDES TO ZERO.
     //  TEST THIS PROPERLY, THIS COULD BREAK STUFF
+
+    // TODO: DETACH OPERATIONS FROM TENSORS
 }

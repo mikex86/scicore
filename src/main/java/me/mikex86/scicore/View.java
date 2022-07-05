@@ -1,8 +1,12 @@
 package me.mikex86.scicore;
 
+import me.mikex86.scicore.backend.ITensorImpl;
 import me.mikex86.scicore.backend.SciCoreBackend;
+import me.mikex86.scicore.backend.impl.jvm.JvmTensorImpl;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Arrays;
 
 class View implements ITensor {
 
@@ -223,18 +227,108 @@ class View implements ITensor {
 
     @Override
     public @NotNull ITensor exp() {
-        return ITensor.super.exp();
+        // TODO: THE FACT THAT WE ASSERT CPU HERE IS STUPID
+        //  SEE DETACH OPERATIONS FROM TENSOR
+        long[] shape = getShape();
+        long nElements = ShapeUtils.getNumElements(shape);
+        SciCoreBackend sc = getSciCore();
+        ITensorImpl result = sc.createTensor(getDataType(), shape);
+        for (long i = 0; i < nElements; i++) {
+            result.setDoubleFlat(Math.exp(getDoubleFlat(i)), i);
+        }
+        return new Tensor(result, getSciCore());
     }
 
     @Override
     public @NotNull ITensorIterator iterator() {
-        // TODO: IMPLEMENT
-        throw new UnsupportedOperationException("NOT YET IMPLEMENTED");
+        return new DefaultTensorIterator(this);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ITensor other)) {
+            return false;
+        }
+        long[] shape = getShape();
+        if (!ShapeUtils.equals(shape, other.getShape())) {
+            return false;
+        }
+        long nElements = ShapeUtils.getNumElements(shape);
+        boolean oneIsFloatingPoint = getDataType().isFloatingPoint() || other.getDataType().isFloatingPoint();
+        if (oneIsFloatingPoint) {
+            for (long i = 0; i < nElements; i++) {
+                double a = getAsDoubleFlat(i);
+                double b = other.getAsDoubleFlat(i);
+                if (Math.abs(a - b) > EPSILON) {
+                    return false;
+                }
+            }
+        } else {
+            for (long i = 0; i < nElements; i++) {
+                long a = getAsLongFlat(i);
+                long b = getAsLongFlat(i);
+                if (a != b) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+
+    @Override
+    public String toString() {
+        long[] shape = getShape();
+        StringBuilder sb = new StringBuilder("View(dtype=" + getDataType() + ", shape=" + Arrays.toString(shape) + ", data=\n");
+        ITensorIterator iterator = iterator();
+        boolean isNewLine = true;
+        int nElementsInLine = 0;
+        while (iterator.hasNext()) {
+            long nStartingDimensions = iterator.getNumStartingDimensions();
+            long nEndingDimensions = iterator.getNumEndingDimensions();
+            if (isNewLine) {
+                sb.append("\t");
+            }
+            if (isNewLine) {
+                for (int i = 0; i < shape.length - nStartingDimensions; i++) {
+                    sb.append(" ");
+                }
+            }
+            for (long i = 0; i < nStartingDimensions; i++) {
+                sb.append("[");
+            }
+            switch (iterator.getDataType()) {
+                case INT8 -> sb.append(iterator.getByte());
+                case INT16 -> sb.append(iterator.getShort());
+                case INT32 -> sb.append(iterator.getInt());
+                case INT64 -> sb.append(iterator.getLong());
+                case FLOAT32 -> sb.append(String.format("%.8f", iterator.getFloat()));
+                case FLOAT64 -> sb.append(String.format("%.8f", iterator.getDouble()));
+            }
+            for (long i = 0; i < nEndingDimensions; i++) {
+                sb.append("]");
+            }
+            iterator.moveNext();
+            if (!iterator.hasNext()) {
+                continue;
+            }
+            sb.append(",");
+            //if ((nElementsInLine++ >= 5 && nEndingDimensions > 0) || nElementsInLine >= 10) {
+            if (nEndingDimensions > 0) {
+                sb.append("\n");
+                isNewLine = true;
+                nElementsInLine = 0;
+            } else {
+                sb.append(" ");
+                isNewLine = false;
+            }
+        }
+        sb.append(")\n");
+        return sb.toString();
     }
 
     @Override
     public @NotNull SciCoreBackend getSciCore() {
         return this.viewed.getSciCore();
     }
-
 }

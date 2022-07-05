@@ -7,7 +7,6 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Random;
 
@@ -22,7 +21,7 @@ public class SciCore {
     }
 
     @NotNull
-    public ITensor random(@NotNull DataType dataType, long @NotNull ... shape) {
+    public ITensor uniform(@NotNull DataType dataType, long @NotNull ... shape) {
         Tensor tensor = new Tensor(dataType, shape, getBackend());
         long numberOfElements = tensor.getNumberOfElements();
         Random random = new Random();

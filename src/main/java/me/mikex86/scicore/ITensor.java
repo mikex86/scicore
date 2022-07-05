@@ -2,15 +2,15 @@ package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ScalarImpl;
 import me.mikex86.scicore.backend.SciCoreBackend;
-import me.mikex86.scicore.backend.TensorImpl;
-import me.mikex86.scicore.backend.impl.jvm.JvmTensorImpl;
+import me.mikex86.scicore.backend.ITensorImpl;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.util.Arrays;
 
 public interface ITensor extends IValue {
+
+    float EPSILON = 1E-5f;
 
     default void validateDataType(@NotNull DataType requestedDataType) {
         DataType ownDataType = getDataType();
@@ -647,7 +647,7 @@ public interface ITensor extends IValue {
 
         SciCoreBackend sc = getSciCore();
 
-        TensorImpl result = sc.createTensor(resultDataType, resultShape);
+        ITensorImpl result = sc.createTensor(resultDataType, resultShape);
         ITensor resultTensor = new Tensor(result, sc);
 
         long[] index = new long[resultShape.length];
@@ -700,16 +700,7 @@ public interface ITensor extends IValue {
     void fill(double i);
 
     @NotNull
-    default ITensor exp() {
-        long[] shape = getShape();
-        long nElements = ShapeUtils.getNumElements(shape);
-        SciCoreBackend sc = getSciCore();
-        TensorImpl result = sc.createTensor(getDataType(), shape);
-        for (long i = 0; i < nElements; i++) {
-            result.setDoubleFlat(Math.exp(getDoubleFlat(i)), i);
-        }
-        return new Tensor(result, getSciCore());
-    }
+    ITensor exp();
 
     @NotNull
     default ITensor softmax(int dimension) {
@@ -731,7 +722,7 @@ public interface ITensor extends IValue {
         DataType ownDataType = getDataType();
         DataType otherDataType = other.getDataType();
         DataType dataType = DataType.getLarger(ownDataType, otherDataType);
-        TensorImpl result = sc.createTensor(dataType, outputShape);
+        ITensorImpl result = sc.createTensor(dataType, outputShape);
         ITensor resultTensor = new Tensor(result, sc);
 
         long[] outputIndex = new long[outputShape.length];
@@ -781,7 +772,7 @@ public interface ITensor extends IValue {
         DataType dataType = getDataType();
         long[] shape = getShape();
         if (dimension == -1) {
-            TensorImpl result = keepDimensions ? sc.createTensor(dataType, new long[]{1, 1}) : sc.createTensor(dataType, new long[]{1});
+            ITensorImpl result = keepDimensions ? sc.createTensor(dataType, new long[]{1, 1}) : sc.createTensor(dataType, new long[]{1});
             ITensor resultTensor = new Tensor(result, sc);
             long numElements = ShapeUtils.getNumElements(shape);
             if (dataType.isFloatingPoint()) {
@@ -819,7 +810,7 @@ public interface ITensor extends IValue {
             }
         }
 
-        TensorImpl result = sc.createTensor(dataType, reducedShape);
+        ITensorImpl result = sc.createTensor(dataType, reducedShape);
         ITensor resultTensor = new Tensor(result, sc);
 
         long[] completeIndex = new long[shape.length];
@@ -870,6 +861,9 @@ public interface ITensor extends IValue {
         }
         return resultTensor;
     }
+
+    @Override
+    boolean equals(Object other);
 
     @NotNull ITensorIterator iterator();
 

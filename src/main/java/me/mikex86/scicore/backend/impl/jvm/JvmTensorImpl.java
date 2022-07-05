@@ -1,7 +1,8 @@
 package me.mikex86.scicore.backend.impl.jvm;
 
 import me.mikex86.scicore.*;
-import me.mikex86.scicore.backend.TensorImpl;
+import me.mikex86.scicore.backend.ITensorImpl;
+import me.mikex86.scicore.backend.SciCoreBackend;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -9,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class JvmTensorImpl implements TensorImpl {
+public class JvmTensorImpl implements ITensorImpl {
 
     @NotNull
     private final JvmTensorDataContainer dataContainer;
@@ -172,6 +173,13 @@ public class JvmTensorImpl implements TensorImpl {
     @Override
     public void setDoubleFlat(double value, long flatIndex) {
         this.dataContainer.setDouble(flatIndex, value);
+    }
+
+    @Override
+    public @NotNull ITensorImpl copy() {
+        ITensorImpl copy = new JvmTensorImpl(getDataType(), getShape());
+        copy.setContents(this);
+        return copy;
     }
 
     @Override
@@ -788,11 +796,16 @@ public class JvmTensorImpl implements TensorImpl {
     @Override
     public @NotNull
     ITensorIterator iterator() {
-        return new JvmTensorIterator();
+        return new DefaultTensorIterator(this);
     }
 
     @Override
-    public @NotNull TensorImpl matmul(@NotNull JvmTensorImpl b) {
+    public @NotNull SciCoreBackend getSciCore() {
+        return null;
+    }
+
+    @Override
+    public @NotNull ITensorImpl matmul(@NotNull JvmTensorImpl b) {
         long[] otherShape = b.getShape();
         if (otherShape.length != 2) {
             throw new IllegalArgumentException("matmul only supports 2D matrices");
@@ -885,89 +898,22 @@ public class JvmTensorImpl implements TensorImpl {
     }
 
     @Override
-    public @NotNull TensorImpl exp() {
-        return TensorImpl.super.exp();
-    }
-
-    private class JvmTensorIterator implements ITensorIterator {
-
-        private long flatIndex = 0;
-        private final long @NotNull [] shape = getShape();
-        private final long nElements = ShapeUtils.getNumElements(shape);
-
-        @Override
-        public boolean hasNext() {
-            return flatIndex < nElements;
-        }
-
-        @Override
-        public void moveNext() {
-            flatIndex++;
-        }
-
-        @Override
-        public long getNumEndingDimensions() {
-            int nDims = 0;
-            long flatIndex = this.flatIndex;
-            for (int i = shape.length - 1; i >= 0; i--) {
-                long dimSize = shape[i];
-                if (flatIndex % dimSize != (dimSize - 1)) {
-                    break;
-                }
-                flatIndex /= dimSize;
-                nDims++;
+    public @NotNull ITensorImpl exp() {
+        long[] shape = getShape();
+        long nElements = ShapeUtils.getNumElements(shape);
+        DataType dataType = getDataType();
+        ITensorImpl result = new JvmTensorImpl(dataType, shape);
+        if (dataType.isFloatingPoint()) {
+            for (long i = 0; i < nElements; i++) {
+                double value = getAsDoubleFlat(i);
+                result.setByDoubleFlat(Math.exp(value), i);
             }
-            return nDims;
-        }
-
-        @Override
-        public long getNumStartingDimensions() {
-            int nDims = 0;
-            long flatIndex = this.flatIndex;
-            for (int i = shape.length - 1; i >= 0; i--) {
-                long dimSize = shape[i];
-                if (flatIndex % dimSize != 0) {
-                    break;
-                }
-                flatIndex /= dimSize;
-                nDims++;
+        } else {
+            for (long i = 0; i < nElements; i++) {
+                long value = getAsLongFlat(i);
+                result.setByLongFlat((long) Math.exp(value), i);
             }
-            return nDims;
         }
-
-        @Override
-        public @NotNull DataType getDataType() {
-            return JvmTensorImpl.this.getDataType();
-        }
-
-        @Override
-        public byte getByte() {
-            return JvmTensorImpl.this.getByteFlat(this.flatIndex);
-        }
-
-        @Override
-        public short getShort() {
-            return JvmTensorImpl.this.getShortFlat(this.flatIndex);
-        }
-
-        @Override
-        public int getInt() {
-            return JvmTensorImpl.this.getIntFlat(this.flatIndex);
-        }
-
-        @Override
-        public long getLong() {
-            return JvmTensorImpl.this.getLongFlat(this.flatIndex);
-        }
-
-        @Override
-        public float getFloat() {
-            return JvmTensorImpl.this.getFloatFlat(this.flatIndex);
-        }
-
-        @Override
-        public double getDouble() {
-            return JvmTensorImpl.this.getDoubleFlat(this.flatIndex);
-        }
+        return result;
     }
 }

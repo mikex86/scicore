@@ -19,7 +19,7 @@ public class Linear implements Module {
     public Linear(@NotNull SciCore sciCore, @NotNull DataType dataType, long inputSize, long outputSize) {
         this.sciCore = sciCore;
         this.inputSize = inputSize;
-        this.weights = sciCore.random(dataType, outputSize, inputSize);
+        this.weights = sciCore.uniform(dataType, outputSize, inputSize);
     }
 
     @Override

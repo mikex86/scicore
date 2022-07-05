@@ -8,7 +8,7 @@ import me.mikex86.scicore.backend.impl.jvm.JvmTensorImpl;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-public interface TensorImpl {
+public interface ITensorImpl extends ITensor {
 
     @NotNull
     DataType getDataType();
@@ -91,41 +91,12 @@ public interface TensorImpl {
     ITensorIterator iterator();
 
     @NotNull
-    TensorImpl matmul(@NotNull JvmTensorImpl b);
+    ITensorImpl matmul(@NotNull JvmTensorImpl b);
 
     @NotNull
-    default TensorImpl exp() {
-        long[] shape = getShape();
-        long nElements = ShapeUtils.getNumElements(shape);
-        DataType dataType = getDataType();
-        TensorImpl result = new JvmTensorImpl(dataType, shape);
-        for (long i = 0; i < nElements; i++) {
-            if (dataType.isFloatingPoint()) {
-                double value = switch (dataType) {
-                    case FLOAT32 -> getFloatFlat(i);
-                    case FLOAT64 -> getDoubleFlat(i);
-                    default -> throw new IllegalStateException("Unexpected value: " + dataType);
-                };
-                switch (dataType) {
-                    case FLOAT32 -> result.setFloatFlat((float) Math.exp(value), i);
-                    case FLOAT64 -> result.setDoubleFlat(Math.exp(value), i);
-                }
-            } else {
-                long value = switch (dataType) {
-                    case INT8 -> getByteFlat(i);
-                    case INT16 -> getShortFlat(i);
-                    case INT32 -> getIntFlat(i);
-                    case INT64 -> getLongFlat(i);
-                    default -> throw new IllegalStateException("Unexpected value: " + dataType);
-                };
-                switch (dataType) {
-                    case INT8 -> result.setByteFlat((byte) Math.exp(value), i);
-                    case INT16 -> result.setShortFlat((short) Math.exp(value), i);
-                    case INT32 -> result.setIntFlat((int) Math.exp(value), i);
-                    case INT64 -> result.setLongFlat((long) Math.exp(value), i);
-                }
-            }
-        }
-        return result;
-    }
+    ITensorImpl exp();
+
+    @NotNull
+    @Override
+    ITensorImpl copy();
 }

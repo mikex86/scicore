@@ -1,10 +1,9 @@
 package me.mikex86.scicore.data;
 
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.Tensor;
 import me.mikex86.scicore.backend.SciCoreBackend;
-import me.mikex86.scicore.backend.TensorImpl;
+import me.mikex86.scicore.backend.ITensorImpl;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -50,7 +49,7 @@ public class DatasetIterator implements Iterator<ITensor> {
         long[] dataShape = firstTensor.getShape();
         long[] finalShape = new long[dataShape.length + 1];
 
-        TensorImpl finalTensor = sc.createTensor(firstTensor.getDataType(), finalShape);
+        ITensorImpl finalTensor = sc.createTensor(firstTensor.getDataType(), finalShape);
 
         // copy data from batch to final tensor
         for (int i = 0; i < batchSize; i++) {

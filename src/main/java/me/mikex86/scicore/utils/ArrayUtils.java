@@ -5,6 +5,8 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Array;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class ArrayUtils {
 
@@ -124,7 +126,7 @@ public class ArrayUtils {
         }
         // check if n elements of arrayB follow the first element of arrayA
         for (i = 0; i < arrayB.length; i++) {
-            if (arrayB[i] != arrayA[j + i]) {
+            if (j + i >= arrayA.length || arrayB[i] != arrayA[j + i]) {
                 return false;
             }
         }
@@ -134,6 +136,7 @@ public class ArrayUtils {
 
     /**
      * Checks if the last elements of arrayA match that of arrayB.
+     *
      * @param arrayA the array to check if it ends with arrayB.
      * @param arrayB the subset that arrayA should end with.
      * @return true if arrayA ends with arrayB.
