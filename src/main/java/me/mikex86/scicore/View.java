@@ -1,8 +1,7 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ITensorImpl;
-import me.mikex86.scicore.backend.SciCoreBackend;
-import me.mikex86.scicore.backend.impl.jvm.JvmTensorImpl;
+import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -189,12 +188,6 @@ class View implements ITensor {
     public void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView) {
         throw new UnsupportedOperationException("Views are read-only");
     }
-
-    @Override
-    public @NotNull ITensor multiplied(@NotNull Scalar s) {
-        return ITensor.super.multiplied(s);
-    }
-
     @Override
     public void fill(byte i) {
         throw new UnsupportedOperationException("Views are read-only");
@@ -231,12 +224,12 @@ class View implements ITensor {
         //  SEE DETACH OPERATIONS FROM TENSOR
         long[] shape = getShape();
         long nElements = ShapeUtils.getNumElements(shape);
-        SciCoreBackend sc = getSciCore();
-        ITensorImpl result = sc.createTensor(getDataType(), shape);
+        ISciCoreBackend backend = getSciCoreBackend();
+        ITensorImpl result = backend.createTensor(getDataType(), shape);
         for (long i = 0; i < nElements; i++) {
             result.setDoubleFlat(Math.exp(getDoubleFlat(i)), i);
         }
-        return new Tensor(result, getSciCore());
+        return new Tensor(backend, result);
     }
 
     @Override
@@ -328,7 +321,7 @@ class View implements ITensor {
     }
 
     @Override
-    public @NotNull SciCoreBackend getSciCore() {
-        return this.viewed.getSciCore();
+    public @NotNull ISciCoreBackend getSciCoreBackend() {
+        return this.viewed.getSciCoreBackend();
     }
 }

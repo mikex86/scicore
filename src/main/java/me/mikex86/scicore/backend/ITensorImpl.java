@@ -3,9 +3,7 @@ package me.mikex86.scicore.backend;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.ITensorIterator;
-import me.mikex86.scicore.backend.impl.jvm.JvmScalarImpl;
-import me.mikex86.scicore.backend.impl.jvm.JvmTensorImpl;
-import me.mikex86.scicore.utils.ShapeUtils;
+import me.mikex86.scicore.backend.impl.jvm.JvmDataTensorImpl;
 import org.jetbrains.annotations.NotNull;
 
 public interface ITensorImpl extends ITensor {
@@ -69,9 +67,6 @@ public interface ITensorImpl extends ITensor {
 
     void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView);
 
-    @NotNull
-    JvmTensorImpl multiplied(@NotNull JvmScalarImpl b);
-
     void fill(byte i);
 
     void fill(short i);
@@ -89,12 +84,6 @@ public interface ITensorImpl extends ITensor {
 
     @NotNull
     ITensorIterator iterator();
-
-    @NotNull
-    ITensorImpl matmul(@NotNull JvmTensorImpl b);
-
-    @NotNull
-    ITensorImpl exp();
 
     @NotNull
     @Override

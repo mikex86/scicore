@@ -1,8 +1,8 @@
 package me.mikex86.scicore;
 
-import me.mikex86.scicore.backend.ScalarImpl;
-import me.mikex86.scicore.backend.SciCoreBackend;
-import me.mikex86.scicore.backend.ITensorImpl;
+import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.op.IGraphRecorder;
+import me.mikex86.scicore.op.OperationType;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -373,318 +373,24 @@ public interface ITensor extends IValue {
     }
 
     @NotNull
-    default ITensor multiplied(@NotNull Scalar s) {
-        // General multiply
-        ITensor copy = copy();
-        long nElements = copy.getNumberOfElements();
-        DataType tensorDataType = copy.getDataType();
-        DataType scalarDataType = s.getDataType();
-        ScalarImpl scalarImpl = s.getScalarImpl();
-
-        switch (tensorDataType) {
-            case INT8 -> {
-                switch (scalarDataType) {
-                    case INT8 -> {
-                        byte scalarValue = scalarImpl.getByte();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setByteFlat((byte) (copy.getByteFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case INT16 -> {
-                        short scalarValue = scalarImpl.getShort();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setByteFlat((byte) (copy.getByteFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case INT32 -> {
-                        int scalarValue = scalarImpl.getInt();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setByteFlat((byte) (copy.getByteFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case INT64 -> {
-                        long scalarValue = scalarImpl.getLong();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setByteFlat((byte) (copy.getByteFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case FLOAT32 -> {
-                        float scalarValue = scalarImpl.getFloat();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setByteFlat((byte) (copy.getByteFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case FLOAT64 -> {
-                        double scalarValue = scalarImpl.getDouble();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setByteFlat((byte) (copy.getByteFlat(i) * scalarValue), i);
-                        }
-                    }
-                }
-            }
-            case INT16 -> {
-                switch (scalarDataType) {
-                    case INT8 -> {
-                        byte scalarValue = scalarImpl.getByte();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setShortFlat((short) (copy.getShortFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case INT16 -> {
-                        short scalarValue = scalarImpl.getShort();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setShortFlat((short) (copy.getShortFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case INT32 -> {
-                        int scalarValue = scalarImpl.getInt();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setShortFlat((short) (copy.getShortFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case INT64 -> {
-                        long scalarValue = scalarImpl.getLong();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setShortFlat((short) (copy.getShortFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case FLOAT32 -> {
-                        float scalarValue = scalarImpl.getFloat();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setShortFlat((short) (copy.getShortFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case FLOAT64 -> {
-                        double scalarValue = scalarImpl.getDouble();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setShortFlat((short) (copy.getShortFlat(i) * scalarValue), i);
-                        }
-                    }
-                }
-            }
-            case INT32 -> {
-                switch (scalarDataType) {
-                    case INT8 -> {
-                        byte scalarValue = scalarImpl.getByte();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setIntFlat(copy.getIntFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT16 -> {
-                        short scalarValue = scalarImpl.getShort();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setIntFlat(copy.getIntFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT32 -> {
-                        int scalarValue = scalarImpl.getInt();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setIntFlat(copy.getIntFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT64 -> {
-                        long scalarValue = scalarImpl.getLong();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setIntFlat((int) (copy.getIntFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case FLOAT32 -> {
-                        float scalarValue = scalarImpl.getFloat();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setIntFlat((int) (copy.getIntFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case FLOAT64 -> {
-                        double scalarValue = scalarImpl.getDouble();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setIntFlat((int) (copy.getIntFlat(i) * scalarValue), i);
-                        }
-                    }
-                }
-            }
-            case INT64 -> {
-                switch (scalarDataType) {
-                    case INT8 -> {
-                        byte scalarValue = scalarImpl.getByte();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setLongFlat(copy.getLongFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT16 -> {
-                        short scalarValue = scalarImpl.getShort();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setLongFlat(copy.getLongFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT32 -> {
-                        int scalarValue = scalarImpl.getInt();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setLongFlat(copy.getLongFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT64 -> {
-                        long scalarValue = scalarImpl.getLong();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setLongFlat(copy.getLongFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case FLOAT32 -> {
-                        float scalarValue = scalarImpl.getFloat();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setLongFlat((long) (copy.getLongFlat(i) * scalarValue), i);
-                        }
-                    }
-                    case FLOAT64 -> {
-                        double scalarValue = scalarImpl.getDouble();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setLongFlat((long) (copy.getLongFlat(i) * scalarValue), i);
-                        }
-                    }
-                }
-            }
-            case FLOAT32 -> {
-                switch (scalarDataType) {
-                    case INT8 -> {
-                        byte scalarValue = scalarImpl.getByte();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setFloatFlat(copy.getFloatFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT16 -> {
-                        short scalarValue = scalarImpl.getShort();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setFloatFlat(copy.getFloatFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT32 -> {
-                        int scalarValue = scalarImpl.getInt();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setFloatFlat(copy.getFloatFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT64 -> {
-                        long scalarValue = scalarImpl.getLong();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setFloatFlat(copy.getFloatFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case FLOAT32 -> {
-                        float scalarValue = scalarImpl.getFloat();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setFloatFlat(copy.getFloatFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case FLOAT64 -> {
-                        double scalarValue = scalarImpl.getDouble();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setFloatFlat((float) (copy.getFloatFlat(i) * scalarValue), i);
-                        }
-                    }
-                }
-            }
-            case FLOAT64 -> {
-                switch (scalarDataType) {
-                    case INT8 -> {
-                        byte scalarValue = scalarImpl.getByte();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setDoubleFlat(copy.getDoubleFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT16 -> {
-                        short scalarValue = scalarImpl.getShort();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setDoubleFlat(copy.getDoubleFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT32 -> {
-                        int scalarValue = scalarImpl.getInt();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setDoubleFlat(copy.getDoubleFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case INT64 -> {
-                        long scalarValue = scalarImpl.getLong();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setDoubleFlat(copy.getDoubleFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case FLOAT32 -> {
-                        float scalarValue = scalarImpl.getFloat();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setDoubleFlat(copy.getDoubleFlat(i) * scalarValue, i);
-                        }
-                    }
-                    case FLOAT64 -> {
-                        double scalarValue = scalarImpl.getDouble();
-                        for (long i = 0; i < nElements; i++) {
-                            copy.setDoubleFlat(copy.getDoubleFlat(i) * scalarValue, i);
-                        }
-                    }
-                }
-            }
-        }
-        return copy;
+    default ITensor matmul(@NotNull ITensor other) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.MATMUL, this, other);
     }
 
     @NotNull
-    default ITensor matmul(@NotNull ITensor other) {
-        // General matmul (slower)
-        long[] otherShape = other.getShape();
-        if (otherShape.length != 2) {
-            throw new IllegalArgumentException("matmul only supports 2D matrices");
-        }
-        long[] shape = getShape();
-        if (shape.length != 2) {
-            throw new IllegalArgumentException("matmul only supports 2D matrices");
-        }
-        if (shape[1] != otherShape[0]) {
-            throw new IllegalArgumentException("matmul: shape mismatch. A.shape[1] != B.shape[0]");
-        }
-        long[] resultShape = new long[]{shape[0], otherShape[1]};
-        DataType ownDataType = getDataType();
-        DataType otherDataType = other.getDataType();
-        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
+    default ITensor divided(@NotNull ITensor other) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.DIVIDED, this, other);
+    }
 
-        SciCoreBackend sc = getSciCore();
-
-        ITensorImpl result = sc.createTensor(resultDataType, resultShape);
-        ITensor resultTensor = new Tensor(result, sc);
-
-        long[] index = new long[resultShape.length];
-        for (int i = 0; i < resultShape[0]; i++) {
-            for (int j = 0; j < resultShape[1]; j++) {
-                if (resultDataType.isFloatingPoint()) {
-                    double sum = 0;
-                    for (int k = 0; k < shape[1]; k++) {
-                        index[0] = i;
-                        index[1] = k;
-                        double aValue = getAsDouble(index);
-                        index[0] = k;
-                        index[1] = j;
-                        double bValue = other.getAsDouble(index);
-                        sum += aValue * bValue;
-                    }
-                    index[0] = i;
-                    index[1] = j;
-                    resultTensor.setByDouble(sum, index);
-                } else {
-                    long sum = 0;
-                    for (int k = 0; k < shape[1]; k++) {
-                        index[0] = i;
-                        index[1] = k;
-                        long aValue = getAsLong(index);
-                        index[0] = k;
-                        index[1] = j;
-                        long bValue = other.getAsLong(index);
-                        sum += aValue * bValue;
-                    }
-                    index[0] = i;
-                    index[1] = j;
-                    resultTensor.setByLong(sum, index);
-                }
-            }
-        }
-        return resultTensor;
+    @NotNull
+    default ITensor plus(@NotNull ITensor other) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.PLUS, this, other);
     }
 
     void fill(byte i);
@@ -700,7 +406,11 @@ public interface ITensor extends IValue {
     void fill(double i);
 
     @NotNull
-    ITensor exp();
+    default ITensor exp() {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.EXP, this);
+    }
 
     @NotNull
     default ITensor softmax(int dimension) {
@@ -710,156 +420,15 @@ public interface ITensor extends IValue {
     }
 
     @NotNull
-    default ITensor divided(@NotNull ITensor other) {
-        long[] shapeA = getShape();
-        long[] stridesA = getStrides();
-        long[] shapeB = other.getShape();
-        long[] stridesB = other.getStrides();
-        long[] outputShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
-        long[] stridesOut = ShapeUtils.makeStrides(outputShape);
-
-        SciCoreBackend sc = getSciCore();
-        DataType ownDataType = getDataType();
-        DataType otherDataType = other.getDataType();
-        DataType dataType = DataType.getLarger(ownDataType, otherDataType);
-        ITensorImpl result = sc.createTensor(dataType, outputShape);
-        ITensor resultTensor = new Tensor(result, sc);
-
-        long[] outputIndex = new long[outputShape.length];
-        long[] indexA = new long[shapeA.length];
-        long[] indexB = new long[shapeB.length];
-
-        do {
-            // copy common dimensions into indexA and indexB
-            for (int i = 0; i < indexA.length; i++) {
-                indexA[indexA.length - 1 - i] = outputIndex[outputIndex.length - 1 - i];
-            }
-            for (int i = 0; i < indexB.length; i++) {
-                indexB[indexB.length - 1 - i] = outputIndex[outputIndex.length - 1 - i];
-            }
-            // constrain indices
-            ShapeUtils.constrainIndex(indexA, shapeA);
-            ShapeUtils.constrainIndex(indexB, shapeB);
-
-            long outputIndexFlat = ShapeUtils.getFlatIndex(outputIndex, stridesOut);
-            long indexAFlat = ShapeUtils.getFlatIndex(indexA, stridesA);
-            long indexBFlat = ShapeUtils.getFlatIndex(indexB, stridesB);
-
-            if (dataType.isFloatingPoint()) {
-                double a = getAsDoubleFlat(indexAFlat);
-                double b = other.getAsDoubleFlat(indexBFlat);
-                double aDivB = a / b;
-                resultTensor.setByDoubleFlat(aDivB, outputIndexFlat);
-            } else {
-                long a = getAsLongFlat(indexAFlat);
-                long b = other.getAsLongFlat(indexBFlat);
-                long aDivB = a / b;
-                resultTensor.setByLongFlat(aDivB, outputIndexFlat);
-            }
-        } while (ShapeUtils.incrementIndex(outputShape, outputIndex));
-        return resultTensor;
-    }
-
-    @NotNull
     default ITensor reduceSum(int dimension) {
         return reduceSum(dimension, false);
     }
 
     @NotNull
     default ITensor reduceSum(int dimension, boolean keepDimensions) {
-        // TODO: OPTIMIZE
-        SciCoreBackend sc = getSciCore();
-        DataType dataType = getDataType();
-        long[] shape = getShape();
-        if (dimension == -1) {
-            ITensorImpl result = keepDimensions ? sc.createTensor(dataType, new long[]{1, 1}) : sc.createTensor(dataType, new long[]{1});
-            ITensor resultTensor = new Tensor(result, sc);
-            long numElements = ShapeUtils.getNumElements(shape);
-            if (dataType.isFloatingPoint()) {
-                double sum = 0;
-                for (long i = 0; i < numElements; i++) {
-                    sum += getAsDoubleFlat(i);
-                }
-                resultTensor.setByDoubleFlat(sum, 0);
-            } else {
-                long sum = 0;
-                for (long i = 0; i < numElements; i++) {
-                    sum += getAsLongFlat(i);
-                }
-                resultTensor.setByLongFlat(sum, 0);
-            }
-            return resultTensor;
-        }
-        if (dimension < 0 || dimension >= shape.length) {
-            throw new IllegalArgumentException("Dimension out of bounds: " + dimension);
-        }
-        long[] reducedShape = new long[shape.length - (keepDimensions ? 0 : 1)];
-        for (int i = 0; i < shape.length; i++) {
-            long dimSize = shape[i];
-            if (keepDimensions) {
-                if (i == dimension) {
-                    dimSize = 1;
-                }
-                reducedShape[i] = dimSize;
-            } else {
-                if (i < dimension) {
-                    reducedShape[i] = dimSize;
-                } else if (i > dimension) {
-                    reducedShape[i - 1] = dimSize;
-                }
-            }
-        }
-
-        ITensorImpl result = sc.createTensor(dataType, reducedShape);
-        ITensor resultTensor = new Tensor(result, sc);
-
-        long[] completeIndex = new long[shape.length];
-        long[] reducedIndex = new long[reducedShape.length];
-
-        while (true) {
-            if (dataType.isFloatingPoint()) {
-                double sum = 0;
-                for (long i = 0; i < shape[dimension]; i++) {
-                    completeIndex[dimension] = i;
-                    sum += getAsDouble(completeIndex);
-                }
-
-                resultTensor.setByDouble(sum, reducedIndex);
-            } else {
-                long sum = 0;
-
-                for (long i = 0; i < shape[dimension]; i++) {
-                    completeIndex[dimension] = i;
-                    sum += getAsLong(completeIndex);
-                }
-
-                resultTensor.setLong(sum, reducedIndex);
-            }
-            // increment index, but only for dimensions that are not being summed along
-            {
-                boolean hasNext = false;
-                for (int dim = 0; dim < completeIndex.length; dim++) {
-                    if (dim == dimension) {
-                        continue;
-                    }
-                    if (completeIndex[dim] < shape[dim] - 1) {
-                        completeIndex[dim]++;
-                        if (dim > dimension) {
-                            reducedIndex[dim - 1] = completeIndex[dim];
-                        } else {
-                            reducedIndex[dim] = completeIndex[dim];
-                        }
-                        hasNext = true;
-                        break;
-                    }
-                    completeIndex[dim] = 0;
-                }
-                if (!hasNext) {
-                    break;
-                }
-            }
-        }
-        return resultTensor;
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.REDUCE_SUM, this, dimension, keepDimensions);
     }
 
     @Override
@@ -867,5 +436,5 @@ public interface ITensor extends IValue {
 
     @NotNull ITensorIterator iterator();
 
-    @NotNull SciCoreBackend getSciCore();
+    @NotNull ISciCoreBackend getSciCoreBackend();
 }

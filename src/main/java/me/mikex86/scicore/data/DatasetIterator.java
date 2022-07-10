@@ -2,7 +2,7 @@ package me.mikex86.scicore.data;
 
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.Tensor;
-import me.mikex86.scicore.backend.SciCoreBackend;
+import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.ITensorImpl;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,11 +45,11 @@ public class DatasetIterator implements Iterator<ITensor> {
             throw new IllegalStateException("No next batch");
         }
         ITensor firstTensor = Objects.requireNonNull(batch.peek());
-        SciCoreBackend sc = firstTensor.getSciCore();
+        ISciCoreBackend backend = firstTensor.getSciCoreBackend();
         long[] dataShape = firstTensor.getShape();
         long[] finalShape = new long[dataShape.length + 1];
 
-        ITensorImpl finalTensor = sc.createTensor(firstTensor.getDataType(), finalShape);
+        ITensorImpl finalTensor = backend.createTensor(firstTensor.getDataType(), finalShape);
 
         // copy data from batch to final tensor
         for (int i = 0; i < batchSize; i++) {
@@ -61,6 +61,6 @@ public class DatasetIterator implements Iterator<ITensor> {
             finalTensor.setContents(new long[]{i}, tensor, true);
         }
 
-        return new Tensor(finalTensor, sc);
+        return new Tensor(backend, finalTensor);
     }
 }

@@ -1,9 +1,8 @@
 package me.mikex86.scicore;
 
-import me.mikex86.scicore.backend.SciCoreBackend;
+import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.ITensorImpl;
-import me.mikex86.scicore.backend.impl.jvm.JvmScalarImpl;
-import me.mikex86.scicore.backend.impl.jvm.JvmTensorImpl;
+import me.mikex86.scicore.backend.impl.jvm.JvmDataTensorImpl;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,14 +14,14 @@ public class Tensor implements ITensor {
     private final ITensorImpl tensorImpl;
 
     @NotNull
-    private final SciCoreBackend backend;
+    private final ISciCoreBackend backend;
 
-    Tensor(@NotNull DataType dataType, long @NotNull [] shape, @NotNull SciCoreBackend backend) {
+    Tensor(@NotNull ISciCoreBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
         this.backend = backend;
         this.tensorImpl = backend.createTensor(dataType, shape);
     }
 
-    public Tensor(@NotNull ITensorImpl tensorImpl, @NotNull SciCoreBackend backend) {
+    public Tensor(@NotNull ISciCoreBackend backend, @NotNull ITensorImpl tensorImpl) {
         this.tensorImpl = tensorImpl;
         this.backend = backend;
     }
@@ -201,7 +200,7 @@ public class Tensor implements ITensor {
     @Override
     public @NotNull ITensor copy() {
         ITensorImpl tensor = this.tensorImpl.copy();
-        return new Tensor(tensor, getSciCore());
+        return new Tensor(backend, tensor);
     }
 
     @Override
@@ -218,24 +217,6 @@ public class Tensor implements ITensor {
     @Override
     public void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView) {
         this.tensorImpl.setContents(dimension, tensor, useView);
-    }
-
-    @Override
-    public @NotNull ITensor multiplied(@NotNull Scalar s) {
-        if (s.getScalarImpl() instanceof JvmScalarImpl jvmScalarImpl) {
-            return new Tensor(this.tensorImpl.multiplied(jvmScalarImpl), this.backend);
-        } else {
-            return ITensor.super.multiplied(s);
-        }
-    }
-
-    @Override
-    public @NotNull ITensor matmul(@NotNull ITensor other) {
-        if (other instanceof Tensor tensor && tensor.tensorImpl instanceof JvmTensorImpl otherJvmImpl) {
-            return new Tensor(this.tensorImpl.matmul(otherJvmImpl), this.backend);
-        } else {
-            return ITensor.super.matmul(other);
-        }
     }
 
     @Override
@@ -266,11 +247,6 @@ public class Tensor implements ITensor {
     @Override
     public void fill(double i) {
         this.tensorImpl.fill(i);
-    }
-
-    @Override
-    public @NotNull ITensor exp() {
-        return new Tensor(this.tensorImpl.exp(), this.backend);
     }
 
     @Override
@@ -310,7 +286,7 @@ public class Tensor implements ITensor {
     }
 
     @Override
-    public @NotNull SciCoreBackend getSciCore() {
+    public @NotNull ISciCoreBackend getSciCoreBackend() {
         return this.backend;
     }
 

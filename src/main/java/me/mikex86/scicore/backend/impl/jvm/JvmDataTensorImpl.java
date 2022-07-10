@@ -2,7 +2,7 @@ package me.mikex86.scicore.backend.impl.jvm;
 
 import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ITensorImpl;
-import me.mikex86.scicore.backend.SciCoreBackend;
+import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,19 +10,25 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class JvmTensorImpl implements ITensorImpl {
+public class JvmDataTensorImpl implements ITensorImpl {
 
     @NotNull
     private final JvmTensorDataContainer dataContainer;
 
     private final long @NotNull [] strides;
 
-    public JvmTensorImpl(@NotNull DataType dataType, long @NotNull [] shape) {
+    @NotNull
+    private final ISciCoreBackend backend;
+
+
+    public JvmDataTensorImpl(@NotNull ISciCoreBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
+        this.backend = backend;
         this.dataContainer = new JvmTensorDataContainer(dataType, shape);
         this.strides = ShapeUtils.makeStrides(shape);
     }
 
-    JvmTensorImpl(@NotNull JvmTensorDataContainer dataContainer, long @NotNull [] shape) {
+    JvmDataTensorImpl(@NotNull ISciCoreBackend backend, @NotNull JvmTensorDataContainer dataContainer, long @NotNull [] shape) {
+        this.backend = backend;
         this.dataContainer = dataContainer;
         this.strides = ShapeUtils.makeStrides(shape);
     }
@@ -177,14 +183,14 @@ public class JvmTensorImpl implements ITensorImpl {
 
     @Override
     public @NotNull ITensorImpl copy() {
-        ITensorImpl copy = new JvmTensorImpl(getDataType(), getShape());
+        ITensorImpl copy = new JvmDataTensorImpl(this.backend, getDataType(), getShape());
         copy.setContents(this);
         return copy;
     }
 
     @Override
     public void setContents(@NotNull ITensor tensor) {
-        if (tensor instanceof Tensor t && t.getTensorImpl() instanceof JvmTensorImpl jvmTensorImpl) {
+        if (tensor instanceof Tensor t && t.getTensorImpl() instanceof JvmDataTensorImpl jvmTensorImpl) {
             this.dataContainer.setContents(jvmTensorImpl.dataContainer);
         } else {
             // General copy
@@ -206,70 +212,6 @@ public class JvmTensorImpl implements ITensorImpl {
     @Override
     public void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView) {
         throw new UnsupportedOperationException("TODO"); // TODO: IMPLEMENT
-    }
-
-    @Override
-    public @NotNull
-    JvmTensorImpl multiplied(@NotNull JvmScalarImpl b) {
-        DataType ownDataType = getDataType();
-        DataType scalarDataType = b.getDataType();
-        DataType resultDataType = DataType.getLarger(ownDataType, scalarDataType);
-        JvmTensorDataContainer dataContainer = new JvmTensorDataContainer(resultDataType, this.getShape());
-        long[] shape = this.getShape();
-        long nElements = ShapeUtils.getNumElements(shape);
-        for (long i = 0; i < nElements; i++) {
-            if (!resultDataType.isFloatingPoint()) {
-                long aValue = switch (ownDataType) {
-                    case INT8 -> this.getByteFlat(i);
-                    case INT16 -> this.getShortFlat(i);
-                    case INT32 -> this.getIntFlat(i);
-                    case INT64 -> this.getLongFlat(i);
-                    default -> throw new IllegalStateException("Unexpected value: " + ownDataType);
-                };
-                long bValue = switch (scalarDataType) {
-                    case INT8 -> b.getByte();
-                    case INT16 -> b.getShort();
-                    case INT32 -> b.getInt();
-                    case INT64 -> b.getLong();
-                    default -> throw new IllegalStateException("Unexpected value: " + scalarDataType);
-                };
-                long cValue = aValue * bValue;
-                switch (resultDataType) {
-                    case INT8 -> dataContainer.setByte(i, (byte) cValue);
-                    case INT16 -> dataContainer.setShort(i, (short) cValue);
-                    case INT32 -> dataContainer.setInt(i, (int) cValue);
-                    case INT64 -> dataContainer.setLong(i, cValue);
-                    default -> throw new IllegalStateException("Unexpected value: " + resultDataType);
-                }
-            } else {
-                double aValue = switch (ownDataType) {
-                    case INT8 -> this.getByteFlat(i);
-                    case INT16 -> this.getShortFlat(i);
-                    case INT32 -> this.getIntFlat(i);
-                    case INT64 -> this.getLongFlat(i);
-                    case FLOAT32 -> this.getFloatFlat(i);
-                    case FLOAT64 -> this.getDoubleFlat(i);
-                };
-                double bValue = switch (scalarDataType) {
-                    case INT8 -> b.getByte();
-                    case INT16 -> b.getShort();
-                    case INT32 -> b.getInt();
-                    case INT64 -> b.getLong();
-                    case FLOAT32 -> b.getFloat();
-                    case FLOAT64 -> b.getDouble();
-                };
-                double cValue = aValue * bValue;
-                switch (resultDataType) {
-                    case INT8 -> dataContainer.setByte(i, (byte) cValue);
-                    case INT16 -> dataContainer.setShort(i, (short) cValue);
-                    case INT32 -> dataContainer.setInt(i, (int) cValue);
-                    case INT64 -> dataContainer.setLong(i, (long) cValue);
-                    case FLOAT32 -> dataContainer.setFloat(i, (float) cValue);
-                    case FLOAT64 -> dataContainer.setDouble(i, cValue);
-                }
-            }
-        }
-        return new JvmTensorImpl(dataContainer, shape);
     }
 
     @Override
@@ -800,120 +742,7 @@ public class JvmTensorImpl implements ITensorImpl {
     }
 
     @Override
-    public @NotNull SciCoreBackend getSciCore() {
-        return null;
-    }
-
-    @Override
-    public @NotNull ITensorImpl matmul(@NotNull JvmTensorImpl b) {
-        long[] otherShape = b.getShape();
-        if (otherShape.length != 2) {
-            throw new IllegalArgumentException("matmul only supports 2D matrices");
-        }
-        long[] shape = getShape();
-        if (shape.length != 2) {
-            throw new IllegalArgumentException("matmul only supports 2D matrices");
-        }
-        if (shape[1] != otherShape[0]) {
-            throw new IllegalArgumentException("matmul: shape mismatch. A.shape[1] != B.shape[0]");
-        }
-        long[] resultShape = new long[]{shape[0], otherShape[1]};
-        DataType ownDataType = getDataType();
-        DataType otherDataType = b.getDataType();
-        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
-
-        JvmTensorImpl result = new JvmTensorImpl(resultDataType, resultShape);
-
-        long[] index = new long[resultShape.length];
-        for (int i = 0; i < resultShape[0]; i++) {
-            for (int j = 0; j < resultShape[1]; j++) {
-                if (resultDataType.isFloatingPoint()) {
-                    double sum = 0;
-                    for (int k = 0; k < shape[1]; k++) {
-                        index[0] = i;
-                        index[1] = k;
-                        double aValue = switch (ownDataType) {
-                            case INT8 -> getByte(index);
-                            case INT16 -> getShort(index);
-                            case INT32 -> getInt(index);
-                            case INT64 -> getLong(index);
-                            case FLOAT32 -> getFloat(index);
-                            case FLOAT64 -> getDouble(index);
-                        };
-                        index[0] = k;
-                        index[1] = j;
-                        double bValue = switch (otherDataType) {
-                            case INT8 -> b.getByte(index);
-                            case INT16 -> b.getShort(index);
-                            case INT32 -> b.getInt(index);
-                            case INT64 -> b.getLong(index);
-                            case FLOAT32 -> b.getFloat(index);
-                            case FLOAT64 -> b.getDouble(index);
-                        };
-                        sum += aValue * bValue;
-                    }
-                    index[0] = i;
-                    index[1] = j;
-                    switch (resultDataType) {
-                        case FLOAT32 -> result.setFloat((float) sum, index);
-                        case FLOAT64 -> result.setDouble(sum, index);
-                        default -> throw new IllegalStateException("Unexpected data type: " + resultDataType);
-                    }
-                } else {
-                    long sum = 0;
-                    for (int k = 0; k < shape[1]; k++) {
-                        index[0] = i;
-                        index[1] = k;
-                        long aValue = switch (ownDataType) {
-                            case INT8 -> getByte(index);
-                            case INT16 -> getShort(index);
-                            case INT32 -> getInt(index);
-                            case INT64 -> getLong(index);
-                            default -> throw new IllegalStateException("Unexpected data type: " + ownDataType);
-                        };
-                        index[0] = k;
-                        index[1] = j;
-                        long bValue = switch (otherDataType) {
-                            case INT8 -> b.getByte(index);
-                            case INT16 -> b.getShort(index);
-                            case INT32 -> b.getInt(index);
-                            case INT64 -> b.getLong(index);
-                            default -> throw new IllegalStateException("Unexpected data type: " + otherDataType);
-                        };
-                        sum += aValue * bValue;
-                    }
-                    index[0] = i;
-                    index[1] = j;
-                    switch (resultDataType) {
-                        case INT8 -> result.setByte((byte) sum, index);
-                        case INT16 -> result.setShort((short) sum, index);
-                        case INT32 -> result.setInt((int) sum, index);
-                        case INT64 -> result.setLong(sum, index);
-                        default -> throw new IllegalStateException("Unexpected data type: " + resultDataType);
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public @NotNull ITensorImpl exp() {
-        long[] shape = getShape();
-        long nElements = ShapeUtils.getNumElements(shape);
-        DataType dataType = getDataType();
-        ITensorImpl result = new JvmTensorImpl(dataType, shape);
-        if (dataType.isFloatingPoint()) {
-            for (long i = 0; i < nElements; i++) {
-                double value = getAsDoubleFlat(i);
-                result.setByDoubleFlat(Math.exp(value), i);
-            }
-        } else {
-            for (long i = 0; i < nElements; i++) {
-                long value = getAsLongFlat(i);
-                result.setByLongFlat((long) Math.exp(value), i);
-            }
-        }
-        return result;
+    public @NotNull ISciCoreBackend getSciCoreBackend() {
+        return this.backend;
     }
 }

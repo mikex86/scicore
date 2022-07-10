@@ -1,7 +1,9 @@
 package me.mikex86.scicore;
 
-import me.mikex86.scicore.backend.SciCoreBackend;
+import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
+import me.mikex86.scicore.op.Graph;
+import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ArrayUtils;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -13,16 +15,18 @@ import java.util.Random;
 public class SciCore {
 
     @Nullable
-    private SciCoreBackend sciCoreBackend = null;
+    private ISciCoreBackend sciCoreBackend = null;
 
     @NotNull
     public ITensor zeros(@NotNull DataType dataType, long @NotNull ... shape) {
-        return new Tensor(dataType, shape, getBackend());
+        ISciCoreBackend backend = getBackend();
+        return new Tensor(backend, dataType, shape);
     }
 
     @NotNull
     public ITensor uniform(@NotNull DataType dataType, long @NotNull ... shape) {
-        Tensor tensor = new Tensor(dataType, shape, getBackend());
+        ISciCoreBackend backend = getBackend();
+        Tensor tensor = new Tensor(backend, dataType, shape);
         long numberOfElements = tensor.getNumberOfElements();
         Random random = new Random();
         switch (dataType) {
@@ -61,11 +65,6 @@ public class SciCore {
         return tensor;
     }
 
-    @NotNull
-    public ITensor multiplied(@NotNull ITensor a, @NotNull Scalar b) {
-        return a.multiplied(b);
-    }
-
     public void setBackend(@NotNull BackendType backendType) {
         if (sciCoreBackend != null) {
             throw new IllegalStateException("SciCore backend already initialized!");
@@ -74,33 +73,8 @@ public class SciCore {
     }
 
     @NotNull
-    public SciCoreBackend getBackend() {
+    public ISciCoreBackend getBackend() {
         return Objects.requireNonNull(sciCoreBackend, "Backend has not yet been configured");
-    }
-
-    @NotNull
-    public IScalar scalar(byte i) {
-        return new Scalar(getBackend(), i);
-    }
-
-    @NotNull
-    public IScalar scalar(short i) {
-        return new Scalar(getBackend(), i);
-    }
-
-    @NotNull
-    public IScalar scalar(int i) {
-        return new Scalar(getBackend(), i);
-    }
-
-    @NotNull
-    public IScalar scalar(float f) {
-        return new Scalar(getBackend(), f);
-    }
-
-    @NotNull
-    public IScalar scalar(double d) {
-        return new Scalar(getBackend(), d);
     }
 
     public void fill(@NotNull ITensor tensor, byte i) {
@@ -145,7 +119,8 @@ public class SciCore {
 
     @NotNull
     public ITensor array(byte @NotNull [] array) {
-        ITensor tensor = new Tensor(DataType.INT8, new long[]{array.length}, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.INT8, new long[]{array.length});
         for (int i = 0; i < array.length; i++) {
             tensor.setByteFlat(array[i], i);
         }
@@ -154,7 +129,8 @@ public class SciCore {
 
     @NotNull
     public ITensor array(short @NotNull [] array) {
-        ITensor tensor = new Tensor(DataType.INT16, new long[]{array.length}, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.INT16, new long[]{array.length});
         for (int i = 0; i < array.length; i++) {
             tensor.setShortFlat(array[i], i);
         }
@@ -163,7 +139,8 @@ public class SciCore {
 
     @NotNull
     public ITensor array(int @NotNull [] array) {
-        ITensor tensor = new Tensor(DataType.INT32, new long[]{array.length}, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.INT32, new long[]{array.length});
         for (int i = 0; i < array.length; i++) {
             tensor.setIntFlat(array[i], i);
         }
@@ -172,7 +149,8 @@ public class SciCore {
 
     @NotNull
     public ITensor array(long @NotNull [] array) {
-        ITensor tensor = new Tensor(DataType.INT64, new long[]{array.length}, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.INT64, new long[]{array.length});
         for (int i = 0; i < array.length; i++) {
             tensor.setLongFlat(array[i], i);
         }
@@ -181,7 +159,8 @@ public class SciCore {
 
     @NotNull
     public ITensor array(float @NotNull [] array) {
-        ITensor tensor = new Tensor(DataType.FLOAT32, new long[]{array.length}, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.FLOAT32, new long[]{array.length});
         for (int i = 0; i < array.length; i++) {
             tensor.setFloatFlat(array[i], i);
         }
@@ -190,7 +169,8 @@ public class SciCore {
 
     @NotNull
     public ITensor array(double @NotNull [] array) {
-        ITensor tensor = new Tensor(DataType.FLOAT64, new long[]{array.length}, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.FLOAT64, new long[]{array.length});
         for (int i = 0; i < array.length; i++) {
             tensor.setDoubleFlat(array[i], i);
         }
@@ -205,7 +185,8 @@ public class SciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
-        ITensor tensor = new Tensor(DataType.INT8, shape, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.INT8, shape);
         long[] index = new long[2];
         for (int i = 0; i < array.length; i++) {
             index[0] = i;
@@ -225,7 +206,8 @@ public class SciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
-        ITensor tensor = new Tensor(DataType.INT16, shape, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.INT16, shape);
         long[] index = new long[2];
         for (int i = 0; i < array.length; i++) {
             index[0] = i;
@@ -245,7 +227,8 @@ public class SciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
-        ITensor tensor = new Tensor(DataType.INT32, shape, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.INT32, shape);
         long[] index = new long[2];
         for (int i = 0; i < array.length; i++) {
             index[0] = i;
@@ -265,7 +248,8 @@ public class SciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
-        ITensor tensor = new Tensor(DataType.INT64, shape, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.INT64, shape);
         long[] index = new long[2];
         for (int i = 0; i < array.length; i++) {
             index[0] = i;
@@ -285,7 +269,8 @@ public class SciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
-        ITensor tensor = new Tensor(DataType.FLOAT32, shape, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.FLOAT32, shape);
         long[] index = new long[2];
         for (int i = 0; i < array.length; i++) {
             index[0] = i;
@@ -305,7 +290,8 @@ public class SciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
-        ITensor tensor = new Tensor(DataType.FLOAT64, shape, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, DataType.FLOAT64, shape);
         long[] index = new long[2];
         for (int i = 0; i < array.length; i++) {
             index[0] = i;
@@ -325,7 +311,8 @@ public class SciCore {
         int nElements = Math.toIntExact(ShapeUtils.getNumElements(arrayShape));
         DataType dataType = DataType.fromClass(componentClass);
         Object elements = ArrayUtils.getElementsFlat(array);
-        ITensor tensor = new Tensor(dataType, arrayShape, getBackend());
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = new Tensor(backend, dataType, arrayShape);
         // TODO: Make this more efficient by not having a second (flattened) copy of the array.
         if (elements instanceof byte[] byteArray) {
             for (int i = 0; i < nElements; i++) {
@@ -357,15 +344,20 @@ public class SciCore {
         return tensor;
     }
 
+    @NotNull
+    public IGraph getRecordedGraph() {
+        return getBackend().getOperationRecorder().finish();
+    }
+
     public enum BackendType {
 
         JVM {
             @Override
-            public SciCoreBackend newInstance() {
+            public ISciCoreBackend newInstance() {
                 return new JvmBackend();
             }
         };
 
-        public abstract SciCoreBackend newInstance();
+        public abstract ISciCoreBackend newInstance();
     }
 }
