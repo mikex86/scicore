@@ -38,6 +38,9 @@ public class Graph implements IGraph {
             // initialize gradient to 1 because derivative of x in respect to itself is one. Duh.
             if (outputNode instanceof AbstractDifferentiableNode differentiableNode) {
                 ITensor tensor = differentiableNode.getValue();
+                if (!tensor.isScalar()) {
+                    throw new IllegalStateException("Cannot compute gradient of non-scalar tensor");
+                }
                 ITensor gradient = backend.createTensor(tensor.getDataType(), tensor.getShape());
                 gradient.fill(1);
                 differentiableNode.setGradient(gradient);

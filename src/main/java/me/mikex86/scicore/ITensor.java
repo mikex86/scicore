@@ -437,4 +437,8 @@ public interface ITensor extends IValue {
     @NotNull ITensorIterator iterator();
 
     @NotNull ISciCoreBackend getSciCoreBackend();
+
+    default boolean isScalar() {
+        return getNumberOfElements() == 1;
+    }
 }
