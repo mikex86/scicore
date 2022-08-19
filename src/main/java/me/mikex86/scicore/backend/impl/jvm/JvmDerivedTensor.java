@@ -8,6 +8,7 @@ import me.mikex86.scicore.op.IDerivedTensor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 public class JvmDerivedTensor implements IDerivedTensor {
@@ -235,5 +236,24 @@ public class JvmDerivedTensor implements IDerivedTensor {
     @Override
     public @NotNull ISciCoreBackend getSciCoreBackend() {
         return this.sciCoreBackend;
+    }
+
+    @Override
+    public String toString() {
+        return result().toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ITensor tensor)) {
+            return false;
+        }
+        if (!Arrays.equals(tensor.getShape(), this.getShape())) {
+            return false;
+        }
+        if (tensor.getDataType() != this.getDataType()) {
+            return false;
+        }
+        return result().equals(obj);
     }
 }

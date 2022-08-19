@@ -8,11 +8,12 @@ import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmDataTensorImpl;
 import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
 import me.mikex86.scicore.op.IBinaryOperation;
+import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
-public class JvmMatMulOp implements IBinaryOperation {
+public class JvmMatMulOp implements IDifferentiableBinaryOperation {
 
     @NotNull
     private final ISciCoreBackend backend;
@@ -102,9 +103,25 @@ public class JvmMatMulOp implements IBinaryOperation {
     }
 
     @Override
-    public void computeGradients(@NotNull IGraph.IDifferentiableNode a, @NotNull IGraph.IDifferentiableNode b) {
-        a.accumulateGradient(b.getValue());
-        b.accumulateGradient(a.getValue());
+    public void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.IDifferentiableNode a, @NotNull IGraph.IDifferentiableNode b) {
+        // Notation: WX = D
+
+        // W = a, X = b, D = result
+        // L = loss function (or more generally, the root of the graph that we derive in respect to)
+        // G = upstream gradient = dL/dD
+
+        // .T = transpose
+        // @ = matrix multiplication
+
+        // Gradients:
+        // dL/dW = G @ X.T
+        // dL/dX = W.T @ G
+
+        ITensor dLdW = upstreamGradient.matmul(b.getValue().transpose());
+        ITensor dLdX = a.getValue().transpose().matmul(upstreamGradient);
+
+        a.accumulateGradient(dLdW);
+        b.accumulateGradient(dLdX);
     }
 
 }

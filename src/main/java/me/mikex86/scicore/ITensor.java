@@ -431,6 +431,13 @@ public interface ITensor extends IValue {
         return operationRecorder.recordOperation(OperationType.REDUCE_SUM, this, dimension, keepDimensions);
     }
 
+    @NotNull
+    default ITensor transpose() {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.TRANSPOSE, this);
+    }
+
     @Override
     boolean equals(Object other);
 

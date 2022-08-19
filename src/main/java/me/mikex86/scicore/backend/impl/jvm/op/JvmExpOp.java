@@ -21,19 +21,19 @@ public class JvmExpOp implements IUnaryOperation {
     }
 
     @Override
-    public @NotNull ITensor perform(@NotNull ITensor tensor) {
-        long[] shape = tensor.getShape();
+    public @NotNull ITensor perform(@NotNull ITensor input) {
+        long[] shape = input.getShape();
         long nElements = ShapeUtils.getNumElements(shape);
-        DataType dataType = tensor.getDataType();
+        DataType dataType = input.getDataType();
         ITensorImpl result = new JvmDataTensorImpl(this.backend, dataType, shape);
         if (dataType.isFloatingPoint()) {
             for (long i = 0; i < nElements; i++) {
-                double value = tensor.getAsDoubleFlat(i);
+                double value = input.getAsDoubleFlat(i);
                 result.setByDoubleFlat(Math.exp(value), i);
             }
         } else {
             for (long i = 0; i < nElements; i++) {
-                long value = tensor.getAsLongFlat(i);
+                long value = input.getAsLongFlat(i);
                 result.setByLongFlat((long) Math.exp(value), i);
             }
         }
@@ -41,12 +41,8 @@ public class JvmExpOp implements IUnaryOperation {
     }
 
     @Override
-    public @NotNull ITensor performLazily(@NotNull ITensor tensor) {
-        return new JvmDerivedTensor(backend, tensor.getShape(), tensor.getDataType(), () -> perform(tensor));
+    public @NotNull ITensor performLazily(@NotNull ITensor input) {
+        return new JvmDerivedTensor(backend, input.getShape(), input.getDataType(), () -> perform(input));
     }
 
-    @Override
-    public void computeGradient(IGraph.@NotNull IDifferentiableNode tensor) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
 }

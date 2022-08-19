@@ -710,8 +710,8 @@ public class JvmDataTensorImpl implements ITensorImpl {
                 case INT16 -> sb.append(iterator.getShort());
                 case INT32 -> sb.append(iterator.getInt());
                 case INT64 -> sb.append(iterator.getLong());
-                case FLOAT32 -> sb.append(String.format("%.8f", iterator.getFloat()));
-                case FLOAT64 -> sb.append(String.format("%.8f", iterator.getDouble()));
+                case FLOAT32 -> sb.append(String.format("%4.3g", iterator.getFloat()));
+                case FLOAT64 -> sb.append(String.format("%4.3g", iterator.getDouble()));
             }
             for (long i = 0; i < nEndingDimensions; i++) {
                 sb.append("]");

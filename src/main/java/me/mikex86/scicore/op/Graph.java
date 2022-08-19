@@ -10,12 +10,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public class Graph implements IGraph {
-
     @NotNull
     private final IGraphNode outputNode;
-
     @NotNull
     private final ISciCoreBackend backend;
+
+    @NotNull
+    private final Map<ITensor, IDifferentiableNode> gradientMap = new IdentityHashMap<>();
 
     public Graph(@NotNull IGraphNode outputNode, @NotNull ISciCoreBackend backend) {
         this.outputNode = outputNode;
@@ -30,10 +31,15 @@ public class Graph implements IGraph {
 
     @Override
     public void backward() {
+        this.gradientMap.clear();
+
+        // TODO: Implement "requires_grad" boolean and "should_save_grad" boolean
+
         Queue<IGraphNode> nodes = new LinkedList<>();
-        Set<IGraphNode> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<IGraphNode> visited = Collections.newSetFromMap(new IdentityHashMap<>()); // compare identity, not contents
 
         // Handle output node
+        // Defines root note that we want to derive with respect to
         {
             // initialize gradient to 1 because derivative of x in respect to itself is one. Duh.
             if (outputNode instanceof AbstractDifferentiableNode differentiableNode) {
@@ -41,21 +47,35 @@ public class Graph implements IGraph {
                 if (!tensor.isScalar()) {
                     throw new IllegalStateException("Cannot compute gradient of non-scalar tensor");
                 }
-                ITensor gradient = backend.createTensor(tensor.getDataType(), tensor.getShape());
-                gradient.fill(1);
-                differentiableNode.setGradient(gradient);
+                ITensor gradient;
+                {
+                    // ones like tensor
+                    gradient = backend.createTensor(tensor.getDataType(), tensor.getShape());
+                    gradient.fill(1);
+                }
+                differentiableNode.accumulateGradient(gradient);
                 nodes.add(differentiableNode);
             } else {
                 throw new IllegalStateException("Output node of graph must be differentiable!");
             }
         }
 
+        // Recursively apply chain rule to all leaf nodes
+        // This order of iteration guarantees topological ordering from root to leaf nodes
+        // This is important because we need to compute the gradient the output node first before we can compute the
+        // gradient of its inputs. This is required because we are applying the chain rule
+        // which states dy/dx = dy/du * du/dx where u is a function of x.
+        // An interpretation of this rule in the context of this graph is
+        // that the gradient of an input node with respect to the output root node is the product of the gradient up
+        // to the currently processed node and the gradient of the input node with respect to the currently processed node.
         while (!nodes.isEmpty()) {
             IGraphNode node = nodes.poll();
 
             if (node instanceof IDifferentiableNode differentiableNode) {
-                differentiableNode.computeGradient();
+                differentiableNode.computeGradients();
+                this.gradientMap.put(differentiableNode.getValue(), differentiableNode);
             }
+
             // traverse up the topology, if the graph extends upwards
             if (node instanceof OperationGraphNode operationNode) {
                 for (IGraphNode inputNode : operationNode.getInputs()) {
@@ -64,9 +84,14 @@ public class Graph implements IGraph {
                     }
                 }
             }
-
             visited.add(node);
         }
+    }
+
+    @NotNull
+    public Optional<ITensor> getGradient(@NotNull ITensor tensor) {
+        IDifferentiableNode node = this.gradientMap.get(tensor);
+        return Optional.ofNullable(node).map(IDifferentiableNode::getGradient);
     }
 
     public static abstract class AbstractDifferentiableNode implements IDifferentiableNode {
@@ -128,9 +153,10 @@ public class Graph implements IGraph {
         }
 
         @Override
-        public void computeGradient() {
-            // TODO
+        public void computeGradients() {
+            // TODO: REMOVE
         }
+
     }
 
     public static class OperationGraphNode extends AbstractDifferentiableNode {
@@ -140,8 +166,6 @@ public class Graph implements IGraph {
         private final @NotNull List<@NotNull IGraphNode> inputs;
 
         private final @NotNull ITensor output;
-
-        private @Nullable ITensor gradient = null;
 
         public OperationGraphNode(@NotNull OperationType operationType, @NotNull List<@NotNull IGraphNode> inputs, @NotNull ITensor output) {
             this.operationType = operationType;
@@ -161,10 +185,6 @@ public class Graph implements IGraph {
             return inputs;
         }
 
-        void setGradient(@Nullable ITensor gradient) {
-            this.gradient = gradient;
-        }
-
         @NotNull
         @Override
         public ITensor getValue() {
@@ -172,16 +192,14 @@ public class Graph implements IGraph {
         }
 
         @Override
-        public void computeGradient() {
+        public void computeGradients() {
             ISciCoreBackend sciCoreBackend = getValue().getSciCoreBackend();
-            IOperation operation = sciCoreBackend.getOperation(operationType);
-            sciCoreBackend.computeGradients(operation, inputs);
+            sciCoreBackend.computeGradients(this);
         }
 
-        @Nullable
         @Override
-        public ITensor getGradient() {
-            return gradient;
+        public String getName() {
+            return operationType.name();
         }
     }
 }

@@ -11,6 +11,4 @@ public interface IBinaryOperation extends IOperation {
     @NotNull
     ITensor performLazily(@NotNull ITensor a, @NotNull ITensor b);
 
-    void computeGradients(@NotNull IGraph.IDifferentiableNode a, @NotNull IGraph.IDifferentiableNode b);
-
 }

@@ -138,11 +138,6 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
         return new JvmDerivedTensor(backend, outputShape, dataType, () -> perform(tensor, dimension, keepDimensions));
     }
 
-    @Override
-    public void computeGradient(@NotNull IGraph.IDifferentiableNode tensor, Integer integer, Boolean aBoolean) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
     private static void reduceShape(long[] shape, long[] outputShape, Integer dimension, Boolean keepDimensions) {
         for (int i = 0; i < shape.length; i++) {
             long dimSize = shape[i];

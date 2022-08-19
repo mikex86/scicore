@@ -5,10 +5,8 @@ import org.jetbrains.annotations.NotNull;
 
 public interface IUnaryOperation extends IOperation {
 
-    @NotNull ITensor perform(@NotNull ITensor tensor);
+    @NotNull ITensor perform(@NotNull ITensor input);
 
-    @NotNull ITensor performLazily(@NotNull ITensor tensor);
-
-    void computeGradient(@NotNull IGraph.IDifferentiableNode tensor);
+    @NotNull ITensor performLazily(@NotNull ITensor input);
 
 }

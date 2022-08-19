@@ -9,6 +9,4 @@ public interface IBiParametricOperation<F, S> extends IParametricOperation {
 
     @NotNull ITensor performLazily(@NotNull ITensor tensor, F f, S s);
 
-    void computeGradient(@NotNull IGraph.IDifferentiableNode tensor, F f, S s);
-
 }

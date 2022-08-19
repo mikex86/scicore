@@ -23,7 +23,8 @@ public class JvmBackend implements ISciCoreBackend {
             OperationType.DIVIDED, new JvmDividedOp(this),
             OperationType.PLUS, new JvmPlusOp(this),
             OperationType.REDUCE_SUM, new JvmReduceSumOp(this),
-            OperationType.EXP, new JvmExpOp(this)
+            OperationType.EXP, new JvmExpOp(this),
+            OperationType.TRANSPOSE, new JvmTransposeOp(this)
     );
 
     @Override
@@ -45,34 +46,7 @@ public class JvmBackend implements ISciCoreBackend {
     }
 
     @Override
-    public void computeGradients(@NotNull IOperation operation, @NotNull List<IGraph.IGraphNode> inputs) {
-        if (operation instanceof IUnaryOperation unaryOperation) {
-            Validator.assertTrue(inputs.size() == 1, "Unary operation expects exactly one input.");
-            Object input0 = inputs.get(0);
-            Validator.assertTrue(input0 instanceof IGraph.IDifferentiableNode, "inputs[0] must be a tensor for unary operation.");
-            unaryOperation.computeGradient((IGraph.IDifferentiableNode) input0);
-        } else if (operation instanceof IBinaryOperation binaryOperation) {
-            Validator.assertTrue(inputs.size() == 2, "Binary operation expects exactly two inputs");
-            Object input0 = inputs.get(0);
-            Object input1 = inputs.get(1);
-            binaryOperation.computeGradients((IGraph.IDifferentiableNode) input0, (IGraph.IDifferentiableNode) input1);
-        } else if (operation instanceof IParametricOperation) {
-            if (operation instanceof IBiParametricOperation biParametricOperation) {
-                Validator.assertTrue(inputs.size() == 3, "Bi-parametric operation expects one tensor and two arguments (3 in total).");
-                Object input0 = inputs.get(0);
-                Object input1 = inputs.get(1);
-                Object input2 = inputs.get(2);
-                //noinspection unchecked
-                biParametricOperation.computeGradient((IGraph.IDifferentiableNode) input0, input1, input2);
-            } else {
-                throw new IllegalStateException("Unknown parametric operation type: " + operation.getClass().getSimpleName());
-            }
-        } else {
-            throw new IllegalStateException("Unknown operation type: " + operation.getClass().getSimpleName());
-        }
-    }
-
-    @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public @NotNull ITensor lazyOpTensor(@NotNull IOperation operation, @NotNull List<@NotNull Object> inputs) {
         if (operation instanceof IUnaryOperation unaryOperation) {
             Validator.assertTrue(inputs.size() == 1, "Unary operation expects exactly one input.");
@@ -95,5 +69,15 @@ public class JvmBackend implements ISciCoreBackend {
         } else {
             throw new IllegalStateException("Unknown operation type: " + operation.getClass().getSimpleName());
         }
+    }
+
+    @Override
+    public void computeGradients(@NotNull Graph.OperationGraphNode operationNode) {
+        OperationType operationType = operationNode.getOperationType();
+        IOperation operation = getOperation(operationType);
+        if (!(operation instanceof IDifferentiableOperation differentiableOperation)) {
+            throw new IllegalStateException("Operation is not differentiable: " + operationType);
+        }
+        differentiableOperation.computeGradients(operationNode);
     }
 }

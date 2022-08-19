@@ -345,6 +345,16 @@ public class SciCore {
     }
 
     @NotNull
+    public ITensor onesLike(@NotNull ITensor reference) {
+        ISciCoreBackend backend = getBackend();
+        DataType dataType = reference.getDataType();
+        long[] shape = reference.getShape();
+        ITensor tensor = new Tensor(backend, dataType, shape);
+        tensor.fill(1);
+        return tensor;
+    }
+
+    @NotNull
     public IGraph getRecordedGraph() {
         return getBackend().getOperationRecorder().finish();
     }

@@ -56,9 +56,4 @@ public class JvmPlusOp implements IBinaryOperation {
         return new JvmDerivedTensor(backend, outputShape, resultDataType, () -> perform(a, b));
     }
 
-    @Override
-    public void computeGradients(@NotNull IGraph.IDifferentiableNode a, @NotNull IGraph.IDifferentiableNode b) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
 }
