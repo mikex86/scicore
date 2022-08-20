@@ -14,13 +14,13 @@ public interface IDifferentiableUnaryOperation extends IUnaryOperation, IDiffere
         Validator.assertTrue(inputs.size() == 1, "Unary operation expects exactly one input.");
         IGraph.IGraphNode input0 = inputs.get(0);
 
-        Validator.assertTrue(input0 instanceof IGraph.IDifferentiableNode, "Unary operation expects input0 to be a IDifferentiableNode.");
+        Validator.assertTrue(input0 instanceof IGraph.ITensorNodeWithGradient, "input0 DAG node must be able to hold a gradient.");
 
         ITensor upstreamGradient = operationNode.getGradient(); // gradient with respect to z where z is the output of the operation
         Validator.assertTrue(upstreamGradient != null, "Upstream gradient not yet computed! This is a bug in DAG topology iteration!");
         computeGradients(upstreamGradient, (IGraph.IDifferentiableNode) input0);
     }
 
-    void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.IDifferentiableNode input);
+    void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input);
 
 }

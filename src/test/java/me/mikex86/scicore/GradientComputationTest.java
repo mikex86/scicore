@@ -24,7 +24,9 @@ public class GradientComputationTest {
         ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
         ITensor result = a.matmul(b);
         assertEquals(sciCore.matrix(new float[][]{{130.0f}}), result);
+
         IGraph graph = sciCore.getRecordedGraph();
+        graph.requestGradientsFor(a, b);
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -35,8 +37,36 @@ public class GradientComputationTest {
     }
 
     @Test
+    void testOnlyComputeGradientForRequested() {
+        ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
+        ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
+        a.matmul(b);
+
+        IGraph graph = sciCore.getRecordedGraph();
+        graph.requestGradientsFor(a); // only request for a
+
+        graph.backward();
+
+        assertTrue(graph.getGradient(a).isPresent());
+        assertFalse(graph.getGradient(b).isPresent());
+    }
+
+    @Test
+    void testGradientsOnlySavedForExplicitlyRequested() {
+        ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
+        ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
+        ITensor result = a.matmul(b);
+
+        IGraph graph = sciCore.getRecordedGraph();
+        graph.requestGradientsFor(a, b); // request for a and b
+        graph.backward();
+
+        assertFalse(graph.getGradient(result).isPresent());
+    }
+
+    @Test
     void testMatMulChainRuleBackward() {
-        // Reference: https://cs231n.github.io/optimization-2/#mat (Stanford University CS231n: Deep Learning for Computer Vision)
+        // See: https://cs231n.github.io/optimization-2/#mat (Stanford University CS231n: Deep Learning for Computer Vision)
 
         /*
           # Neural Network
@@ -67,6 +97,9 @@ public class GradientComputationTest {
 
         // Automatic backpropagation
         IGraph graph = sciCore.getRecordedGraph();
+
+        graph.requestGradientsFor(w1, w2);
+
         graph.backward();
 
         // Manual backpropagation

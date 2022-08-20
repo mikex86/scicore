@@ -103,7 +103,7 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
     }
 
     @Override
-    public void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.IDifferentiableNode a, @NotNull IGraph.IDifferentiableNode b) {
+    public void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
         // Notation: WX = D
 
         // W = a, X = b, D = result
@@ -117,11 +117,14 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         // dL/dW = G @ X.T
         // dL/dX = W.T @ G
 
-        ITensor dLdW = upstreamGradient.matmul(b.getValue().transpose());
-        ITensor dLdX = a.getValue().transpose().matmul(upstreamGradient);
+        if (a.requiresGradients()) {
+            ITensor dLdW = upstreamGradient.matmul(b.getValue().transpose());
+            a.accumulateGradient(dLdW);
+        }
 
-        a.accumulateGradient(dLdW);
-        b.accumulateGradient(dLdX);
+        if (b.requiresGradients()) {
+            ITensor dLdX = a.getValue().transpose().matmul(upstreamGradient);
+            b.accumulateGradient(dLdX);
+        }
     }
-
 }
