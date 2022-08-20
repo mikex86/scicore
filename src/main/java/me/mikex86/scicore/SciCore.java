@@ -2,7 +2,6 @@ package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
-import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ArrayUtils;
 import me.mikex86.scicore.utils.ShapeUtils;
@@ -355,8 +354,8 @@ public class SciCore {
     }
 
     @NotNull
-    public IGraph getRecordedGraph() {
-        return getBackend().getOperationRecorder().finish();
+    public IGraph getGraphUpTo(@NotNull ITensor tensor) {
+        return getBackend().getOperationRecorder().getGraphFor(tensor);
     }
 
     public enum BackendType {

@@ -87,7 +87,9 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
     @Override
     public @NotNull ITensor performLazily(@NotNull ITensor a, @NotNull ITensor b) {
         long[] otherShape = b.getShape();
-        Validator.assertTrue(otherShape.length == 2, "matmul only supports 2D matrices");
+        if (otherShape.length != 2) {
+            throw new IllegalArgumentException("matmul only supports 2D matrices");
+        }
         long[] shape = a.getShape();
         if (shape.length != 2) {
             throw new IllegalArgumentException("matmul only supports 2D matrices");

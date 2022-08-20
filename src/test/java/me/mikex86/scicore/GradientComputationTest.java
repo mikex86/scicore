@@ -7,7 +7,7 @@ import org.junit.jupiter.api.TestInstance;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 public class GradientComputationTest {
 
     SciCore sciCore;
@@ -25,7 +25,7 @@ public class GradientComputationTest {
         ITensor result = a.matmul(b);
         assertEquals(sciCore.matrix(new float[][]{{130.0f}}), result);
 
-        IGraph graph = sciCore.getRecordedGraph();
+        IGraph graph = sciCore.getGraphUpTo(result);
         graph.requestGradientsFor(a, b);
         graph.backward();
 
@@ -40,9 +40,9 @@ public class GradientComputationTest {
     void testOnlyComputeGradientForRequested() {
         ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
         ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
-        a.matmul(b);
+        ITensor result = a.matmul(b);
 
-        IGraph graph = sciCore.getRecordedGraph();
+        IGraph graph = sciCore.getGraphUpTo(result);
         graph.requestGradientsFor(a); // only request for a
 
         graph.backward();
@@ -57,11 +57,52 @@ public class GradientComputationTest {
         ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
         ITensor result = a.matmul(b);
 
-        IGraph graph = sciCore.getRecordedGraph();
+        IGraph graph = sciCore.getGraphUpTo(result);
         graph.requestGradientsFor(a, b); // request for a and b
         graph.backward();
 
         assertFalse(graph.getGradient(result).isPresent());
+    }
+
+    /**
+     * This test defines two graphs:
+     * <p>
+     * result1 = a * b1
+     * result2 = a * b2
+     * </p>
+     * where the variable 'a' is shared between the two graphs.
+     * The test launches two backward passes originating from result1 and result2 respectively and checks if the gradients
+     * have been computed correctly.
+     */
+    @Test
+    void testMultipleBackwardsPassesFromDifferentRootNodesWithSharedVariables() {
+        ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
+        ITensor b1 = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
+        ITensor b2 = sciCore.matrix(new float[][]{{11}, {12}, {13}, {14}, {15}});
+
+        ITensor result1 = a.matmul(b1);
+        ITensor result2 = a.matmul(b2);
+
+        IGraph graph1 = sciCore.getGraphUpTo(result1);
+        IGraph graph2 = sciCore.getGraphUpTo(result2);
+
+        graph1.requestGradientsFor(a, b1);
+        graph2.requestGradientsFor(a, b2);
+
+        graph1.backward();
+        graph2.backward();
+
+        ITensor dgraph1dA = graph1.getGradient(a).orElseThrow();
+        ITensor dgraph1dB1 = graph1.getGradient(b1).orElseThrow();
+
+        ITensor dgraph2dA = graph2.getGradient(a).orElseThrow();
+        ITensor dgraph2dB2 = graph2.getGradient(b2).orElseThrow();
+
+        assertEquals(sciCore.matrix(new float[][]{{6.0f, 7.0f, 8.0f, 9.0f, 10.0f}}), dgraph1dA);
+        assertEquals(sciCore.matrix(new float[][]{{1}, {2}, {3}, {4}, {5}}), dgraph1dB1);
+
+        assertEquals(sciCore.matrix(new float[][]{{11, 12, 13, 14, 15}}), dgraph2dA);
+        assertEquals(sciCore.matrix(new float[][]{{1}, {2}, {3}, {4}, {5}}), dgraph2dB2);
     }
 
     @Test
@@ -96,7 +137,7 @@ public class GradientComputationTest {
         assertEquals(sciCore.matrix(new float[][]{{1030.f}}), fwd2); // check forward pass
 
         // Automatic backpropagation
-        IGraph graph = sciCore.getRecordedGraph();
+        IGraph graph = sciCore.getGraphUpTo(fwd2);
 
         graph.requestGradientsFor(w1, w2);
 

@@ -43,7 +43,7 @@ class GraphVisualizerTest {
 
         assertEquals(sciCore.matrix(new float[][]{{507.0f}}), e);
 
-        IGraph graph = sciCore.getRecordedGraph();
+        IGraph graph = sciCore.getGraphUpTo(e);
 
         Image image = GraphVisualizer.visualizeGraph(graph);
 

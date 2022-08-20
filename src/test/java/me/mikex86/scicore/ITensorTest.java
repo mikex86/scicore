@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class ITensorTest {
 
     private static final float EPSILON = 1E-6f;
@@ -47,7 +47,7 @@ class ITensorTest {
         assertEquals(42.0f, view2.getFloat(1));
     }
 
-    Stream<Object> testNdArrayShapeData() {
+    static Stream<Object> testNdArrayShapeData() {
         return Stream.of(
                 // nd-shaped java array
                 new byte[1],

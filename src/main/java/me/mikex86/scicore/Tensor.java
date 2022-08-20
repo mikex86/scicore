@@ -256,6 +256,9 @@ public class Tensor implements ITensor {
 
     @Override
     public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
         if (!(obj instanceof ITensor other)) {
             return false;
         }

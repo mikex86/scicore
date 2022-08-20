@@ -5,10 +5,7 @@ import me.mikex86.scicore.backend.ISciCoreBackend;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class GraphRecorder implements IGraphRecorder {
 
@@ -16,10 +13,7 @@ public class GraphRecorder implements IGraphRecorder {
     private final ISciCoreBackend sciCoreBackend;
 
     @NotNull
-    private final Map<Object, Graph.IGraphNode> valueToNodeMap = new IdentityHashMap<>(); // We don't compare based on tensor contents. That's stupid
-
-    @Nullable
-    private ITensor lastOutput;
+    private final WeakHashMap<Object, Graph.IGraphNode> valueToNodeMap = new WeakHashMap<>(); // We don't compare based on tensor contents. That's stupid
 
     public GraphRecorder(@NotNull ISciCoreBackend sciCoreBackend) {
         this.sciCoreBackend = sciCoreBackend;
@@ -47,18 +41,16 @@ public class GraphRecorder implements IGraphRecorder {
         ITensor result = sciCoreBackend.lazyOpTensor(operation, List.of(inputs));
         Graph.OperationGraphNode operationGraphNode = new Graph.OperationGraphNode(operationType, inputNodes, result);
         valueToNodeMap.put(result, operationGraphNode);
-        lastOutput = result;
         return result;
     }
 
     @Override
-    public @NotNull Graph finish() {
-        ITensor lastOutput = this.lastOutput;
-        if (lastOutput == null) {
-            throw new IllegalStateException("Cannot finish graph recording when not a single operation was recorded");
+    public @NotNull Graph getGraphFor(@NotNull ITensor rootTensor) {
+        Graph.IGraphNode rootNode = valueToNodeMap.get(rootTensor);
+        if (rootNode == null) {
+            throw new IllegalStateException("Tensor was not recorded as an output computed by this graph: " + rootTensor);
         }
-        Graph.IGraphNode outputNode = valueToNodeMap.get(lastOutput);
-        return new Graph(outputNode, sciCoreBackend);
+        return new Graph(rootNode.deepCopy(), sciCoreBackend);
     }
 
 }

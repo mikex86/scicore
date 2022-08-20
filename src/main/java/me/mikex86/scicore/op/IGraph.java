@@ -21,6 +21,14 @@ public interface IGraph {
 
     @NotNull Optional<ITensor> getGradient(@NotNull ITensor value);
 
+    /**
+     * Recursively lists downstream nodes of the specified node.
+     *
+     * @param node a given node
+     * @return a list of all nodes that depend on the given node, meaning that they are a function of the given node. This list includes itself
+     */
+    @NotNull List<IGraphNode> getDependentNodes(@NotNull IGraphNode node);
+
     interface IGraphNode {
 
         default String getName() {
@@ -41,6 +49,9 @@ public interface IGraph {
          */
         @NotNull
         List<IGraphNode> getDownstreamNodes();
+
+        @NotNull
+        IGraphNode deepCopy();
 
     }
 

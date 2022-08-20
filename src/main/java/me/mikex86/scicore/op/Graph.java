@@ -137,14 +137,9 @@ public class Graph implements IGraph {
         return Optional.empty();
     }
 
-    /**
-     * Recursively lists downstream nodes of the specified node.
-     *
-     * @param node a given node
-     * @return a list of all nodes that depend on the given node, meaning that they are a function of the given node. This list includes itself
-     */
     @NotNull
-    private List<IGraphNode> getDependentNodes(@NotNull IGraphNode node) {
+    @Override
+    public List<IGraphNode> getDependentNodes(@NotNull IGraphNode node) {
         List<IGraphNode> nodes = new ArrayList<>();
 
         Queue<IGraphNode> nodesToVisit = new LinkedList<>();
@@ -242,6 +237,11 @@ public class Graph implements IGraph {
         public Object getValue() {
             return value;
         }
+
+        @Override
+        public @NotNull ValueGraphNode deepCopy() {
+            return new ValueGraphNode(value);
+        }
     }
 
     public static class TensorDeclarationGraphNode extends AbstractTensorNodeWithGradient {
@@ -258,6 +258,10 @@ public class Graph implements IGraph {
             return tensor;
         }
 
+        @Override
+        public @NotNull TensorDeclarationGraphNode deepCopy() {
+            return new TensorDeclarationGraphNode(tensor);
+        }
     }
 
     public static class OperationGraphNode extends AbstractDifferentiableNode {
@@ -305,6 +309,18 @@ public class Graph implements IGraph {
         @Override
         public String getName() {
             return operationType.name();
+        }
+
+        @Override
+        public @NotNull OperationGraphNode deepCopy() {
+            List<IGraphNode> inputs = new ArrayList<>();
+            for (IGraphNode input : this.inputs) {
+                inputs.add(input.deepCopy()); // downstream nodes are not copied --> are added later
+            }
+
+            // Using this constructor correctly adds this node as a downstream of each of the input nodes,
+            // thus ensuring the references remain inside the scope of the deep copy.
+            return new OperationGraphNode(operationType, inputs, output);
         }
     }
 }
