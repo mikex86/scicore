@@ -4,6 +4,7 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBiParametricOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
@@ -29,7 +30,7 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
 
     @NotNull
     @Override
-    public ITensor perform(@NotNull ITensor tensor, @Nullable Integer dimension, @Nullable Boolean keepDimensions) {
+    public ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor tensor, @Nullable Integer dimension, @Nullable Boolean keepDimensions) {
         Validator.validateNotNull(dimension, "Dimension must not be null");
         Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
 
@@ -121,7 +122,7 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
 
     @NotNull
     @Override
-    public ITensor performLazily(@NotNull ITensor tensor, @Nullable Integer dimension, @Nullable Boolean keepDimensions) {
+    public ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor tensor, @Nullable Integer dimension, @Nullable Boolean keepDimensions) {
         Validator.validateNotNull(dimension, "Dimension must not be null");
         Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
         DataType dataType = tensor.getDataType();
@@ -138,11 +139,11 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
             outputShape = new long[shape.length - (keepDimensions ? 0 : 1)];
             reduceShape(shape, outputShape, dimension, keepDimensions);
         }
-        return new LazyTensor(backend, outputShape, dataType, () -> perform(tensor, dimension, keepDimensions));
+        return new LazyTensor(backend, outputShape, dataType, () -> perform(ctx, tensor, dimension, keepDimensions));
     }
 
     @Override
-    public void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.IDifferentiableNode node, @Nullable Integer dimension, @Nullable Boolean keepDimensions) {
+    public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.IDifferentiableNode node, @Nullable Integer dimension, @Nullable Boolean keepDimensions) {
         Validator.validateNotNull(dimension, "Dimension must not be null");
         Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
 

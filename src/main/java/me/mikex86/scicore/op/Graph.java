@@ -249,21 +249,28 @@ public class Graph implements IGraph {
         private final @NotNull OperationType operationType;
 
         private final @NotNull List<@NotNull IGraphNode> inputs;
+        @Nullable
+        private ITensor output;
 
-        private final @NotNull ITensor output;
+        @NotNull
+        private final IOperationContext operationContext;
 
-        public OperationGraphNode(@NotNull OperationType operationType, @NotNull List<@NotNull IGraphNode> inputs, @NotNull ITensor output) {
+        public OperationGraphNode(@NotNull OperationType operationType, @NotNull List<@NotNull IGraphNode> inputs, @NotNull IOperationContext operationContext) {
             this.operationType = operationType;
             this.inputs = inputs;
-            this.output = output;
+            this.operationContext = operationContext;
 
             for (IGraphNode input : inputs) {
                 input.addDownstreamNode(this); // indicate usage of input node by this node
             }
         }
 
+        public void setOutput(@NotNull ITensor output) {
+            this.output = output;
+        }
+
         public @NotNull ITensor getOutput() {
-            return output;
+            return Objects.requireNonNull(output, "Output not yet computed");
         }
 
         public @NotNull OperationType getOperationType() {
@@ -275,9 +282,14 @@ public class Graph implements IGraph {
         }
 
         @NotNull
+        public IOperationContext getOperationContext() {
+            return operationContext;
+        }
+
+        @NotNull
         @Override
         public ITensor getValue() {
-            return output;
+            return getOutput();
         }
 
         @Override
@@ -305,7 +317,35 @@ public class Graph implements IGraph {
 
             // Using this constructor correctly adds this node as a downstream of each of the input nodes,
             // thus ensuring the references remain inside the scope of the deep copy.
-            return new OperationGraphNode(operationType, inputs, output);
+            OperationGraphNode node = new OperationGraphNode(operationType, inputs, operationContext);
+            node.setOutput(getOutput());
+            return node;
         }
+    }
+
+    public interface IOperationContext {
+
+        void saveForBackward(@NotNull String name, @NotNull ITensor tensor);
+
+        @NotNull
+        Optional<ITensor> getSavedTensor(@NotNull String name);
+
+    }
+
+    public static class OperationContext implements IOperationContext {
+
+        @NotNull
+        private final Map<String, ITensor> savedTensors = new HashMap<>();
+
+        @Override
+        public void saveForBackward(@NotNull String name, @NotNull ITensor tensor) {
+            savedTensors.put(name, tensor);
+        }
+
+        @Override
+        public @NotNull Optional<ITensor> getSavedTensor(@NotNull String name) {
+            return Optional.ofNullable(savedTensors.get(name));
+        }
+
     }
 }

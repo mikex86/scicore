@@ -5,6 +5,7 @@ import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
+import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IUnaryOperation;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,7 +19,7 @@ public class JvmTransposeOp implements IUnaryOperation {
     }
 
     @Override
-    public @NotNull ITensor perform(@NotNull ITensor input) {
+    public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
         long[] shape = input.getShape();
         if (shape.length > 2) {
             throw new IllegalArgumentException("transpose only supports 2D or lower tensors");
@@ -59,7 +60,7 @@ public class JvmTransposeOp implements IUnaryOperation {
     }
 
     @Override
-    public @NotNull ITensor performLazily(@NotNull ITensor input) {
+    public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
         long[] shape = input.getShape();
         if (shape.length > 2) {
             throw new IllegalArgumentException("transpose only supports 2D or lower tensors");
@@ -67,7 +68,7 @@ public class JvmTransposeOp implements IUnaryOperation {
         long[] resultShape = getResultShape(input);
 
         DataType dataType = input.getDataType();
-        return new LazyTensor(this.backend, resultShape, dataType, () -> perform(input));
+        return new LazyTensor(this.backend, resultShape, dataType, () -> perform(ctx, input));
     }
 
     private long @NotNull [] getResultShape(@NotNull ITensor input) {

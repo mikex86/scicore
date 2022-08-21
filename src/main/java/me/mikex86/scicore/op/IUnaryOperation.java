@@ -8,19 +8,21 @@ import java.util.List;
 
 public interface IUnaryOperation extends IOperation {
 
-    @NotNull ITensor perform(@NotNull ITensor input);
+    @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input);
 
-    @NotNull ITensor performLazily(@NotNull ITensor input);
+    @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input);
 
     @Override
-    @NotNull default ITensor perform(@NotNull List<@NotNull ITensor> inputs) {
+    @NotNull
+    default ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull List<@NotNull ITensor> inputs) {
         Validator.assertTrue(inputs.size() == 1, "unary operation must be supplied 1 input.");
-        return perform(inputs.get(0));
+        return perform(ctx, inputs.get(0));
     }
 
     @Override
-    @NotNull default ITensor performLazily(@NotNull List<@NotNull ITensor> inputs) {
+    @NotNull
+    default ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull List<@NotNull ITensor> inputs) {
         Validator.assertTrue(inputs.size() == 1, "unary operation must be supplied 1 input.");
-        return performLazily(inputs.get(0));
+        return performLazily(ctx, inputs.get(0));
     }
 }

@@ -7,8 +7,8 @@ import java.util.List;
 
 public interface IOperation {
 
-    @NotNull ITensor perform(@NotNull List<@NotNull ITensor> inputs);
+    @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull List<@NotNull ITensor> inputs);
 
-    @NotNull ITensor performLazily(@NotNull List<@NotNull ITensor> inputs);
+    @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull List<@NotNull ITensor> inputs);
 
 }

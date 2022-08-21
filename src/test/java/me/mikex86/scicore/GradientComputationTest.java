@@ -241,6 +241,21 @@ public class GradientComputationTest {
     }
 
     @Test
+    void testMatmulAndExp() {
+        // (1, 2) * (2, 1) = (1, 1)
+        ITensor a = sciCore.matrix(new float[][]{{1, 2}});
+        ITensor b = sciCore.matrix(new float[][]{{3}, {4}});
+        ITensor c = a.exp().matmul(b);
+
+        IGraph graph = sciCore.getGraphUpTo(c);
+        graph.requestGradientsFor(a);
+        graph.backward();
+
+        ITensor dLdA = graph.getGradient(a).orElseThrow();
+        assertEquals(sciCore.matrix(new float[][]{{8.1548f, 29.5562f}}), dLdA);
+    }
+
+    @Test
     void testOnlyComputeGradientForRequested() {
         ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
         ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});

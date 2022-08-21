@@ -4,6 +4,7 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IBinaryOperation;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
@@ -19,7 +20,7 @@ public class JvmDividedOp implements IBinaryOperation {
     }
 
     @Override
-    public @NotNull ITensor perform(@NotNull ITensor a, @NotNull ITensor b) {
+    public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] stridesA = a.getStrides();
         long[] shapeB = b.getShape();
@@ -68,7 +69,7 @@ public class JvmDividedOp implements IBinaryOperation {
     }
 
     @Override
-    public @NotNull ITensor performLazily(@NotNull ITensor a, @NotNull ITensor b) {
+    public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         Validator.assertTrue(a.getDataType().isNumeric(), "A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "B is not numeric");
         long[] shapeA = a.getShape();
@@ -77,7 +78,7 @@ public class JvmDividedOp implements IBinaryOperation {
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
-        return new LazyTensor(backend, outputShape, resultDataType, () -> perform(a, b));
+        return new LazyTensor(backend, outputShape, resultDataType, () -> perform(ctx, a, b));
     }
 
 }

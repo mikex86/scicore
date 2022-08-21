@@ -5,6 +5,7 @@ import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
 import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.Validator;
@@ -20,7 +21,7 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
     }
 
     @Override
-    public @NotNull ITensor perform(@NotNull ITensor a, @NotNull ITensor b) {
+    public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shape = a.getShape();
         long[] otherShape = b.getShape();
         Validator.assertTrue(otherShape.length == 2, "Only 2D matrices are supported");
@@ -77,7 +78,7 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
     }
 
     @Override
-    public @NotNull ITensor performLazily(@NotNull ITensor a, @NotNull ITensor b) {
+    public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shape = a.getShape();
         long[] otherShape = b.getShape();
         Validator.assertTrue(otherShape.length == 2, "Only 2D matrices are supported");
@@ -89,11 +90,11 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
-        return new LazyTensor(this.backend, resultShape, resultDataType, () -> perform(a, b));
+        return new LazyTensor(this.backend, resultShape, resultDataType, () -> perform(ctx, a, b));
     }
 
     @Override
-    public void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
+    public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
         // See: https://cs231n.github.io/optimization-2/#mat (Stanford University CS231n: Deep Learning for Computer Vision)
         // Notation: WX = D
 

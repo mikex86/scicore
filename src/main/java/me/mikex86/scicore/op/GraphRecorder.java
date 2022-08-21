@@ -1,7 +1,6 @@
 package me.mikex86.scicore.op;
 
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,8 +34,10 @@ public class GraphRecorder implements IGraphRecorder {
             }
             inputNodes.add(node);
         }
-        ITensor lazyResult = operation.performLazily(List.of(inputs));
-        Graph.OperationGraphNode operationGraphNode = new Graph.OperationGraphNode(operationType, inputNodes, lazyResult);
+        Graph.IOperationContext ctx = new Graph.OperationContext();
+        Graph.OperationGraphNode operationGraphNode = new Graph.OperationGraphNode(operationType, inputNodes, ctx);
+        ITensor lazyResult = operation.performLazily(ctx, List.of(inputs));
+        operationGraphNode.setOutput(lazyResult);
         valueToNodeMap.put(lazyResult, operationGraphNode);
         return lazyResult;
     }

@@ -20,9 +20,9 @@ public interface IDifferentiableBinaryOperation extends IBinaryOperation, IDiffe
 
         ITensor upstreamGradient = operationNode.getGradient(); // gradient with respect to z where z is the output of the operation
         Validator.assertTrue(upstreamGradient != null, "Upstream gradient not yet computed! This is a bug in DAG topology iteration!");
-        computeGradients(upstreamGradient, (IGraph.ITensorNodeWithGradient) input0, (IGraph.ITensorNodeWithGradient) input1);
+        computeGradients(operationNode.getOperationContext(), upstreamGradient, (IGraph.ITensorNodeWithGradient) input0, (IGraph.ITensorNodeWithGradient) input1);
     }
 
-    void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b);
+    void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b);
 
 }

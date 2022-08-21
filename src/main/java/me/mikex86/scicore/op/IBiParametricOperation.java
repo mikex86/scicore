@@ -7,13 +7,13 @@ import org.jetbrains.annotations.Nullable;
 
 public interface IBiParametricOperation<F, S> extends IParametricOperation, ITrinaryOperation {
 
-    @NotNull ITensor perform(@NotNull ITensor tensor, @Nullable F f, @Nullable S s);
+    @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor tensor, @Nullable F f, @Nullable S s);
 
-    @NotNull ITensor performLazily(@NotNull ITensor tensor, @Nullable F f, @Nullable S s);
+    @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor tensor, @Nullable F f, @Nullable S s);
 
     @Override
     @NotNull
-    default ITensor perform(@NotNull ITensor a, @NotNull ITensor b, @NotNull ITensor c) {
+    default ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b, @NotNull ITensor c) {
         Validator.assertTrue(b.isScalar(), "input1 of binary operation must be a scalar.");
         Validator.assertTrue(c.isScalar(), "input2 of binary operation must be a scalar.");
 
@@ -26,12 +26,12 @@ public interface IBiParametricOperation<F, S> extends IParametricOperation, ITri
         F f = b.element(fClass);
         S s = c.element(sClass);
 
-        return perform(a, f, s);
+        return perform(ctx, a, f, s);
     }
 
     @Override
     @NotNull
-    default ITensor performLazily(@NotNull ITensor a, @NotNull ITensor b, @NotNull ITensor c) {
+    default ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b, @NotNull ITensor c) {
         Validator.assertTrue(b.isScalar(), "input1 of binary operation must be a scalar.");
         Validator.assertTrue(c.isScalar(), "input2 of binary operation must be a scalar.");
 
@@ -44,7 +44,7 @@ public interface IBiParametricOperation<F, S> extends IParametricOperation, ITri
         F f = b.element(fClass);
         S s = c.element(sClass);
 
-        return performLazily(a, f, s);
+        return performLazily(ctx, a, f, s);
     }
 
     @NotNull Class<F> getFirstType();
