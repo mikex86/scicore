@@ -59,7 +59,7 @@ dependencies {
     implementation("org.lwjgl", "lwjgl-cuda")
     implementation("org.lwjgl", "lwjgl-jemalloc")
 
-    implementation("org.jetbrains.skija:$skiaArtifact:0.4.101")
+    implementation("org.jetbrains.skija:$skiaArtifact:0.93.6")
 
     runtimeOnly("org.lwjgl", "lwjgl", classifier = lwjglNatives)
     runtimeOnly("org.lwjgl", "lwjgl-jemalloc", classifier = lwjglNatives)

@@ -7,13 +7,13 @@ import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.ITensorImpl;
 import me.mikex86.scicore.backend.impl.jvm.JvmDataTensorImpl;
 import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
-import me.mikex86.scicore.op.IBinaryOperation;
+import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
-public class JvmPlusOp implements IBinaryOperation {
+public class JvmPlusOp implements IDifferentiableBinaryOperation {
 
     @NotNull
     private final ISciCoreBackend backend;
@@ -56,4 +56,9 @@ public class JvmPlusOp implements IBinaryOperation {
         return new JvmDerivedTensor(backend, outputShape, resultDataType, () -> perform(a, b));
     }
 
+    @Override
+    public void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
+        a.accumulateGradient(upstreamGradient);
+        b.accumulateGradient(upstreamGradient);
+    }
 }
