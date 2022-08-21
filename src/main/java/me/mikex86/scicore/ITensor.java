@@ -1,35 +1,13 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.op.IGraphRecorder;
-import me.mikex86.scicore.op.OperationType;
 import me.mikex86.scicore.utils.ShapeUtils;
+import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Arrays;
 
 public interface ITensor extends IValue {
 
     float EPSILON = 1E-5f;
-
-    default void validateDataType(@NotNull DataType requestedDataType) {
-        DataType ownDataType = getDataType();
-        if (requestedDataType != ownDataType) {
-            throw new IllegalArgumentException("Requested data type " + requestedDataType + " does not match data type of viewed tensor " + ownDataType);
-        }
-    }
-
-    default void validateIndices(long @NotNull [] indices) {
-        long[] shape = getShape();
-        if (indices.length > shape.length) {
-            throw new IllegalArgumentException("Indices length is greater than tensor shape length");
-        }
-        for (int i = 0; i < indices.length; i++) {
-            if (indices[i] < 0 || indices[i] >= shape[i]) {
-                throw new IndexOutOfBoundsException("Index " + indices[i] + " is out of bounds for dimension " + i + " with shape " + shape[i]);
-            }
-        }
-    }
 
     @NotNull DataType getDataType();
 
@@ -37,17 +15,34 @@ public interface ITensor extends IValue {
 
     long @NotNull [] getStrides();
 
-    @NotNull
-    default ITensor getView(long @NotNull ... indices) {
-        long[] shape = getShape();
-        validateIndices(indices);
-        long[] strides = ShapeUtils.makeStrides(shape);
+    @NotNull ITensor getView(long @NotNull ... indices);
 
-        long[] sliceShape = Arrays.copyOfRange(shape, indices.length, shape.length);
-        long[] sliceStrides = Arrays.copyOfRange(strides, indices.length, strides.length);
+    byte getByteFlat(long flatIndex);
 
-        long offset = ShapeUtils.getFlatIndex(indices, strides);
-        return new View(this, sliceShape, offset, sliceStrides);
+    default byte getAsByteFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> (byte) getShortFlat(flatIndex);
+            case INT32 -> (byte) getIntFlat(flatIndex);
+            case INT64 -> (byte) getLongFlat(flatIndex);
+            case FLOAT32 -> (byte) getFloatFlat(flatIndex);
+            case FLOAT64 -> (byte) getDoubleFlat(flatIndex);
+            case BOOLEAN -> getBooleanFlat(flatIndex) ? (byte) 1 : (byte) 0;
+        };
+    }
+
+    void setByteFlat(byte value, long flatIndex);
+
+    default void setByByteFlat(byte value, long flatIndex) {
+        switch (getDataType()) {
+            case INT8 -> setByteFlat(value, flatIndex);
+            case INT16 -> setShortFlat(value, flatIndex);
+            case INT32 -> setIntFlat(value, flatIndex);
+            case INT64 -> setLongFlat(value, flatIndex);
+            case FLOAT32 -> setFloatFlat(value, flatIndex);
+            case FLOAT64 -> setDoubleFlat(value, flatIndex);
+            case BOOLEAN -> setBooleanFlat(value != 0, flatIndex);
+        }
     }
 
     byte getByte(long @NotNull ... indices);
@@ -60,71 +55,7 @@ public interface ITensor extends IValue {
             case INT64 -> (byte) getLong(indices);
             case FLOAT32 -> (byte) getFloat(indices);
             case FLOAT64 -> (byte) getDouble(indices);
-        };
-    }
-
-    short getShort(long @NotNull ... indices);
-
-    default short getAsShort(long @NotNull ... indices) {
-        return switch (getDataType()) {
-            case INT8 -> getByte(indices);
-            case INT16 -> getShort(indices);
-            case INT32 -> (short) getInt(indices);
-            case INT64 -> (short) getLong(indices);
-            case FLOAT32 -> (short) getFloat(indices);
-            case FLOAT64 -> (short) getDouble(indices);
-        };
-    }
-
-    int getInt(long @NotNull ... indices);
-
-    default int getAsInt(long @NotNull ... indices) {
-        return switch (getDataType()) {
-            case INT8 -> getByte(indices);
-            case INT16 -> getShort(indices);
-            case INT32 -> getInt(indices);
-            case INT64 -> (int) getLong(indices);
-            case FLOAT32 -> (int) getFloat(indices);
-            case FLOAT64 -> (int) getDouble(indices);
-        };
-    }
-
-    long getLong(long @NotNull ... indices);
-
-    default long getAsLong(long @NotNull ... indices) {
-        return switch (getDataType()) {
-            case INT8 -> getByte(indices);
-            case INT16 -> getShort(indices);
-            case INT32 -> getInt(indices);
-            case INT64 -> getLong(indices);
-            case FLOAT32 -> (long) getFloat(indices);
-            case FLOAT64 -> (long) getDouble(indices);
-        };
-    }
-
-    float getFloat(long @NotNull ... indices);
-
-    default float getAsFloat(long @NotNull ... indices) {
-        return switch (getDataType()) {
-            case INT8 -> getByte(indices);
-            case INT16 -> getShort(indices);
-            case INT32 -> getInt(indices);
-            case INT64 -> getLong(indices);
-            case FLOAT32 -> getFloat(indices);
-            case FLOAT64 -> (float) getDouble(indices);
-        };
-    }
-
-    double getDouble(long @NotNull ... indices);
-
-    default double getAsDouble(long @NotNull ... indices) {
-        return switch (getDataType()) {
-            case INT8 -> getByte(indices);
-            case INT16 -> getShort(indices);
-            case INT32 -> getInt(indices);
-            case INT64 -> getLong(indices);
-            case FLOAT32 -> getFloat(indices);
-            case FLOAT64 -> getDouble(indices);
+            case BOOLEAN -> getBoolean(indices) ? (byte) 1 : (byte) 0;
         };
     }
 
@@ -138,7 +69,55 @@ public interface ITensor extends IValue {
             case INT64 -> setLong(value, indices);
             case FLOAT32 -> setFloat(value, indices);
             case FLOAT64 -> setDouble(value, indices);
+            case BOOLEAN -> setBoolean(value != 0, indices);
         }
+    }
+
+    default byte elementAsByte() {
+        Validator.assertTrue(isScalar(), "Requested element of tensor that is not a scalar!");
+        return getAsByteFlat(0);
+    }
+
+    short getShortFlat(long flatIndex);
+
+    default short getAsShortFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> getShortFlat(flatIndex);
+            case INT32 -> (short) getIntFlat(flatIndex);
+            case INT64 -> (short) getLongFlat(flatIndex);
+            case FLOAT32 -> (short) getFloatFlat(flatIndex);
+            case FLOAT64 -> (short) getDoubleFlat(flatIndex);
+            case BOOLEAN -> getBooleanFlat(flatIndex) ? (short) 1 : (short) 0;
+        };
+    }
+
+    void setShortFlat(short value, long flatIndex);
+
+    default void setByShortFlat(short value, long flatIndex) {
+        switch (getDataType()) {
+            case INT8 -> setByteFlat((byte) value, flatIndex);
+            case INT16 -> setShortFlat(value, flatIndex);
+            case INT32 -> setIntFlat(value, flatIndex);
+            case INT64 -> setLongFlat(value, flatIndex);
+            case FLOAT32 -> setFloatFlat(value, flatIndex);
+            case FLOAT64 -> setDoubleFlat(value, flatIndex);
+            case BOOLEAN -> setBooleanFlat(value != 0, flatIndex);
+        }
+    }
+
+    short getShort(long @NotNull ... indices);
+
+    default short getAsShort(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> getShort(indices);
+            case INT32 -> (short) getInt(indices);
+            case INT64 -> (short) getLong(indices);
+            case FLOAT32 -> (short) getFloat(indices);
+            case FLOAT64 -> (short) getDouble(indices);
+            case BOOLEAN -> getBoolean(indices) ? (short) 1 : (short) 0;
+        };
     }
 
     void setShort(short value, long @NotNull ... indices);
@@ -151,7 +130,55 @@ public interface ITensor extends IValue {
             case INT64 -> setLong(value, indices);
             case FLOAT32 -> setFloat(value, indices);
             case FLOAT64 -> setDouble(value, indices);
+            case BOOLEAN -> setBoolean(value != 0, indices);
         }
+    }
+
+    default short elementAsShort() {
+        Validator.assertTrue(isScalar(), "Requested element of tensor that is not a scalar!");
+        return getAsShortFlat(0);
+    }
+
+    int getIntFlat(long flatIndex);
+
+    default int getAsIntFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> getShortFlat(flatIndex);
+            case INT32 -> getIntFlat(flatIndex);
+            case INT64 -> (int) getLongFlat(flatIndex);
+            case FLOAT32 -> (int) getFloatFlat(flatIndex);
+            case FLOAT64 -> (int) getDoubleFlat(flatIndex);
+            case BOOLEAN -> getBooleanFlat(flatIndex) ? 1 : 0;
+        };
+    }
+
+    void setIntFlat(int value, long flatIndex);
+
+    default void setByIntFlat(int value, long flatIndex) {
+        switch (getDataType()) {
+            case INT8 -> setByteFlat((byte) value, flatIndex);
+            case INT16 -> setShortFlat((short) value, flatIndex);
+            case INT32 -> setIntFlat(value, flatIndex);
+            case INT64 -> setLongFlat(value, flatIndex);
+            case FLOAT32 -> setFloatFlat(value, flatIndex);
+            case FLOAT64 -> setDoubleFlat(value, flatIndex);
+            case BOOLEAN -> setBooleanFlat(value != 0, flatIndex);
+        }
+    }
+
+    int getInt(long @NotNull ... indices);
+
+    default int getAsInt(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> getShort(indices);
+            case INT32 -> getInt(indices);
+            case INT64 -> (int) getLong(indices);
+            case FLOAT32 -> (int) getFloat(indices);
+            case FLOAT64 -> (int) getDouble(indices);
+            case BOOLEAN -> getBoolean(indices) ? 1 : 0;
+        };
     }
 
     void setInt(int value, long @NotNull ... indices);
@@ -167,82 +194,9 @@ public interface ITensor extends IValue {
         }
     }
 
-    void setLong(long value, long @NotNull ... indices);
-
-    default void setByLong(long value, long @NotNull ... indices) {
-        switch (getDataType()) {
-            case INT8 -> setByte((byte) value, indices);
-            case INT16 -> setShort((short) value, indices);
-            case INT32 -> setInt((int) value, indices);
-            case INT64 -> setLong(value, indices);
-            case FLOAT32 -> setFloat(value, indices);
-            case FLOAT64 -> setDouble(value, indices);
-        }
-    }
-
-    void setFloat(float value, long @NotNull ... indices);
-
-    default void setByFloat(float value, long @NotNull ... indices) {
-        switch (getDataType()) {
-            case INT8 -> setByte((byte) value, indices);
-            case INT16 -> setShort((short) value, indices);
-            case INT32 -> setInt((int) value, indices);
-            case INT64 -> setLong((long) value, indices);
-            case FLOAT32 -> setFloat(value, indices);
-            case FLOAT64 -> setDouble(value, indices);
-        }
-    }
-
-    void setDouble(double value, long @NotNull ... indices);
-
-    default void setByDouble(double value, long @NotNull ... indices) {
-        switch (getDataType()) {
-            case INT8 -> setByte((byte) value, indices);
-            case INT16 -> setShort((short) value, indices);
-            case INT32 -> setInt((int) value, indices);
-            case INT64 -> setLong((long) value, indices);
-            case FLOAT32 -> setFloat((float) value, indices);
-            case FLOAT64 -> setDouble(value, indices);
-        }
-    }
-
-    byte getByteFlat(long flatIndex);
-
-    default byte getAsByteFlat(long flatIndex) {
-        return switch (getDataType()) {
-            case INT8 -> getByteFlat(flatIndex);
-            case INT16 -> (byte) getShortFlat(flatIndex);
-            case INT32 -> (byte) getIntFlat(flatIndex);
-            case INT64 -> (byte) getLongFlat(flatIndex);
-            case FLOAT32 -> (byte) getFloatFlat(flatIndex);
-            case FLOAT64 -> (byte) getDoubleFlat(flatIndex);
-        };
-    }
-
-    short getShortFlat(long flatIndex);
-
-    default short getAsShortFlat(long flatIndex) {
-        return switch (getDataType()) {
-            case INT8 -> getByteFlat(flatIndex);
-            case INT16 -> getShortFlat(flatIndex);
-            case INT32 -> (short) getIntFlat(flatIndex);
-            case INT64 -> (short) getLongFlat(flatIndex);
-            case FLOAT32 -> (short) getFloatFlat(flatIndex);
-            case FLOAT64 -> (short) getDoubleFlat(flatIndex);
-        };
-    }
-
-    int getIntFlat(long flatIndex);
-
-    default int getAsIntFlat(long flatIndex) {
-        return switch (getDataType()) {
-            case INT8 -> getByteFlat(flatIndex);
-            case INT16 -> getShortFlat(flatIndex);
-            case INT32 -> getIntFlat(flatIndex);
-            case INT64 -> (int) getLongFlat(flatIndex);
-            case FLOAT32 -> (int) getFloatFlat(flatIndex);
-            case FLOAT64 -> (int) getDoubleFlat(flatIndex);
-        };
+    default int elementAsInt() {
+        Validator.assertTrue(isScalar(), "Requested element of tensor that is not a scalar!");
+        return getAsIntFlat(0);
     }
 
     long getLongFlat(long flatIndex);
@@ -255,72 +209,8 @@ public interface ITensor extends IValue {
             case INT64 -> getLongFlat(flatIndex);
             case FLOAT32 -> (long) getFloatFlat(flatIndex);
             case FLOAT64 -> (long) getDoubleFlat(flatIndex);
+            case BOOLEAN -> getBooleanFlat(flatIndex) ? 1 : 0;
         };
-    }
-
-    float getFloatFlat(long flatIndex);
-
-    default float getAsFloatFlat(long flatIndex) {
-        return switch (getDataType()) {
-            case INT8 -> getByteFlat(flatIndex);
-            case INT16 -> getShortFlat(flatIndex);
-            case INT32 -> getIntFlat(flatIndex);
-            case INT64 -> getLongFlat(flatIndex);
-            case FLOAT32 -> getFloatFlat(flatIndex);
-            case FLOAT64 -> (float) getDoubleFlat(flatIndex);
-        };
-    }
-
-    double getDoubleFlat(long flatIndex);
-
-    default double getAsDoubleFlat(long flatIndex) {
-        return switch (getDataType()) {
-            case INT8 -> getByteFlat(flatIndex);
-            case INT16 -> getShortFlat(flatIndex);
-            case INT32 -> getIntFlat(flatIndex);
-            case INT64 -> getLongFlat(flatIndex);
-            case FLOAT32 -> getFloatFlat(flatIndex);
-            case FLOAT64 -> getDoubleFlat(flatIndex);
-        };
-    }
-
-    void setByteFlat(byte value, long flatIndex);
-
-    default void setByByteFlat(byte value, long flatIndex) {
-        switch (getDataType()) {
-            case INT8 -> setByteFlat(value, flatIndex);
-            case INT16 -> setShortFlat(value, flatIndex);
-            case INT32 -> setIntFlat(value, flatIndex);
-            case INT64 -> setLongFlat(value, flatIndex);
-            case FLOAT32 -> setFloatFlat(value, flatIndex);
-            case FLOAT64 -> setDoubleFlat(value, flatIndex);
-        }
-    }
-
-    void setShortFlat(short value, long flatIndex);
-
-    default void setByShortFlat(short value, long flatIndex) {
-        switch (getDataType()) {
-            case INT8 -> setByteFlat((byte) value, flatIndex);
-            case INT16 -> setShortFlat(value, flatIndex);
-            case INT32 -> setIntFlat(value, flatIndex);
-            case INT64 -> setLongFlat(value, flatIndex);
-            case FLOAT32 -> setFloatFlat(value, flatIndex);
-            case FLOAT64 -> setDoubleFlat(value, flatIndex);
-        }
-    }
-
-    void setIntFlat(int value, long flatIndex);
-
-    default void setByIntFlat(int value, long flatIndex) {
-        switch (getDataType()) {
-            case INT8 -> setByteFlat((byte) value, flatIndex);
-            case INT16 -> setShortFlat((short) value, flatIndex);
-            case INT32 -> setIntFlat(value, flatIndex);
-            case INT64 -> setLongFlat(value, flatIndex);
-            case FLOAT32 -> setFloatFlat(value, flatIndex);
-            case FLOAT64 -> setDoubleFlat(value, flatIndex);
-        }
     }
 
     void setLongFlat(long value, long flatIndex);
@@ -333,7 +223,56 @@ public interface ITensor extends IValue {
             case INT64 -> setLongFlat(value, flatIndex);
             case FLOAT32 -> setFloatFlat(value, flatIndex);
             case FLOAT64 -> setDoubleFlat(value, flatIndex);
+            case BOOLEAN -> setBooleanFlat(value != 0, flatIndex);
         }
+    }
+
+    long getLong(long @NotNull ... indices);
+
+    void setLong(long value, long @NotNull ... indices);
+
+    default long getAsLong(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> getShort(indices);
+            case INT32 -> getInt(indices);
+            case INT64 -> getLong(indices);
+            case FLOAT32 -> (long) getFloat(indices);
+            case FLOAT64 -> (long) getDouble(indices);
+            case BOOLEAN -> getBoolean(indices) ? 1 : 0;
+        };
+    }
+
+    default void setByLong(long value, long @NotNull ... indices) {
+        switch (getDataType()) {
+            case INT8 -> setByte((byte) value, indices);
+            case INT16 -> setShort((short) value, indices);
+            case INT32 -> setInt((int) value, indices);
+            case INT64 -> setLong(value, indices);
+            case FLOAT32 -> setFloat(value, indices);
+            case FLOAT64 -> setDouble(value, indices);
+            case BOOLEAN -> setBoolean(value != 0, indices);
+        }
+    }
+
+    default long elementAsLong() {
+        Validator.assertTrue(isScalar(), "Requested element of tensor that is not a scalar!");
+        return getAsLongFlat(0);
+    }
+
+
+    float getFloatFlat(long flatIndex);
+
+    default float getAsFloatFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> getShortFlat(flatIndex);
+            case INT32 -> getIntFlat(flatIndex);
+            case INT64 -> getLongFlat(flatIndex);
+            case FLOAT32 -> getFloatFlat(flatIndex);
+            case FLOAT64 -> (float) getDoubleFlat(flatIndex);
+            case BOOLEAN -> getBooleanFlat(flatIndex) ? 1 : 0;
+        };
     }
 
     void setFloatFlat(float value, long flatIndex);
@@ -346,7 +285,55 @@ public interface ITensor extends IValue {
             case INT64 -> setLongFlat((long) value, flatIndex);
             case FLOAT32 -> setFloatFlat(value, flatIndex);
             case FLOAT64 -> setDoubleFlat(value, flatIndex);
+            case BOOLEAN -> setBooleanFlat(value != 0, flatIndex);
         }
+    }
+
+    float getFloat(long @NotNull ... indices);
+
+    default float getAsFloat(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> getShort(indices);
+            case INT32 -> getInt(indices);
+            case INT64 -> getLong(indices);
+            case FLOAT32 -> getFloat(indices);
+            case FLOAT64 -> (float) getDouble(indices);
+            case BOOLEAN -> getBoolean(indices) ? 1 : 0;
+        };
+    }
+
+    void setFloat(float value, long @NotNull ... indices);
+
+    default void setByFloat(float value, long @NotNull ... indices) {
+        switch (getDataType()) {
+            case INT8 -> setByte((byte) value, indices);
+            case INT16 -> setShort((short) value, indices);
+            case INT32 -> setInt((int) value, indices);
+            case INT64 -> setLong((long) value, indices);
+            case FLOAT32 -> setFloat(value, indices);
+            case FLOAT64 -> setDouble(value, indices);
+            case BOOLEAN -> setBoolean(value != 0, indices);
+        }
+    }
+
+    default float elementAsFloat() {
+        Validator.assertTrue(isScalar(), "Requested element of tensor that is not a scalar!");
+        return getAsFloatFlat(0);
+    }
+
+    double getDoubleFlat(long flatIndex);
+
+    default double getAsDoubleFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex);
+            case INT16 -> getShortFlat(flatIndex);
+            case INT32 -> getIntFlat(flatIndex);
+            case INT64 -> getLongFlat(flatIndex);
+            case FLOAT32 -> getFloatFlat(flatIndex);
+            case FLOAT64 -> getDoubleFlat(flatIndex);
+            case BOOLEAN -> getBooleanFlat(flatIndex) ? 1 : 0;
+        };
     }
 
     void setDoubleFlat(double value, long flatIndex);
@@ -359,7 +346,124 @@ public interface ITensor extends IValue {
             case INT64 -> setLongFlat((long) value, flatIndex);
             case FLOAT32 -> setFloatFlat((float) value, flatIndex);
             case FLOAT64 -> setDoubleFlat(value, flatIndex);
+            case BOOLEAN -> setBooleanFlat(value != 0, flatIndex);
         }
+    }
+
+    double getDouble(long @NotNull ... indices);
+
+    default double getAsDouble(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices);
+            case INT16 -> getShort(indices);
+            case INT32 -> getInt(indices);
+            case INT64 -> getLong(indices);
+            case FLOAT32 -> getFloat(indices);
+            case FLOAT64 -> getDouble(indices);
+            case BOOLEAN -> getBoolean(indices) ? 1 : 0;
+        };
+    }
+
+    void setDouble(double value, long @NotNull ... indices);
+
+    default void setByDouble(double value, long @NotNull ... indices) {
+        switch (getDataType()) {
+            case INT8 -> setByte((byte) value, indices);
+            case INT16 -> setShort((short) value, indices);
+            case INT32 -> setInt((int) value, indices);
+            case INT64 -> setLong((long) value, indices);
+            case FLOAT32 -> setFloat((float) value, indices);
+            case FLOAT64 -> setDouble(value, indices);
+            case BOOLEAN -> setBoolean(value != 0, indices);
+        }
+    }
+
+    default double elementAsDouble() {
+        Validator.assertTrue(isScalar(), "Requested element of tensor that is not a scalar!");
+        return getAsDoubleFlat(0);
+    }
+
+    boolean getBooleanFlat(long flatIndex);
+
+    default boolean getAsBooleanFlat(long flatIndex) {
+        return switch (getDataType()) {
+            case INT8 -> getByteFlat(flatIndex) != 0;
+            case INT16 -> getShortFlat(flatIndex) != 0;
+            case INT32 -> getIntFlat(flatIndex) != 0;
+            case INT64 -> getLongFlat(flatIndex) != 0;
+            case FLOAT32 -> getFloatFlat(flatIndex) != 0.0;
+            case FLOAT64 -> getDoubleFlat(flatIndex) != 0.0;
+            case BOOLEAN -> getBooleanFlat(flatIndex);
+        };
+    }
+
+    void setBooleanFlat(boolean value, long flatIndex);
+
+    default void setByBooleanFlat(boolean value, long flatIndex) {
+        switch (getDataType()) {
+            case INT8 -> setByteFlat(value ? (byte) 1 : (byte) 0, flatIndex);
+            case INT16 -> setShortFlat(value ? (short) 1 : (short) 0, flatIndex);
+            case INT32 -> setIntFlat(value ? 1 : 0, flatIndex);
+            case INT64 -> setLongFlat(value ? 1 : 0, flatIndex);
+            case FLOAT32 -> setFloatFlat(value ? 1.0f : 0.0f, flatIndex);
+            case FLOAT64 -> setDoubleFlat(value ? 1.0 : 0.0, flatIndex);
+            case BOOLEAN -> setBooleanFlat(value, flatIndex);
+        }
+    }
+
+    boolean getBoolean(long @NotNull ... indices);
+
+    default boolean getAsBoolean(long @NotNull ... indices) {
+        return switch (getDataType()) {
+            case INT8 -> getByte(indices) != 0;
+            case INT16 -> getShort(indices) != 0;
+            case INT32 -> getInt(indices) != 0;
+            case INT64 -> getLong(indices) != 0;
+            case FLOAT32 -> getFloat(indices) != 0.0;
+            case FLOAT64 -> getDouble(indices) != 0.0;
+            case BOOLEAN -> getBoolean(indices);
+        };
+    }
+
+    void setBoolean(boolean value, long @NotNull ... indices);
+
+    default void setByBoolean(boolean value, long @NotNull ... indices) {
+        switch (getDataType()) {
+            case INT8 -> setByte(value ? (byte) 1 : (byte) 0, indices);
+            case INT16 -> setShort(value ? (short) 1 : (short) 0, indices);
+            case INT32 -> setInt(value ? 1 : 0, indices);
+            case INT64 -> setLong(value ? 1 : 0, indices);
+            case FLOAT32 -> setFloat(value ? 1.0f : 0.0f, indices);
+            case FLOAT64 -> setDouble(value ? 1.0 : 0.0, indices);
+            case BOOLEAN -> setBoolean(value, indices);
+        }
+    }
+
+    default boolean elementAsBoolean() {
+        Validator.assertTrue(isScalar(), "Requested element of tensor that is not a scalar!");
+        return getAsBooleanFlat(0);
+    }
+
+    /**
+     * Returns the element, the only value stored in a scalar tensor.
+     *
+     * @param typeClass the type class of the element.
+     * @throws IllegalArgumentException if the tensor is not a scalar, or the requested type is not the same as the tensor's type.
+     */
+    @SuppressWarnings("unchecked")
+    default <T> T element(@NotNull Class<T> typeClass) {
+        Validator.assertTrue(isScalar(), "Requested element of tensor that is not a scalar!");
+        Object value = switch (getDataType()) {
+            case INT8 -> getByteFlat(0);
+            case INT16 -> getShortFlat(0);
+            case INT32 -> getIntFlat(0);
+            case INT64 -> getLongFlat(0);
+            case FLOAT32 -> getFloatFlat(0);
+            case FLOAT64 -> getDoubleFlat(0);
+            case BOOLEAN -> getBooleanFlat(0);
+        };
+        Validator.assertTrue(typeClass.isInstance(value), "Requested element type is not compatible with tensor data type");
+        return (T) value;
     }
 
     @NotNull ITensor copy();
@@ -372,71 +476,35 @@ public interface ITensor extends IValue {
         return ShapeUtils.getNumElements(getShape());
     }
 
-    @NotNull
-    default ITensor matmul(@NotNull ITensor other) {
-        ISciCoreBackend backend = getSciCoreBackend();
-        IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.MATMUL, this, other);
-    }
+    @NotNull ITensor matmul(@NotNull ITensor other);
 
-    @NotNull
-    default ITensor divided(@NotNull ITensor other) {
-        ISciCoreBackend backend = getSciCoreBackend();
-        IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.DIVIDED, this, other);
-    }
+    @NotNull ITensor divided(@NotNull ITensor other);
 
-    @NotNull
-    default ITensor plus(@NotNull ITensor other) {
-        ISciCoreBackend backend = getSciCoreBackend();
-        IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.PLUS, this, other);
-    }
+    @NotNull ITensor plus(@NotNull ITensor other);
 
-    void fill(byte i);
+    void fill(byte value);
 
-    void fill(short i);
+    void fill(short value);
 
-    void fill(int i);
+    void fill(int value);
 
-    void fill(long i);
+    void fill(long value);
 
-    void fill(float i);
+    void fill(float value);
 
-    void fill(double i);
+    void fill(double value);
 
-    @NotNull
-    default ITensor exp() {
-        ISciCoreBackend backend = getSciCoreBackend();
-        IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.EXP, this);
-    }
+    void fill(boolean value);
 
-    @NotNull
-    default ITensor softmax(int dimension) {
-        ITensor exponentiated = exp();
-        ITensor sum = exponentiated.reduceSum(dimension, true);
-        return exponentiated.divided(sum);
-    }
+    @NotNull ITensor exp();
 
-    @NotNull
-    default ITensor reduceSum(int dimension) {
-        return reduceSum(dimension, false);
-    }
+    @NotNull ITensor softmax(int dimension);
 
-    @NotNull
-    default ITensor reduceSum(int dimension, boolean keepDimensions) {
-        ISciCoreBackend backend = getSciCoreBackend();
-        IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.REDUCE_SUM, this, dimension, keepDimensions);
-    }
+    @NotNull ITensor reduceSum(int dimension);
 
-    @NotNull
-    default ITensor transpose() {
-        ISciCoreBackend backend = getSciCoreBackend();
-        IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.TRANSPOSE, this);
-    }
+    @NotNull ITensor reduceSum(int dimension, boolean keepDimensions);
+
+    @NotNull ITensor transpose();
 
     @Override
     boolean equals(Object other);
@@ -446,6 +514,6 @@ public interface ITensor extends IValue {
     @NotNull ISciCoreBackend getSciCoreBackend();
 
     default boolean isScalar() {
-        return getNumberOfElements() == 1;
+        return ShapeUtils.isScalar(getShape());
     }
 }

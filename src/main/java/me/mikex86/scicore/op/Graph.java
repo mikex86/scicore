@@ -56,7 +56,6 @@ public class Graph implements IGraph {
 
     @Override
     public void backward() {
-
         // initialize gradient to 1 because derivative of x in respect to itself is one. Duh.
         if (outputNode instanceof ITensorNodeWithGradient nodeWithGradient) {
             ITensor tensor = nodeWithGradient.getValue();
@@ -223,25 +222,6 @@ public class Graph implements IGraph {
         @Override
         public abstract void computeGradients();
 
-    }
-
-    public static class ValueGraphNode extends AbstractGraphNode implements IValueNode {
-
-        private final @NotNull Object value;
-
-        public ValueGraphNode(@NotNull Object value) {
-            this.value = value;
-        }
-
-        @NotNull
-        public Object getValue() {
-            return value;
-        }
-
-        @Override
-        public @NotNull ValueGraphNode deepCopy() {
-            return new ValueGraphNode(value);
-        }
     }
 
     public static class TensorDeclarationGraphNode extends AbstractTensorNodeWithGradient {

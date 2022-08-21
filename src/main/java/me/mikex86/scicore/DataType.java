@@ -4,18 +4,31 @@ import org.jetbrains.annotations.NotNull;
 
 public enum DataType {
 
-    INT8(8, false), INT16(16, false), INT32(32, false), INT64(64, false), FLOAT32(32, true), FLOAT64(64, true);
+    INT8(8, false, true), INT16(16, false, true), INT32(32, false, true), INT64(64, false, true),
+    FLOAT32(32, true, true), FLOAT64(64, true, true),
+    BOOLEAN(1, false, true);
 
     private final int bits;
     private final boolean isFp;
 
-    DataType(int bits, boolean isFp) {
+    private final boolean isNumeric;
+
+    DataType(int bits, boolean isFp, boolean isNumeric) {
         this.bits = bits;
         this.isFp = isFp;
+        this.isNumeric = isNumeric;
+
+        if (isFp && !isNumeric) {
+            throw new IllegalArgumentException("Floating point data types must be numeric");
+        }
     }
 
     public boolean isFloatingPoint() {
         return isFp;
+    }
+
+    public boolean isNumeric() {
+        return isNumeric;
     }
 
     @NotNull
@@ -48,5 +61,25 @@ public enum DataType {
             }
         }
         return largerByBitSize;
+    }
+
+    public boolean isSameType(@NotNull Class<?> fClass) {
+        if (fClass == byte.class || fClass == Byte.class) {
+            return this == INT8;
+        } else if (fClass == short.class || fClass == Short.class) {
+            return this == INT16;
+        } else if (fClass == int.class || fClass == Integer.class) {
+            return this == INT32;
+        } else if (fClass == long.class || fClass == Long.class) {
+            return this == INT64;
+        } else if (fClass == float.class || fClass == Float.class) {
+            return this == FLOAT32;
+        } else if (fClass == double.class || fClass == Double.class) {
+            return this == FLOAT64;
+        } else if (fClass == boolean.class || fClass == Boolean.class) {
+            return this == BOOLEAN;
+        } else {
+            return false;
+        }
     }
 }

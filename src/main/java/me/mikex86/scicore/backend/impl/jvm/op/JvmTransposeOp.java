@@ -2,12 +2,9 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.Tensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.backend.ITensorImpl;
-import me.mikex86.scicore.backend.impl.jvm.JvmDataTensorImpl;
+import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
 import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
-import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.op.IUnaryOperation;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,8 +26,7 @@ public class JvmTransposeOp implements IUnaryOperation {
         long[] resultShape = getResultShape(input);
 
         DataType dataType = input.getDataType();
-        ITensorImpl result = new JvmDataTensorImpl(this.backend, dataType, resultShape);
-        ITensor resultTensor = new Tensor(this.backend, result);
+        ITensor result = new JvmTensor(this.backend, dataType, resultShape);
 
         long[] resultIndex = new long[resultShape.length];
         long[] inputIndex = new long[shape.length];
@@ -59,7 +55,7 @@ public class JvmTransposeOp implements IUnaryOperation {
                 }
             }
         }
-        return resultTensor;
+        return result;
     }
 
     @Override

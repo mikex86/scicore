@@ -2,12 +2,9 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.Tensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.backend.ITensorImpl;
 import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
 import me.mikex86.scicore.op.IBiParametricOperation;
-import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,23 +39,22 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
             }
             Arrays.fill(outputShape, 1);
 
-            ITensorImpl result = backend.createTensor(dataType, outputShape);
-            ITensor resultTensor = new Tensor(backend, result);
+            ITensor result = backend.createTensor(dataType, outputShape);
             long numElements = ShapeUtils.getNumElements(shape);
             if (dataType.isFloatingPoint()) {
                 double sum = 0;
                 for (long i = 0; i < numElements; i++) {
                     sum += tensor.getAsDoubleFlat(i);
                 }
-                resultTensor.setByDoubleFlat(sum, 0);
+                result.setByDoubleFlat(sum, 0);
             } else {
                 long sum = 0;
                 for (long i = 0; i < numElements; i++) {
                     sum += tensor.getAsLongFlat(i);
                 }
-                resultTensor.setByLongFlat(sum, 0);
+                result.setByLongFlat(sum, 0);
             }
-            return resultTensor;
+            return result;
         }
         if (dimension < 0 || dimension >= shape.length) {
             throw new IllegalArgumentException("Dimension out of bounds: " + dimension);
@@ -66,8 +62,7 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
         long[] reducedShape = new long[shape.length - (keepDimensions ? 0 : 1)];
         reduceShape(shape, reducedShape, dimension, keepDimensions);
 
-        ITensorImpl result = backend.createTensor(dataType, reducedShape);
-        ITensor resultTensor = new Tensor(backend, result);
+        ITensor result = backend.createTensor(dataType, reducedShape);
 
         long[] completeIndex = new long[shape.length];
         long[] reducedIndex = new long[reducedShape.length];
@@ -80,7 +75,7 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
                     sum += tensor.getAsDouble(completeIndex);
                 }
 
-                resultTensor.setByDouble(sum, reducedIndex);
+                result.setByDouble(sum, reducedIndex);
             } else {
                 long sum = 0;
 
@@ -89,7 +84,7 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
                     sum += tensor.getAsLong(completeIndex);
                 }
 
-                resultTensor.setLong(sum, reducedIndex);
+                result.setLong(sum, reducedIndex);
             }
             // increment index, but only for dimensions that are not being summed along
             {
@@ -115,7 +110,7 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
                 }
             }
         }
-        return resultTensor;
+        return result;
     }
 
     @NotNull
@@ -154,5 +149,15 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
                 }
             }
         }
+    }
+
+    @Override
+    public @NotNull Class<Integer> getFirstType() {
+        return Integer.class;
+    }
+
+    @Override
+    public @NotNull Class<Boolean> getSecondType() {
+        return Boolean.class;
     }
 }

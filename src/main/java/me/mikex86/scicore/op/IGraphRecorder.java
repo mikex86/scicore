@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 
 public interface IGraphRecorder {
 
-    @NotNull ITensor recordOperation(@NotNull OperationType operation, @NotNull Object... inputs);
+    @NotNull ITensor recordOperation(@NotNull OperationType operation, @NotNull ITensor... inputs);
 
     /**
      * @param root the root tensor of the graph

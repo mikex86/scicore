@@ -1,13 +1,12 @@
 package me.mikex86.scicore;
 
-import me.mikex86.scicore.backend.ITensorImpl;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 
-class View implements ITensor {
+class View extends AbstractTensor {
 
     private final @NotNull ITensor viewed;
     private final long @NotNull [] shape;
@@ -115,6 +114,30 @@ class View implements ITensor {
     }
 
     @Override
+    public boolean getBooleanFlat(long flatIndex) {
+        validateDataType(DataType.BOOLEAN);
+        return this.viewed.getBooleanFlat(this.offset + flatIndex);
+    }
+
+    @Override
+    public void setBooleanFlat(boolean value, long flatIndex) {
+        throw new UnsupportedOperationException("Views are read-only");
+    }
+
+    @Override
+    public boolean getBoolean(long @NotNull ... indices) {
+        validateDataType(DataType.BOOLEAN);
+        validateIndices(indices);
+        long flatIndex = ShapeUtils.getFlatIndex(indices, this.localStrides);
+        return this.viewed.getBooleanFlat(this.offset + flatIndex);
+    }
+
+    @Override
+    public void setBoolean(boolean value, long @NotNull ... indices) {
+        throw new UnsupportedOperationException("Views are read-only");
+    }
+
+    @Override
     public byte getByteFlat(long flatIndex) {
         return this.viewed.getByteFlat(this.offset + flatIndex);
     }
@@ -188,6 +211,7 @@ class View implements ITensor {
     public void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView) {
         throw new UnsupportedOperationException("Views are read-only");
     }
+
     @Override
     public void fill(byte i) {
         throw new UnsupportedOperationException("Views are read-only");
@@ -219,17 +243,8 @@ class View implements ITensor {
     }
 
     @Override
-    public @NotNull ITensor exp() {
-        // TODO: THE FACT THAT WE ASSERT CPU HERE IS STUPID
-        //  SEE DETACH OPERATIONS FROM TENSOR
-        long[] shape = getShape();
-        long nElements = ShapeUtils.getNumElements(shape);
-        ISciCoreBackend backend = getSciCoreBackend();
-        ITensorImpl result = backend.createTensor(getDataType(), shape);
-        for (long i = 0; i < nElements; i++) {
-            result.setDoubleFlat(Math.exp(getDoubleFlat(i)), i);
-        }
-        return new Tensor(backend, result);
+    public void fill(boolean value) {
+        throw new UnsupportedOperationException("Views are read-only");
     }
 
     @Override

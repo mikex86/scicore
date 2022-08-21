@@ -20,19 +20,16 @@ public class GraphRecorder implements IGraphRecorder {
     }
 
     @Override
-    public @NotNull ITensor recordOperation(@NotNull OperationType operationType, @NotNull Object... inputs) {
+    public @NotNull ITensor recordOperation(@NotNull OperationType operationType, @NotNull ITensor... inputs) {
         IOperation operation = this.sciCoreBackend.getOperation(operationType);
         List<Graph.IGraphNode> inputNodes = new ArrayList<>();
-        for (Object input : inputs) {
+        for (ITensor input : inputs) {
             Graph.IGraphNode node = valueToNodeMap.get(input);
             if (node == null) {
                 if (input instanceof IDerivedTensor) {
                     throw new IllegalStateException("Derive tensor not computed in current graph!");
-                } else if (input instanceof ITensor inputTensor) {
-                    node = new Graph.TensorDeclarationGraphNode(inputTensor);
-                    valueToNodeMap.put(input, node);
                 } else {
-                    node = new Graph.ValueGraphNode(input);
+                    node = new Graph.TensorDeclarationGraphNode(input);
                     valueToNodeMap.put(input, node);
                 }
             }

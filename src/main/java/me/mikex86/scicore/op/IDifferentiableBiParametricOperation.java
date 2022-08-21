@@ -17,19 +17,19 @@ public interface IDifferentiableBiParametricOperation<F, S> extends IBiParametri
         IGraph.IGraphNode input1 = inputs.get(1);
         IGraph.IGraphNode input2 = inputs.get(2);
 
-        if (!(input1 instanceof Graph.ValueGraphNode input1ValueNode)) {
-            throw new IllegalArgumentException("Bi-parametric operation expects input1 to be a ValueGraphNode.");
+        if (!(input1 instanceof IGraph.ITensorNode input1TensorNode)) {
+            throw new IllegalArgumentException("Bi-parametric operation expects input1 to be hold a tensor");
         }
-        if (!(input2 instanceof Graph.ValueGraphNode input2ValueNode)) {
-            throw new IllegalArgumentException("Bi-parametric operation expects input2 to be a ValueGraphNode.");
+        if (!(input2 instanceof IGraph.ITensorNode input2TensorNode)) {
+            throw new IllegalArgumentException("Bi-parametric operation expects input2 to hold a tensor");
         }
 
-        Object input1Value = input1ValueNode.getValue();
-        Object input2Value = input2ValueNode.getValue();
+        Object input1Value = input1TensorNode.getValue();
+        Object input2Value = input2TensorNode.getValue();
 
-        ITensor upstreamGradient = operationNode.getGradient(); // gradient with respect to z where z is the output of the operation
-        Validator.assertTrue(upstreamGradient != null, "Upstream gradient not yet computed! This is a bug in DAG topology iteration!");
-        computeGradients(upstreamGradient, (IGraph.IDifferentiableNode) input0, (F) input1Value, (S) input2Value);
+        ITensor upstreamGradients = operationNode.getGradient(); // gradients with respect to z where z is the output of this operation
+        Validator.assertTrue(upstreamGradients != null, "Upstream gradients not yet computed! This is a bug in DAG topology iteration!");
+        computeGradients(upstreamGradients, (IGraph.IDifferentiableNode) input0, (F) input1Value, (S) input2Value);
     }
 
     void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.IDifferentiableNode tensor, F f, S s);

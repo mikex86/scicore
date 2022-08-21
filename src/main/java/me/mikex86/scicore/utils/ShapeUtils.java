@@ -226,4 +226,8 @@ public class ShapeUtils {
         }
         return shapeArray;
     }
+
+    public static boolean isScalar(long @NotNull [] shape) {
+        return ShapeUtils.getNumElements(shape) == 1;
+    }
 }

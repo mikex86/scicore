@@ -1,8 +1,6 @@
 package me.mikex86.scicore.backend.impl.jvm;
 
-import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.ITensorIterator;
+import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.op.IDerivedTensor;
 import org.jetbrains.annotations.NotNull;
@@ -11,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
-public class JvmDerivedTensor implements IDerivedTensor {
+public class JvmDerivedTensor extends AbstractTensor implements IDerivedTensor {
 
     private final long @NotNull [] resultShape;
 
@@ -27,12 +25,12 @@ public class JvmDerivedTensor implements IDerivedTensor {
     @NotNull
     private final ISciCoreBackend sciCoreBackend;
 
-    public JvmDerivedTensor(@NotNull ISciCoreBackend sciCoreBackend, long @NotNull [] resultShape, @NotNull DataType resultDataType, @NotNull Supplier<ITensor> resultSupplier) {
-        this.sciCoreBackend = sciCoreBackend;
+    public JvmDerivedTensor(@NotNull ISciCoreBackend backend, long @NotNull [] resultShape, @NotNull DataType resultDataType, @NotNull Supplier<ITensor> resultSupplier) {
         this.resultShape = resultShape;
         this.resultDataType = resultDataType;
         this.resultSupplier = resultSupplier;
         this.lazyResult = resultSupplier.get();
+        this.sciCoreBackend = backend;
     }
 
     @NotNull
@@ -116,6 +114,26 @@ public class JvmDerivedTensor implements IDerivedTensor {
     @Override
     public void setDouble(double value, long @NotNull ... indices) {
         result().setDouble(value, indices);
+    }
+
+    @Override
+    public boolean getBooleanFlat(long flatIndex) {
+        return result().getBooleanFlat(flatIndex);
+    }
+
+    @Override
+    public void setBooleanFlat(boolean value, long flatIndex) {
+        result().setBooleanFlat(value, flatIndex);
+    }
+
+    @Override
+    public boolean getBoolean(long @NotNull ... indices) {
+        return result().getBoolean(indices);
+    }
+
+    @Override
+    public void setBoolean(boolean value, long @NotNull ... indices) {
+        result().setBoolean(value, indices);
     }
 
     @Override
@@ -221,6 +239,11 @@ public class JvmDerivedTensor implements IDerivedTensor {
     @Override
     public void fill(double i) {
         result().fill(i);
+    }
+
+    @Override
+    public void fill(boolean value) {
+        result().fill(value);
     }
 
     @Override

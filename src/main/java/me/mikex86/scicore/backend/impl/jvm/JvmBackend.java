@@ -1,12 +1,11 @@
 package me.mikex86.scicore.backend.impl.jvm;
 
 import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.backend.ITensorImpl;
 import me.mikex86.scicore.backend.impl.jvm.op.*;
 import me.mikex86.scicore.op.*;
-import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -28,8 +27,8 @@ public class JvmBackend implements ISciCoreBackend {
     );
 
     @Override
-    public @NotNull ITensorImpl createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
-        return new JvmDataTensorImpl(this, dataType, shape);
+    public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
+        return new JvmTensor(this, dataType, shape);
     }
 
     @Override
@@ -46,29 +45,8 @@ public class JvmBackend implements ISciCoreBackend {
     }
 
     @Override
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public @NotNull ITensor lazyOpTensor(@NotNull IOperation operation, @NotNull List<@NotNull Object> inputs) {
-        if (operation instanceof IUnaryOperation unaryOperation) {
-            Validator.assertTrue(inputs.size() == 1, "Unary operation expects exactly one input.");
-            Validator.assertTrue(inputs.get(0) instanceof ITensor, "inputs[0] must be a tensor for unary operation.");
-            return unaryOperation.performLazily((ITensor) inputs.get(0));
-        } else if (operation instanceof IBinaryOperation binaryOperation) {
-            Validator.assertTrue(inputs.size() == 2, "Binary operation expects exactly two inputs");
-            Validator.assertTrue(inputs.get(0) instanceof ITensor, "inputs[0] must be a tensor for binary operation.");
-            Validator.assertTrue(inputs.get(1) instanceof ITensor, "inputs[1] must be a tensor for binary operation.");
-            return binaryOperation.performLazily((ITensor) inputs.get(0), (ITensor) inputs.get(1));
-        } else if (operation instanceof IParametricOperation) {
-            if (operation instanceof IBiParametricOperation biParametricOperation) {
-                Validator.assertTrue(inputs.size() == 3, "Bi-parametric operation expects one tensor and two arguments (3 in total).");
-                Validator.assertTrue(inputs.get(0) instanceof ITensor, "inputs[0] must be a tensor for binary operation.");
-                //noinspection unchecked
-                return biParametricOperation.performLazily((ITensor) inputs.get(0), inputs.get(1), inputs.get(2));
-            } else {
-                throw new IllegalStateException("Unknown parametric operation type: " + operation.getClass().getSimpleName());
-            }
-        } else {
-            throw new IllegalStateException("Unknown operation type: " + operation.getClass().getSimpleName());
-        }
+    public @NotNull ITensor lazyOpTensor(@NotNull IOperation operation, @NotNull List<@NotNull ITensor> inputs) {
+        return operation.performLazily(inputs);
     }
 
     @Override

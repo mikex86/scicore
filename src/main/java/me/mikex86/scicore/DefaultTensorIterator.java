@@ -1,6 +1,5 @@
 package me.mikex86.scicore;
 
-import me.mikex86.scicore.backend.ITensorImpl;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 

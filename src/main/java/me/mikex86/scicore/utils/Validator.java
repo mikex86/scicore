@@ -14,7 +14,7 @@ public class Validator {
      */
     public static void assertTrue(boolean state, @NotNull String errorMessage) {
         if (!state) {
-            throw new IllegalStateException(errorMessage);
+            throw new IllegalArgumentException(errorMessage);
         }
     }
 

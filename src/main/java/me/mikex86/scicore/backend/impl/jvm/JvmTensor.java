@@ -1,16 +1,16 @@
 package me.mikex86.scicore.backend.impl.jvm;
 
 import me.mikex86.scicore.*;
-import me.mikex86.scicore.backend.ITensorImpl;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Objects;
 
-public class JvmDataTensorImpl implements ITensorImpl {
+public class JvmTensor extends AbstractTensor implements ITensor {
 
     @NotNull
     private final JvmTensorDataContainer dataContainer;
@@ -21,13 +21,13 @@ public class JvmDataTensorImpl implements ITensorImpl {
     private final ISciCoreBackend backend;
 
 
-    public JvmDataTensorImpl(@NotNull ISciCoreBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
-        this.backend = backend;
+    public JvmTensor(@NotNull ISciCoreBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
         this.dataContainer = new JvmTensorDataContainer(dataType, shape);
         this.strides = ShapeUtils.makeStrides(shape);
+        this.backend = backend;
     }
 
-    JvmDataTensorImpl(@NotNull ISciCoreBackend backend, @NotNull JvmTensorDataContainer dataContainer, long @NotNull [] shape) {
+    JvmTensor(@NotNull ISciCoreBackend backend, @NotNull JvmTensorDataContainer dataContainer, long @NotNull [] shape) {
         this.backend = backend;
         this.dataContainer = dataContainer;
         this.strides = ShapeUtils.makeStrides(shape);
@@ -122,6 +122,28 @@ public class JvmDataTensorImpl implements ITensorImpl {
     }
 
     @Override
+    public boolean getBooleanFlat(long flatIndex) {
+        return this.dataContainer.getBoolean(flatIndex);
+    }
+
+    @Override
+    public void setBooleanFlat(boolean value, long flatIndex) {
+        this.dataContainer.setBoolean(flatIndex, value);
+    }
+
+    @Override
+    public boolean getBoolean(long @NotNull ... indices) {
+        long index = ShapeUtils.getFlatIndex(indices, this.strides);
+        return this.dataContainer.getBoolean(index);
+    }
+
+    @Override
+    public void setBoolean(boolean value, long @NotNull ... indices) {
+        long index = ShapeUtils.getFlatIndex(indices, this.strides);
+        this.dataContainer.setBoolean(index, value);
+    }
+
+    @Override
     public byte getByteFlat(long flatIndex) {
         return this.dataContainer.getByte(flatIndex);
     }
@@ -182,16 +204,16 @@ public class JvmDataTensorImpl implements ITensorImpl {
     }
 
     @Override
-    public @NotNull ITensorImpl copy() {
-        ITensorImpl copy = new JvmDataTensorImpl(this.backend, getDataType(), getShape());
+    public @NotNull ITensor copy() {
+        ITensor copy = new JvmTensor(backend, getDataType(), getShape());
         copy.setContents(this);
         return copy;
     }
 
     @Override
     public void setContents(@NotNull ITensor tensor) {
-        if (tensor instanceof Tensor t && t.getTensorImpl() instanceof JvmDataTensorImpl jvmTensorImpl) {
-            this.dataContainer.setContents(jvmTensorImpl.dataContainer);
+        if (tensor instanceof JvmTensor jvmTensor) {
+            this.dataContainer.setContents(jvmTensor.dataContainer);
         } else {
             // General copy
             long nElements = tensor.getNumberOfElements();
@@ -436,6 +458,43 @@ public class JvmDataTensorImpl implements ITensorImpl {
         }
     }
 
+    @Override
+    public void fill(boolean value) {
+        long nElements = ShapeUtils.getNumElements(getShape());
+        switch (this.getDataType()) {
+            case INT8 -> {
+                for (long j = 0; j < nElements; j++) {
+                    dataContainer.setByte(j, (byte) (value ? 1 : 0));
+                }
+            }
+            case INT16 -> {
+                for (long j = 0; j < nElements; j++) {
+                    dataContainer.setShort(j, (short) (value ? 1 : 0));
+                }
+            }
+            case INT32 -> {
+                for (long j = 0; j < nElements; j++) {
+                    dataContainer.setInt(j, value ? 1 : 0);
+                }
+            }
+            case INT64 -> {
+                for (long j = 0; j < nElements; j++) {
+                    dataContainer.setLong(j, value ? 1 : 0);
+                }
+            }
+            case FLOAT32 -> {
+                for (long j = 0; j < nElements; j++) {
+                    dataContainer.setFloat(j, value ? 1 : 0);
+                }
+            }
+            case FLOAT64 -> {
+                for (long j = 0; j < nElements; j++) {
+                    dataContainer.setDouble(j, value ? 1 : 0);
+                }
+            }
+        }
+    }
+
 
     private static class JvmTensorDataContainer {
 
@@ -451,6 +510,9 @@ public class JvmDataTensorImpl implements ITensorImpl {
         private float @Nullable [] floatData;
         private double @Nullable [] doubleData;
 
+        private @Nullable BitSet bitSetData;
+        private int nBits;
+
         private JvmTensorDataContainer(@NotNull DataType dataType, long @NotNull [] shape) {
             this.dataType = dataType;
             this.shape = shape;
@@ -461,6 +523,10 @@ public class JvmDataTensorImpl implements ITensorImpl {
                 case INT64 -> this.longData = new long[Math.toIntExact(ShapeUtils.getNumElements(shape))];
                 case FLOAT32 -> this.floatData = new float[Math.toIntExact(ShapeUtils.getNumElements(shape))];
                 case FLOAT64 -> this.doubleData = new double[Math.toIntExact(ShapeUtils.getNumElements(shape))];
+                case BOOLEAN -> {
+                    this.nBits = Math.toIntExact(ShapeUtils.getNumElements(shape));
+                    this.bitSetData = new BitSet(nBits);
+                }
             }
         }
 
@@ -524,7 +590,11 @@ public class JvmDataTensorImpl implements ITensorImpl {
             return Objects.requireNonNull(longData, "DataContainer has different data type");
         }
 
-        private byte getByte(long index) {
+        private @NotNull BitSet getBooleanData() {
+            return Objects.requireNonNull(bitSetData, "DataContainer has different data type");
+        }
+
+        public byte getByte(long index) {
             byte[] byteData = getByteData();
             if (index < 0 || index >= byteData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -532,7 +602,7 @@ public class JvmDataTensorImpl implements ITensorImpl {
             return byteData[(int) index];
         }
 
-        private short getShort(long index) {
+        public short getShort(long index) {
             short[] shortData = getShortData();
             if (index < 0 || index >= shortData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -540,7 +610,7 @@ public class JvmDataTensorImpl implements ITensorImpl {
             return shortData[(int) index];
         }
 
-        private int getInt(long index) {
+        public int getInt(long index) {
             int[] intData = getIntData();
             if (index < 0 || index >= intData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -548,7 +618,7 @@ public class JvmDataTensorImpl implements ITensorImpl {
             return intData[(int) index];
         }
 
-        private long getLong(long index) {
+        public long getLong(long index) {
             long[] longData = getLongData();
             if (index < 0 || index >= longData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -556,7 +626,7 @@ public class JvmDataTensorImpl implements ITensorImpl {
             return longData[(int) index];
         }
 
-        private float getFloat(long index) {
+        public float getFloat(long index) {
             float[] floatData = getFloatData();
             if (index < 0 || index >= floatData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -564,12 +634,20 @@ public class JvmDataTensorImpl implements ITensorImpl {
             return floatData[(int) index];
         }
 
-        private double getDouble(long index) {
+        public double getDouble(long index) {
             double[] doubleData = getDoubleData();
             if (index < 0 || index >= doubleData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
             return doubleData[(int) index];
+        }
+
+        public boolean getBoolean(long index) {
+            BitSet bitSetData = getBooleanData();
+            if (index < 0 || index >= nBits) {
+                throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            return bitSetData.get((int) index);
         }
 
         public void setByte(long index, byte value) {
@@ -620,6 +698,14 @@ public class JvmDataTensorImpl implements ITensorImpl {
             doubleData[(int) index] = value;
         }
 
+        public void setBoolean(long index, boolean value) {
+            BitSet booleanData = getBooleanData();
+            if (index < 0 || index >= nBits) {
+                throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            booleanData.set(Math.toIntExact(index), value);
+        }
+
         @NotNull
         public DataType getDataType() {
             return dataType;
@@ -629,7 +715,6 @@ public class JvmDataTensorImpl implements ITensorImpl {
             return shape;
         }
 
-        @NotNull
         public void setContents(@NotNull JvmTensorDataContainer container) {
             switch (dataType) {
                 case INT8 -> {

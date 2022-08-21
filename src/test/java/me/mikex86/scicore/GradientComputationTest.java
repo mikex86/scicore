@@ -140,7 +140,7 @@ public class GradientComputationTest {
         // Y = expected output = (2, n)
         // L = ((Y - D)^2).sum(dim=0)
 
-        ITensor X = sciCore.matrix(new float[][]{{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}});
+        ITensor X = sciCore.matrix(new float[][]{{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}}).transpose();
         ITensor W = sciCore.matrix(new float[][]{{1, 2, 3, 4}, {5, 6, 7, 8}});
         ITensor Y = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});
 

@@ -2,10 +2,8 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.Tensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.backend.ITensorImpl;
-import me.mikex86.scicore.backend.impl.jvm.JvmDataTensorImpl;
+import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
 import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
@@ -32,7 +30,7 @@ public class JvmPlusOp implements IDifferentiableBinaryOperation {
         long nElements = ShapeUtils.getNumElements(shapeA);
 
         DataType dataType = DataType.getLarger(a.getDataType(), b.getDataType());
-        ITensorImpl tensor = new JvmDataTensorImpl(this.backend, dataType, shapeA);
+        ITensor tensor = new JvmTensor(this.backend, dataType, shapeA);
 
         for (long i = 0; i < nElements; i++) {
             if (dataType.isFloatingPoint()) {
@@ -42,7 +40,7 @@ public class JvmPlusOp implements IDifferentiableBinaryOperation {
                 tensor.setByDoubleFlat(resultVal, i);
             }
         }
-        return new Tensor(backend, tensor);
+        return tensor;
     }
 
     @Override

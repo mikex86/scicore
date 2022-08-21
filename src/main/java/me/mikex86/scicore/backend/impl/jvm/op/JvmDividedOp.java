@@ -2,13 +2,11 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.Tensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.backend.ITensorImpl;
 import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
 import me.mikex86.scicore.op.IBinaryOperation;
-import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
+import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
 public class JvmDividedOp implements IBinaryOperation {
@@ -32,8 +30,7 @@ public class JvmDividedOp implements IBinaryOperation {
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
-        ITensorImpl result = backend.createTensor(resultDataType, outputShape);
-        ITensor resultTensor = new Tensor(backend, result);
+        ITensor result = backend.createTensor(resultDataType, outputShape);
 
         long[] outputIndex = new long[outputShape.length];
         long[] indexA = new long[shapeA.length];
@@ -59,19 +56,21 @@ public class JvmDividedOp implements IBinaryOperation {
                 double aV = a.getAsDoubleFlat(indexAFlat);
                 double bV = b.getAsDoubleFlat(indexBFlat);
                 double aDivB = aV / bV;
-                resultTensor.setByDoubleFlat(aDivB, outputIndexFlat);
+                result.setByDoubleFlat(aDivB, outputIndexFlat);
             } else {
                 long aV = a.getAsLongFlat(indexAFlat);
                 long bV = b.getAsLongFlat(indexBFlat);
                 long aDivB = aV / bV;
-                resultTensor.setByLongFlat(aDivB, outputIndexFlat);
+                result.setByLongFlat(aDivB, outputIndexFlat);
             }
         } while (ShapeUtils.incrementIndex(outputShape, outputIndex));
-        return resultTensor;
+        return result;
     }
 
     @Override
     public @NotNull ITensor performLazily(@NotNull ITensor a, @NotNull ITensor b) {
+        Validator.assertTrue(a.getDataType().isNumeric(), "A is not numeric");
+        Validator.assertTrue(b.getDataType().isNumeric(), "B is not numeric");
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
         long[] outputShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
