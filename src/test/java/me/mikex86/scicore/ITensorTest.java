@@ -216,10 +216,55 @@ class ITensorTest {
         assertArrayEquals(new long[]{5, 4}, sum.getShape());
     }
 
+    @Test
+    void testMultiply_test_tensorByTensorElementWise_success() {
+        ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}, {7.0f, 8.0f, 9.0f}});
+        ITensor b = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}, {7.0f, 8.0f, 9.0f}});
+        ITensor c = a.multiply(b);
+
+        assertEquals(sciCore.matrix(new float[][]{{1.0f, 4.0f, 9.0f}, {16.0f, 25.0f, 36.0f}, {49.0f, 64.0f, 81.0f}}), c);
+    }
+
+    @Test
+    void testMultiply_test_tensorByTensorElementWise_differentShape_failure() {
+        ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}, {7.0f, 8.0f, 9.0f}});
+        ITensor b = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}});
+        assertThrows(IllegalArgumentException.class, () -> a.multiply(b));
+    }
+
+    @Test
+    void testMultiply_test_tensorByScalar_success() {
+        ITensor a = sciCore.matrix(new float[][]{{2, 3}});
+        ITensor b = sciCore.scalar(10);
+
+        ITensor c = a.multiply(b);
+        assertEquals(20, c.getFloat(0, 0), EPSILON);
+        assertEquals(30, c.getFloat(0, 1), EPSILON);
+    }
+
+    @Test
+    void testMultiply_test_tensorByTensorDimensionWiseSingleDim_success() {
+        ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}});
+        ITensor b = sciCore.matrix(new float[][]{{4.0f, 5.0f, 6.0f}, {7.0f, 8.0f, 9.0f}});
+        ITensor c = a.multiply(b);
+
+        assertEquals(sciCore.matrix(new float[][]{{4.0f, 10.0f, 18.0f}, {7.0f, 16.0f, 27.0f}}), c);
+    }
+
+    @Test
+    void testMultiply_test_tensorByTensorDimensionWiseMultipleDim_success() {
+        ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f}, {3.0f, 4.0f}});
+        ITensor b = sciCore.ndarray(new float[][][]{{{4.0f, 5.0f}, {6.0f, 7.0f}}, {{8.0f, 9.0f}, {10.0f, 11.0f}}});
+
+        ITensor c = a.multiply(b);
+        assertEquals(sciCore.ndarray(new float[][][]{{
+                {4.0f, 10.0f}, {18.0f, 28.0f}},
+                {{8.0f, 18.0f}, {30.0f, 44.0f}}
+        }), c);
+    }
+
     // TODO: TEST OPERATIONS UTILIZING STRIDES WITH VIEWS
     // TODO: IDEA STOLEN FROM GEORGE HOTZ. IMPLEMENT BROADCASTING WITH "VIRTUALLY EXPANDED TENSORS"
     //  MEANING TENSORS REPEATING ELEMENTS BY SETTING STRIDES TO ZERO.
     //  TEST THIS PROPERLY, THIS COULD BREAK STUFF
-
-    // TODO: DETACH OPERATIONS FROM TENSORS
 }

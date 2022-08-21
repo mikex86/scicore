@@ -97,7 +97,7 @@ public class Graph implements IGraph {
         if (node instanceof OperationGraphNode operationNode) {
             for (IGraphNode inputNode : operationNode.getInputs()) {
                 if (inputNode instanceof ITensorNodeWithGradient inputNodeWithGradient) {
-                    if (node.requiresGradients()) {
+                    if (inputNodeWithGradient.requiresGradients()) {
                         backPropagate(inputNodeWithGradient);
                     }
                 }

@@ -70,7 +70,6 @@ public interface ISciCore {
 
     @NotNull IGraph getGraphUpTo(@NotNull ITensor tensor);
 
-
     @NotNull ITensor scalar(byte value);
 
     @NotNull ITensor scalar(short value);
@@ -85,6 +84,17 @@ public interface ISciCore {
 
     @NotNull ITensor scalar(boolean value);
 
+    @NotNull ITensor pow(ITensor base, byte exponent);
+
+    @NotNull ITensor pow(ITensor base, short exponent);
+
+    @NotNull ITensor pow(ITensor base, int exponent);
+
+    @NotNull ITensor pow(ITensor base, long exponent);
+
+    @NotNull ITensor pow(ITensor base, float exponent);
+
+    @NotNull ITensor pow(ITensor base, double exponent);
 
     enum BackendType {
 

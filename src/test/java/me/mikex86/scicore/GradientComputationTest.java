@@ -126,6 +126,84 @@ public class GradientComputationTest {
         assertEquals(sciCore.matrix(new float[][]{{20.0f}, {24.0f}}), dLdD);
     }
 
+    @Test
+    void testElementWiseMultiply() {
+        ITensor a = sciCore.matrix(new float[][]{{2, 3}});
+        ITensor b = sciCore.matrix(new float[][]{{10, 11}});
+        ITensor c = sciCore.matrix(new float[][]{{2}, {3}});
+        ITensor d = a.multiply(b); // element-wise multiplication
+        ITensor e = d.matmul(c); // matrix multiplication to get a scalar
+
+        IGraph graph = sciCore.getGraphUpTo(e);
+        graph.requestGradientsFor(a, b);
+        graph.backward();
+
+        ITensor dLdA = graph.getGradient(a).orElseThrow();
+        ITensor dLdB = graph.getGradient(b).orElseThrow();
+
+        assertEquals(sciCore.matrix(new float[][]{{20.0f, 33.0f}}), dLdA);
+        assertEquals(sciCore.matrix(new float[][]{{4.0f, 9.0f}}), dLdB);
+    }
+
+    @Test
+    void testPowWithOneElement() {
+        ITensor a = sciCore.matrix(new float[][]{{5}});
+        ITensor b = sciCore.scalar(2);
+
+        ITensor c = a.pow(b);
+
+        assertEquals(sciCore.matrix(new float[][]{{25.0f}}), c);
+
+        IGraph graph = sciCore.getGraphUpTo(c);
+        graph.requestGradientsFor(a, b);
+        graph.backward();
+
+        ITensor dLdA = graph.getGradient(a).orElseThrow();
+        ITensor dLdB = graph.getGradient(b).orElseThrow();
+
+        assertEquals(sciCore.matrix(new float[][]{{10.0f}}), dLdA);
+        assertEquals(40.2359f, dLdB.elementAsFloat(), 0.0001f);
+    }
+
+    @Test
+    void testPowWithMultipleElements() {
+        // (1, 8) * (8, 1) = (1, 1)
+        ITensor a = sciCore.matrix(new float[][]{{2, 3, 4, 5, 6, 7, 8, 9}});
+        ITensor b = sciCore.scalar(3);
+        ITensor c = sciCore.matrix(new float[][]{{4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}});
+        ITensor d = a.pow(b);
+        ITensor e = d.matmul(c);
+
+        IGraph graph = sciCore.getGraphUpTo(e);
+        graph.requestGradientsFor(a, b);
+        graph.backward();
+
+        ITensor dLdA = graph.getGradient(a).orElseThrow();
+        ITensor dLdB = graph.getGradient(b).orElseThrow();
+
+        assertEquals(sciCore.matrix(new float[][]{{48.0f, 135.0f, 288.0f, 525.0f, 864.0f, 1323.0f, 1920.0f, 2673.0f}}), dLdA);
+        assertEquals(39480.5586f, dLdB.elementAsFloat(), 0.0001f);
+    }
+
+    @Test
+    void testMatmulWithReduceSum() {
+        // (1, 2) * (2, 2) = (1, 2)
+        ITensor a = sciCore.matrix(new float[][]{{1, 2}});
+        ITensor b = sciCore.matrix(new float[][]{{3, 4}, {5, 6}});
+        ITensor c = a.matmul(b);
+        ITensor d = c.reduceSum(1);
+
+        IGraph graph = sciCore.getGraphUpTo(d);
+        graph.requestGradientsFor(a, b);
+        graph.backward();
+
+        ITensor dLdA = graph.getGradient(a).orElseThrow();
+        ITensor dLdB = graph.getGradient(b).orElseThrow();
+
+        assertEquals(sciCore.matrix(new float[][]{{7.0f, 11.0f}}), dLdA);
+        assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f}, {2.0f, 2.0f}}), dLdB);
+    }
+
     /**
      * This test aims to test the totality of a default linear neural network without activation
      * function as it is composed inside a loss function and reduction to a single loss scalar that is differentiated
@@ -140,13 +218,26 @@ public class GradientComputationTest {
         // Y = expected output = (2, n)
         // L = ((Y - D)^2).sum(dim=0)
 
-        ITensor X = sciCore.matrix(new float[][]{{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}}).transpose();
-        ITensor W = sciCore.matrix(new float[][]{{1, 2, 3, 4}, {5, 6, 7, 8}});
-        ITensor Y = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});
+        ITensor X = sciCore.matrix(new float[][]{{0.1f, 0.3f, 0.9f, 0.3f}, {0.4f, 0.01f, 0.23f, 0.93f}, {0.93f, 0.5f, 0.9f, 0.44f}}).transpose();
+        ITensor W = sciCore.matrix(new float[][]{{0.4f, 0.2f, 0.34f, 0.24f}, {0.5f, 0.36f, 0.67f, 0.38f}});
+        ITensor Y = sciCore.matrix(new float[][]{{0.93f, 0.42f, 0.94f}, {0.1f, 0.5f, 0.24f}});
 
         ITensor D = W.matmul(X);
-        // TODO: IMPLEMENT
-//        ITensor L = sciCore.square(Y.minus(D)).sum(0);
+        ITensor diff = Y.minus(D);
+        ITensor squared = sciCore.pow(diff, 2);
+        ITensor lossPerSample = squared.reduceSum(0);
+        ITensor loss = lossPerSample.reduceSum(0);
+
+        IGraph graph = sciCore.getGraphUpTo(loss);
+        graph.requestGradientsFor(W);
+
+        graph.backward();
+
+        ITensor dLdW = graph.getGradient(W).orElseThrow();
+        assertEquals(sciCore.matrix(new float[][]{
+                {-0.1606f, -0.3267f, -0.8952f, -0.2401f},
+                {2.5098f, 1.6444f, 3.6075f, 1.8918f}
+        }), dLdW);
     }
 
     @Test

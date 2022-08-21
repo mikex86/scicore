@@ -38,4 +38,6 @@ public interface ITensorIterator {
 
     double getDouble();
 
+    boolean getBoolean();
+
 }

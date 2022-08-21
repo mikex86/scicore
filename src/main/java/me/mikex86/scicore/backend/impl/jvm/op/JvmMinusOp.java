@@ -2,21 +2,21 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
-import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
-public class JvmPlusOp implements IDifferentiableBinaryOperation {
+public class JvmMinusOp implements IDifferentiableBinaryOperation {
 
     @NotNull
     private final ISciCoreBackend backend;
 
-    public JvmPlusOp(@NotNull ISciCoreBackend backend) {
+    public JvmMinusOp(@NotNull ISciCoreBackend backend) {
         this.backend = backend;
     }
 
@@ -38,7 +38,7 @@ public class JvmPlusOp implements IDifferentiableBinaryOperation {
             if (resultDataType.isFloatingPoint()) {
                 double aV = a.getAsDoubleFlat(i);
                 double bV = b.getAsDoubleFlat(i);
-                double resultVal = aV + bV;
+                double resultVal = aV - bV;
                 tensor.setByDoubleFlat(resultVal, i);
             }
         }
@@ -58,7 +58,7 @@ public class JvmPlusOp implements IDifferentiableBinaryOperation {
 
     @Override
     public void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
-        a.accumulateGradient(upstreamGradient);
-        b.accumulateGradient(upstreamGradient);
+        a.accumulateGradient(upstreamGradient.multiply(-1));
+        b.accumulateGradient(upstreamGradient.multiply(-1));
     }
 }

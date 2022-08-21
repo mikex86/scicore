@@ -430,8 +430,7 @@ public class SciCore implements ISciCore {
     @Override
     public @NotNull ITensor scalar(byte value) {
         ISciCoreBackend backend = getBackend();
-        long[] shape = new long[]{1};
-        ITensor tensor = backend.createTensor(DataType.INT8, shape);
+        ITensor tensor = backend.createTensor(DataType.INT8, new long[0]);
         tensor.setByteFlat(value, 0);
         return tensor;
     }
@@ -439,8 +438,7 @@ public class SciCore implements ISciCore {
     @Override
     public @NotNull ITensor scalar(short value) {
         ISciCoreBackend backend = getBackend();
-        long[] shape = new long[]{1};
-        ITensor tensor = backend.createTensor(DataType.INT16, shape);
+        ITensor tensor = backend.createTensor(DataType.INT16, new long[0]);
         tensor.setShortFlat(value, 0);
         return tensor;
     }
@@ -448,8 +446,7 @@ public class SciCore implements ISciCore {
     @Override
     public @NotNull ITensor scalar(int value) {
         ISciCoreBackend backend = getBackend();
-        long[] shape = new long[]{1};
-        ITensor tensor = backend.createTensor(DataType.INT32, shape);
+        ITensor tensor = backend.createTensor(DataType.INT32, new long[0]);
         tensor.setIntFlat(value, 0);
         return tensor;
     }
@@ -457,8 +454,7 @@ public class SciCore implements ISciCore {
     @Override
     public @NotNull ITensor scalar(long value) {
         ISciCoreBackend backend = getBackend();
-        long[] shape = new long[]{1};
-        ITensor tensor = backend.createTensor(DataType.INT64, shape);
+        ITensor tensor = backend.createTensor(DataType.INT64, new long[0]);
         tensor.setLongFlat(value, 0);
         return tensor;
     }
@@ -467,7 +463,7 @@ public class SciCore implements ISciCore {
     public @NotNull ITensor scalar(float value) {
         ISciCoreBackend backend = getBackend();
         long[] shape = new long[]{1};
-        ITensor tensor = backend.createTensor(DataType.FLOAT32, shape);
+        ITensor tensor = backend.createTensor(DataType.FLOAT32, new long[0]);
         tensor.setFloatFlat(value, 0);
         return tensor;
     }
@@ -475,8 +471,7 @@ public class SciCore implements ISciCore {
     @Override
     public @NotNull ITensor scalar(double value) {
         ISciCoreBackend backend = getBackend();
-        long[] shape = new long[]{1};
-        ITensor tensor = backend.createTensor(DataType.FLOAT64, shape);
+        ITensor tensor = backend.createTensor(DataType.FLOAT64, new long[0]);
         tensor.setDoubleFlat(value, 0);
         return tensor;
     }
@@ -484,9 +479,38 @@ public class SciCore implements ISciCore {
     @Override
     public @NotNull ITensor scalar(boolean value) {
         ISciCoreBackend backend = getBackend();
-        long[] shape = new long[]{1};
-        ITensor tensor = backend.createTensor(DataType.BOOLEAN, shape);
+        ITensor tensor = backend.createTensor(DataType.BOOLEAN, new long[0]);
         tensor.setBooleanFlat(value, 0);
         return tensor;
+    }
+
+    @Override
+    public @NotNull ITensor pow(ITensor base, byte exponent) {
+        return base.pow(exponent);
+    }
+
+    @Override
+    public @NotNull ITensor pow(ITensor base, short exponent) {
+        return base.pow(exponent);
+    }
+
+    @Override
+    public @NotNull ITensor pow(ITensor base, int exponent) {
+        return base.pow(exponent);
+    }
+
+    @Override
+    public @NotNull ITensor pow(ITensor base, long exponent) {
+        return base.pow(exponent);
+    }
+
+    @Override
+    public @NotNull ITensor pow(ITensor base, float exponent) {
+        return base.pow(exponent);
+    }
+
+    @Override
+    public @NotNull ITensor pow(ITensor base, double exponent) {
+        return base.pow(exponent);
     }
 }

@@ -279,6 +279,9 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
         if (tensor.getDataType() != this.getDataType()) {
             return false;
         }
+        if (obj == this) {
+            return true;
+        }
         return result().equals(obj);
     }
 }

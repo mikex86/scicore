@@ -17,9 +17,12 @@ public class JvmBackend extends AbstractSciCoreBackend {
             OperationType.MATMUL, new JvmMatMulOp(this),
             OperationType.DIVIDED, new JvmDividedOp(this),
             OperationType.PLUS, new JvmPlusOp(this),
+            OperationType.MINUS, new JvmMinusOp(this),
             OperationType.REDUCE_SUM, new JvmReduceSumOp(this),
             OperationType.EXP, new JvmExpOp(this),
-            OperationType.TRANSPOSE, new JvmTransposeOp(this)
+            OperationType.TRANSPOSE, new JvmTransposeOp(this),
+            OperationType.POW, new JvmPowerOp(this),
+            OperationType.MULTIPLY, new JvmMultiplyOp(this)
     );
 
     @Override

@@ -90,4 +90,9 @@ public class DefaultTensorIterator implements ITensorIterator {
     public double getDouble() {
         return tensor.getDoubleFlat(this.flatIndex);
     }
+
+    @Override
+    public boolean getBoolean() {
+        return tensor.getBoolean(this.flatIndex);
+    }
 }

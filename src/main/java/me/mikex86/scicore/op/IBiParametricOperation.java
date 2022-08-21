@@ -3,12 +3,13 @@ package me.mikex86.scicore.op;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface IBiParametricOperation<F, S> extends IParametricOperation, ITrinaryOperation {
 
-    @NotNull ITensor perform(@NotNull ITensor tensor, F f, S s);
+    @NotNull ITensor perform(@NotNull ITensor tensor, @Nullable F f, @Nullable S s);
 
-    @NotNull ITensor performLazily(@NotNull ITensor tensor, F f, S s);
+    @NotNull ITensor performLazily(@NotNull ITensor tensor, @Nullable F f, @Nullable S s);
 
     @Override
     @NotNull

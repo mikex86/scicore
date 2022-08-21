@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 public interface ITensor extends IValue {
 
-    float EPSILON = 1E-5f;
+    float EPSILON = 1E-4f;
 
     @NotNull DataType getDataType();
 
@@ -482,6 +482,8 @@ public interface ITensor extends IValue {
 
     @NotNull ITensor plus(@NotNull ITensor other);
 
+    @NotNull ITensor minus(@NotNull ITensor other);
+
     void fill(byte value);
 
     void fill(short value);
@@ -516,4 +518,39 @@ public interface ITensor extends IValue {
     default boolean isScalar() {
         return ShapeUtils.isScalar(getShape());
     }
+
+    @NotNull ITensor pow(byte exponent);
+
+    @NotNull ITensor pow(short exponent);
+
+    @NotNull ITensor pow(int exponent);
+
+    @NotNull ITensor pow(long exponent);
+
+    @NotNull ITensor pow(float exponent);
+
+    @NotNull ITensor pow(double exponent);
+
+    @NotNull ITensor pow(@NotNull ITensor exponent);
+
+    /**
+     * Multiplies this tensor by the other tensor either:
+     * Element-wise multiplication if the tensors have the same shape,
+     * or dimension-wise multiplication if the tensors have different shapes that are broadcastable.
+     * @param other the other tensor.
+     * @return the result of the multiplication.
+     */
+    @NotNull ITensor multiply(@NotNull ITensor other);
+
+    @NotNull ITensor multiply(byte value);
+
+    @NotNull ITensor multiply(short value);
+
+    @NotNull ITensor multiply(int value);
+
+    @NotNull ITensor multiply(long value);
+
+    @NotNull ITensor multiply(float value);
+
+    @NotNull ITensor multiply(double value);
 }

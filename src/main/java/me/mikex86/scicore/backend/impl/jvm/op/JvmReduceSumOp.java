@@ -4,13 +4,16 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
-import me.mikex86.scicore.op.IBiParametricOperation;
+import me.mikex86.scicore.op.IDifferentiableBiParametricOperation;
+import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
+import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 
-public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> {
+public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Integer, Boolean> {
 
     @NotNull
     private final ISciCoreBackend backend;
@@ -26,7 +29,10 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
 
     @NotNull
     @Override
-    public ITensor perform(@NotNull ITensor tensor, Integer dimension, Boolean keepDimensions) {
+    public ITensor perform(@NotNull ITensor tensor, @Nullable Integer dimension, @Nullable Boolean keepDimensions) {
+        Validator.validateNotNull(dimension, "Dimension must not be null");
+        Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
+
         // TODO: OPTIMIZE
         DataType dataType = tensor.getDataType();
         long[] shape = tensor.getShape();
@@ -115,7 +121,9 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
 
     @NotNull
     @Override
-    public ITensor performLazily(@NotNull ITensor tensor, Integer dimension, Boolean keepDimensions) {
+    public ITensor performLazily(@NotNull ITensor tensor, @Nullable Integer dimension, @Nullable Boolean keepDimensions) {
+        Validator.validateNotNull(dimension, "Dimension must not be null");
+        Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
         DataType dataType = tensor.getDataType();
         long[] shape = tensor.getShape();
         long[] outputShape;
@@ -131,6 +139,18 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
             reduceShape(shape, outputShape, dimension, keepDimensions);
         }
         return new LazyTensor(backend, outputShape, dataType, () -> perform(tensor, dimension, keepDimensions));
+    }
+
+    @Override
+    public void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.IDifferentiableNode node, @Nullable Integer dimension, @Nullable Boolean keepDimensions) {
+        Validator.validateNotNull(dimension, "Dimension must not be null");
+        Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
+
+        ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), node.getValue().getShape());
+        gradients.fill(1);
+        gradients = gradients.multiply(upstreamGradient);
+
+        node.accumulateGradient(gradients);
     }
 
     private static void reduceShape(long[] shape, long[] outputShape, Integer dimension, Boolean keepDimensions) {

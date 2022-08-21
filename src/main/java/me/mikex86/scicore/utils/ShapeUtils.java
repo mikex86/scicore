@@ -228,6 +228,16 @@ public class ShapeUtils {
     }
 
     public static boolean isScalar(long @NotNull [] shape) {
-        return ShapeUtils.getNumElements(shape) == 1;
+        return shape.length == 0 || ShapeUtils.getNumElements(shape) == 1;
+    }
+
+    public static long @NotNull [] getCommonShape(long @NotNull [] shapeA, long @NotNull [] shapeB) {
+        int commonLength = Math.min(shapeA.length, shapeB.length);
+        for (int i = 0; i < commonLength; i++) {
+            if (shapeA[shapeA.length - 1 - i] != shapeB[shapeB.length - 1 - i]) {
+                return Arrays.copyOfRange(shapeA, shapeA.length - i, shapeA.length);
+            }
+        }
+        return Arrays.copyOfRange(shapeA, 0, commonLength);
     }
 }

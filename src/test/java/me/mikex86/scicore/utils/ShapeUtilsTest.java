@@ -1,5 +1,7 @@
 package me.mikex86.scicore.utils;
 
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -181,6 +183,28 @@ class ShapeUtilsTest {
         assertThrows(IllegalArgumentException.class, () -> ShapeUtils.broadcastShapes(shapeA, shapeB));
     }
 
+    @ParameterizedTest
+    @MethodSource("testIsScalarData")
+    public void testIsScalar(long @NotNull [] shape, boolean expectedState) {
+        assertEquals(expectedState, ShapeUtils.isScalar(shape));
+    }
+
+    @NotNull
+    public Stream<Arguments> testIsScalarData() {
+        return Stream.of(
+                Arguments.of(new long[0], true),
+                Arguments.of(new long[]{1}, true),
+                Arguments.of(new long[]{1, 1}, true),
+                Arguments.of(new long[]{1, 1, 1}, true),
+                Arguments.of(new long[]{1, 1, 1, 1}, true),
+                Arguments.of(new long[]{1, 1, 1, 1, 1}, true),
+                Arguments.of(new long[]{2}, false),
+                Arguments.of(new long[]{2, 2}, false),
+                Arguments.of(new long[]{2, 3, 1}, false),
+                Arguments.of(new long[]{1, 3, 1, 1}, false)
+        );
+    }
+
     Stream<Arguments> constrainIndexData() {
         return Stream.of(
                 // index, shape, expected constrained index
@@ -212,6 +236,25 @@ class ShapeUtilsTest {
     void getArrayShape(Object array, long[] expectedShape) {
         long[] shape = ShapeUtils.getArrayShape(array);
         assertArrayEquals(expectedShape, shape);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getCommonShapeData")
+    void getCommonShape(long[] shapeA, long[] shapeB, long[] expectedCommonShape) {
+        long[] commonShape = ShapeUtils.getCommonShape(shapeA, shapeB);
+        assertArrayEquals(expectedCommonShape, commonShape);
+    }
+
+    Stream<Arguments> getCommonShapeData() {
+        return Stream.of(
+                Arguments.of(new long[]{1, 2, 3}, new long[]{4, 5, 6}, new long[]{}),
+                Arguments.of(new long[]{1, 1}, new long[]{1}, new long[]{1}),
+                Arguments.of(new long[]{1, 1}, new long[]{1, 1, 1}, new long[]{1, 1}),
+                Arguments.of(new long[]{1, 1, 1}, new long[]{1, 1, 1}, new long[]{1, 1, 1}),
+                Arguments.of(new long[]{2, 1, 1}, new long[]{1, 1, 1}, new long[]{1, 1}),
+                Arguments.of(new long[]{1, 3, 2}, new long[]{1, 3, 2}, new long[]{1, 3, 2}),
+                Arguments.of(new long[]{1, 1, 1}, new long[]{1, 1, 1, 1}, new long[]{1, 1, 1})
+        );
     }
 
 }

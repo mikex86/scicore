@@ -4,6 +4,7 @@ import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.op.IGraphRecorder;
 import me.mikex86.scicore.op.OperationType;
 import me.mikex86.scicore.utils.ShapeUtils;
+import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -46,6 +47,14 @@ public abstract class AbstractTensor implements ITensor {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         return operationRecorder.recordOperation(OperationType.PLUS, this, other);
+    }
+
+    @Override
+    @NotNull
+    public ITensor minus(@NotNull ITensor other) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.MINUS, this, other);
     }
 
     @Override
@@ -95,6 +104,165 @@ public abstract class AbstractTensor implements ITensor {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         return operationRecorder.recordOperation(OperationType.TRANSPOSE, this);
+    }
+
+    @Override
+    public @NotNull ITensor pow(byte exponent) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor exponentScalar;
+        {
+            exponentScalar = backend.createTensor(DataType.INT8, new long[]{1});
+            exponentScalar.setIntFlat(exponent, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+    }
+
+    @Override
+    public @NotNull ITensor pow(short exponent) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor exponentScalar;
+        {
+            exponentScalar = backend.createTensor(DataType.INT16, new long[]{1});
+            exponentScalar.setIntFlat(exponent, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+    }
+
+    @Override
+    public @NotNull ITensor pow(int exponent) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor exponentScalar;
+        {
+            exponentScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            exponentScalar.setIntFlat(exponent, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+    }
+
+    @Override
+    public @NotNull ITensor pow(long exponent) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor exponentScalar;
+        {
+            exponentScalar = backend.createTensor(DataType.INT64, new long[]{1});
+            exponentScalar.setLongFlat(exponent, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+    }
+
+    @Override
+    public @NotNull ITensor pow(float exponent) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor exponentScalar;
+        {
+            exponentScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
+            exponentScalar.setFloatFlat(exponent, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+    }
+
+    @Override
+    public @NotNull ITensor pow(double exponent) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor exponentScalar;
+        {
+            exponentScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
+            exponentScalar.setDoubleFlat(exponent, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+    }
+
+    @Override
+    public @NotNull ITensor pow(@NotNull ITensor exponent) {
+        Validator.assertTrue(exponent.isScalar(), "Exponent must be scalar"); // TODO: Support non-scalar exponent
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.POW, this, exponent);
+    }
+
+    @Override
+    public @NotNull ITensor multiply(@NotNull ITensor other) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, other);
+    }
+
+    @Override
+    public @NotNull ITensor multiply(byte value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor multiply(short value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor multiply(int value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor multiply(long value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
+            valueScalar.setLongFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor multiply(float value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
+            valueScalar.setFloatFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor multiply(double value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
+            valueScalar.setDoubleFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
     }
 
     protected void validateDataType(@NotNull DataType requestedDataType) {

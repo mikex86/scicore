@@ -797,6 +797,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                 case INT64 -> sb.append(iterator.getLong());
                 case FLOAT32 -> sb.append(String.format("%4.3g", iterator.getFloat()));
                 case FLOAT64 -> sb.append(String.format("%4.3g", iterator.getDouble()));
+                case BOOLEAN -> sb.append(iterator.getBoolean());
             }
             for (long i = 0; i < nEndingDimensions; i++) {
                 sb.append("]");

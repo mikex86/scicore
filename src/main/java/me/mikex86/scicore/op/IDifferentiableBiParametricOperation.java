@@ -3,13 +3,13 @@ package me.mikex86.scicore.op;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 public interface IDifferentiableBiParametricOperation<F, S> extends IBiParametricOperation<F, S>, IDifferentiableOperation {
 
     @Override
-    @SuppressWarnings("unchecked")
     default void computeGradients(@NotNull Graph.OperationGraphNode operationNode) {
         List<IGraph.IGraphNode> inputs = operationNode.getInputs();
         Validator.assertTrue(inputs.size() == 3, "Bi-parametric operation expects one tensor and two arguments (3 in total).");
@@ -24,14 +24,26 @@ public interface IDifferentiableBiParametricOperation<F, S> extends IBiParametri
             throw new IllegalArgumentException("Bi-parametric operation expects input2 to hold a tensor");
         }
 
-        Object input1Value = input1TensorNode.getValue();
-        Object input2Value = input2TensorNode.getValue();
+        ITensor b = input1TensorNode.getValue();
+        ITensor c = input2TensorNode.getValue();
+
+        Validator.assertTrue(b.isScalar(), "input1 of binary operation must be a scalar.");
+        Validator.assertTrue(c.isScalar(), "input2 of binary operation must be a scalar.");
+
+        Class<F> fClass = getFirstType();
+        Class<S> sClass = getSecondType();
+
+        Validator.assertTrue(b.getDataType().isSameType(fClass), "input0 of binary operation must be of type " + fClass.getSimpleName() + ".");
+        Validator.assertTrue(c.getDataType().isSameType(sClass), "input1 of binary operation must be of type " + sClass.getSimpleName() + ".");
+
+        F f = b.element(fClass);
+        S s = c.element(sClass);
 
         ITensor upstreamGradients = operationNode.getGradient(); // gradients with respect to z where z is the output of this operation
         Validator.assertTrue(upstreamGradients != null, "Upstream gradients not yet computed! This is a bug in DAG topology iteration!");
-        computeGradients(upstreamGradients, (IGraph.IDifferentiableNode) input0, (F) input1Value, (S) input2Value);
+        computeGradients(upstreamGradients, (IGraph.IDifferentiableNode) input0, f, s);
     }
 
-    void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.IDifferentiableNode tensor, F f, S s);
+    void computeGradients(@NotNull ITensor upstreamGradient, @NotNull IGraph.IDifferentiableNode node, @Nullable F f, @Nullable S s);
 
 }
