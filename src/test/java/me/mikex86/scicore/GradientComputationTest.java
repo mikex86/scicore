@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 public class GradientComputationTest {
 
-    SciCore sciCore;
+    ISciCore sciCore;
 
     @BeforeEach
     void setUp() {

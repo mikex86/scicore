@@ -3,8 +3,8 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
-import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
 import me.mikex86.scicore.op.IUnaryOperation;
 import org.jetbrains.annotations.NotNull;
 
@@ -67,7 +67,7 @@ public class JvmTransposeOp implements IUnaryOperation {
         long[] resultShape = getResultShape(input);
 
         DataType dataType = input.getDataType();
-        return new JvmDerivedTensor(this.backend, resultShape, dataType, () -> perform(input));
+        return new LazyTensor(this.backend, resultShape, dataType, () -> perform(input));
     }
 
     private long @NotNull [] getResultShape(@NotNull ITensor input) {

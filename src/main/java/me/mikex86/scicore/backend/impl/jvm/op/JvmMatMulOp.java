@@ -4,7 +4,7 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
-import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
+import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.Validator;
@@ -89,7 +89,7 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
-        return new JvmDerivedTensor(this.backend, resultShape, resultDataType, () -> perform(a, b));
+        return new LazyTensor(this.backend, resultShape, resultDataType, () -> perform(a, b));
     }
 
     @Override

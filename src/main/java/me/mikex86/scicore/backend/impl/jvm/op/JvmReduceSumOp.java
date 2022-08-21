@@ -3,7 +3,7 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
+import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.op.IBiParametricOperation;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -130,7 +130,7 @@ public class JvmReduceSumOp implements IBiParametricOperation<Integer, Boolean> 
             outputShape = new long[shape.length - (keepDimensions ? 0 : 1)];
             reduceShape(shape, outputShape, dimension, keepDimensions);
         }
-        return new JvmDerivedTensor(backend, outputShape, dataType, () -> perform(tensor, dimension, keepDimensions));
+        return new LazyTensor(backend, outputShape, dataType, () -> perform(tensor, dimension, keepDimensions));
     }
 
     private static void reduceShape(long[] shape, long[] outputShape, Integer dimension, Boolean keepDimensions) {

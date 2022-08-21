@@ -3,7 +3,7 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
+import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.op.IBinaryOperation;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
@@ -77,7 +77,7 @@ public class JvmDividedOp implements IBinaryOperation {
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
-        return new JvmDerivedTensor(backend, outputShape, resultDataType, () -> perform(a, b));
+        return new LazyTensor(backend, outputShape, resultDataType, () -> perform(a, b));
     }
 
 }

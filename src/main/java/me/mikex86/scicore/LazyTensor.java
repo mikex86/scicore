@@ -1,6 +1,5 @@
-package me.mikex86.scicore.backend.impl.jvm;
+package me.mikex86.scicore;
 
-import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.op.IDerivedTensor;
 import org.jetbrains.annotations.NotNull;
@@ -9,7 +8,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
-public class JvmDerivedTensor extends AbstractTensor implements IDerivedTensor {
+/**
+ * Encapsulates tensor supplier. Lazily evaluates the supplier when the result is needed.
+ */
+public class LazyTensor extends AbstractTensor implements IDerivedTensor {
 
     private final long @NotNull [] resultShape;
 
@@ -25,7 +27,7 @@ public class JvmDerivedTensor extends AbstractTensor implements IDerivedTensor {
     @NotNull
     private final ISciCoreBackend sciCoreBackend;
 
-    public JvmDerivedTensor(@NotNull ISciCoreBackend backend, long @NotNull [] resultShape, @NotNull DataType resultDataType, @NotNull Supplier<ITensor> resultSupplier) {
+    public LazyTensor(@NotNull ISciCoreBackend backend, long @NotNull [] resultShape, @NotNull DataType resultDataType, @NotNull Supplier<ITensor> resultSupplier) {
         this.resultShape = resultShape;
         this.resultDataType = resultDataType;
         this.resultSupplier = resultSupplier;

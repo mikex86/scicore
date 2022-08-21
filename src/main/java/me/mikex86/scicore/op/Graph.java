@@ -282,8 +282,13 @@ public class Graph implements IGraph {
 
         @Override
         public void computeGradients() {
-            ISciCoreBackend sciCoreBackend = getValue().getSciCoreBackend();
-            sciCoreBackend.computeGradients(this);
+            ISciCoreBackend backend = getValue().getSciCoreBackend();
+            OperationType operationType = getOperationType();
+            IOperation operation = backend.getOperation(operationType);
+            if (!(operation instanceof IDifferentiableOperation differentiableOperation)) {
+                throw new IllegalStateException("Operation is not differentiable: " + operationType);
+            }
+            differentiableOperation.computeGradients(this);
         }
 
         @Override

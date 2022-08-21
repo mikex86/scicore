@@ -16,7 +16,7 @@ class ITensorTest {
 
     private static final float EPSILON = 1E-6f;
 
-    SciCore sciCore;
+    ISciCore sciCore;
 
     @BeforeEach
     void setUp() {

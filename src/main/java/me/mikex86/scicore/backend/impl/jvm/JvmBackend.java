@@ -1,20 +1,16 @@
 package me.mikex86.scicore.backend.impl.jvm;
 
 import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.op.*;
-import me.mikex86.scicore.op.*;
+import me.mikex86.scicore.op.IOperation;
+import me.mikex86.scicore.op.OperationType;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.Map;
 
-public class JvmBackend implements ISciCoreBackend {
-
-    @NotNull
-    private final IGraphRecorder operationRecorder = new GraphRecorder(this);
+public class JvmBackend extends AbstractSciCoreBackend {
 
     @NotNull
     private final Map<OperationType, IOperation> operationTable = Map.of(
@@ -32,30 +28,7 @@ public class JvmBackend implements ISciCoreBackend {
     }
 
     @Override
-    public @NotNull IGraphRecorder getOperationRecorder() {
-        return this.operationRecorder;
-    }
-
-    public @NotNull IOperation getOperation(@NotNull OperationType operationType) {
-        IOperation operation = operationTable.get(operationType);
-        if (operation == null) {
-            throw new IllegalArgumentException("Operation not implemented for JVMBackend: " + operationType);
-        }
-        return operation;
-    }
-
-    @Override
-    public @NotNull ITensor lazyOpTensor(@NotNull IOperation operation, @NotNull List<@NotNull ITensor> inputs) {
-        return operation.performLazily(inputs);
-    }
-
-    @Override
-    public void computeGradients(@NotNull Graph.OperationGraphNode operationNode) {
-        OperationType operationType = operationNode.getOperationType();
-        IOperation operation = getOperation(operationType);
-        if (!(operation instanceof IDifferentiableOperation differentiableOperation)) {
-            throw new IllegalStateException("Operation is not differentiable: " + operationType);
-        }
-        differentiableOperation.computeGradients(operationNode);
+    protected @NotNull Map<OperationType, IOperation> getOperationTable() {
+        return this.operationTable;
     }
 }

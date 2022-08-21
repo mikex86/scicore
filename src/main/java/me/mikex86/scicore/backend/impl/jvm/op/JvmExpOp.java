@@ -3,8 +3,8 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
-import me.mikex86.scicore.backend.impl.jvm.JvmDerivedTensor;
 import me.mikex86.scicore.op.IUnaryOperation;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -40,7 +40,7 @@ public class JvmExpOp implements IUnaryOperation {
 
     @Override
     public @NotNull ITensor performLazily(@NotNull ITensor input) {
-        return new JvmDerivedTensor(backend, input.getShape(), input.getDataType(), () -> perform(input));
+        return new LazyTensor(backend, input.getShape(), input.getDataType(), () -> perform(input));
     }
 
 }

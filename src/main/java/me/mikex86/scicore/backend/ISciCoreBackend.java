@@ -16,9 +16,4 @@ public interface ISciCoreBackend {
 
     @NotNull IOperation getOperation(@NotNull OperationType operationType);
 
-    @NotNull
-    ITensor lazyOpTensor(@NotNull IOperation operation, @NotNull List<@NotNull ITensor> inputs);
-
-    void computeGradients(@NotNull Graph.OperationGraphNode node);
-
 }
