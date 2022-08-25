@@ -11,7 +11,7 @@ import java.util.List;
  * Utility functions operating on shapes.
  * <p>
  * Shapes are represented by a long array.
- * shape[0] is the size of the top most dimension,
+ * shape[0] is the size of the top most dimension (highest dimension),
  * shape[shape.length - 1] is the size of the lowest dimension (the level of the scalar).
  */
 public class ShapeUtils {
@@ -239,5 +239,38 @@ public class ShapeUtils {
             }
         }
         return Arrays.copyOfRange(shapeA, 0, commonLength);
+    }
+
+    public static int getNumCommonDimensions(long @NotNull [] shapeA, long @NotNull [] shapeB) {
+        int commonLength = Math.min(shapeA.length, shapeB.length);
+        for (int i = 0; i < commonLength; i++) {
+            if (shapeA[shapeA.length - 1 - i] != shapeB[shapeB.length - 1 - i]) {
+                return i;
+            }
+        }
+        return commonLength;
+    }
+
+    public static int getNumNotCommonDimensions(long @NotNull [] shapeA, long @NotNull [] shapeB) {
+        return Math.max(shapeA.length, shapeB.length) - getNumCommonDimensions(shapeA, shapeB);
+    }
+
+    /**
+     * Returns the n-th higher dimension index than the supplied index in the context of the supplied shape.
+     * Higher indices have lower numeric value. For example the dimension index=0 is the highest dimension of the shape,
+     * while index=shape.length-1 is the lowest dimension of the shape.
+     * Note that for index=0 the n-th higher dimension is {@code shape.length} - n. This mimics python {@code array[-1]} indexing referencing the last element.
+     * This behavior is there because it is useful.
+     * @param dimension the current dimension index
+     * @param nDimensions the number of dimensions in the shape ({@code shape.length})
+     * @param n the number of dimensions the dimension index should get higher by
+     * @return the new dimension index
+     */
+    public static int getHigherDimension(int dimension, int nDimensions, int n) {
+        int newDimension = dimension - (n % nDimensions);
+        if (newDimension < 0) {
+            newDimension += nDimensions;
+        }
+        return newDimension;
     }
 }

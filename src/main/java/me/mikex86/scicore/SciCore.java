@@ -15,11 +15,19 @@ public class SciCore implements ISciCore {
     @Nullable
     private ISciCoreBackend sciCoreBackend = null;
 
+    @NotNull
+    private final Random random = new Random();
+
     @Override
     @NotNull
     public ITensor zeros(@NotNull DataType dataType, long @NotNull ... shape) {
         ISciCoreBackend backend = getBackend();
         return backend.createTensor(dataType, shape);
+    }
+
+    @Override
+    public void seed(long seed) {
+        random.setSeed(seed);
     }
 
     @Override
@@ -29,7 +37,6 @@ public class SciCore implements ISciCore {
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(dataType, shape);
         long numberOfElements = tensor.getNumberOfElements();
-        Random random = new Random();
         switch (dataType) {
             case INT8 -> {
                 for (long i = 0; i < numberOfElements; i++) {

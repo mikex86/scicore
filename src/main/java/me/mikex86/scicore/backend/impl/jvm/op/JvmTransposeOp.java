@@ -6,10 +6,11 @@ import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
 import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IUnaryOperation;
+import me.mikex86.scicore.op.IDifferentiableUnaryOperation;
+import me.mikex86.scicore.op.IGraph;
 import org.jetbrains.annotations.NotNull;
 
-public class JvmTransposeOp implements IUnaryOperation {
+public class JvmTransposeOp implements IDifferentiableUnaryOperation {
 
     @NotNull
     private final ISciCoreBackend backend;
@@ -79,6 +80,13 @@ public class JvmTransposeOp implements IUnaryOperation {
             return new long[]{1, shape[0]};
         } else {
             return new long[]{1, 1};
+        }
+    }
+
+    @Override
+    public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input) {
+        if (input.requiresGradients()) {
+            input.accumulateGradient(upstreamGradient.transpose());
         }
     }
 }

@@ -209,8 +209,8 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     }
 
     @Override
-    public void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView) {
-        result().setContents(dimension, tensor, useView);
+    public void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView) {
+        result().setContents(index, tensor, useView);
     }
 
     @Override
@@ -246,11 +246,6 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     @Override
     public void fill(boolean value) {
         result().fill(value);
-    }
-
-    @Override
-    public @NotNull ITensor exp() {
-        return result().exp();
     }
 
     @Override

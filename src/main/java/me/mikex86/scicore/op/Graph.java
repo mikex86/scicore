@@ -34,7 +34,7 @@ public class Graph implements IGraph {
         for (ITensor tensor : tensors) {
             Optional<IGraphNode> nodeOpt = getNodeForTensor(tensor);
             if (nodeOpt.isEmpty()) {
-                continue;
+                throw new IllegalArgumentException("Tensor " + tensor + " is not part of the graph");
             }
             IGraphNode node = nodeOpt.get();
 

@@ -8,7 +8,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Locale;
 import java.util.Objects;
+
+import static me.mikex86.scicore.utils.StringUtils.formatFloat;
 
 public class JvmTensor extends AbstractTensor implements ITensor {
 
@@ -232,8 +235,22 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView) {
-        throw new UnsupportedOperationException("TODO"); // TODO: IMPLEMENT
+    public void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView) {
+        // TODO: implement useView
+        // General copy
+        long startIndex = ShapeUtils.getFlatIndex(index, this.strides);
+        long nElementsToCopy = tensor.getNumberOfElements();
+        for (long i = 0; i < nElementsToCopy; i++) {
+            switch (this.getDataType()) {
+                case INT8 -> this.setByteFlat(tensor.getByteFlat(i), startIndex + i);
+                case INT16 -> this.setShortFlat(tensor.getShortFlat(i), startIndex + i);
+                case INT32 -> this.setIntFlat(tensor.getIntFlat(i), startIndex + i);
+                case INT64 -> this.setLongFlat(tensor.getLongFlat(i), startIndex + i);
+                case FLOAT32 -> this.setFloatFlat(tensor.getFloatFlat(i), startIndex + i);
+                case FLOAT64 -> this.setDoubleFlat(tensor.getDoubleFlat(i), startIndex + i);
+                default -> throw new IllegalArgumentException("Unsupported data type");
+            }
+        }
     }
 
     @Override
@@ -772,9 +789,36 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     @Override
     public String toString() {
         long[] shape = getShape();
-        StringBuilder sb = new StringBuilder("JvmTensor(dtype=" + getDataType() + ", shape=" + Arrays.toString(shape) + ", data=\n");
+        StringBuilder sb = new StringBuilder("JvmTensor(dtype=")
+                .append(getDataType())
+                .append(", ");
+        long nElements = getNumberOfElements();
+        boolean isNewLine = false;
+        if (isScalar()) {
+            sb.append("shape=")
+                    .append(Arrays.toString(shape))
+                    .append(", isScalar=true, data=");
+            switch (getDataType()) {
+                case INT8 -> sb.append(elementAsByte());
+                case INT16 -> sb.append(elementAsShort());
+                case INT32 -> sb.append(elementAsInt());
+                case INT64 -> sb.append(elementAsLong());
+                case FLOAT32 -> sb.append(formatFloat(elementAsFloat()));
+                case FLOAT64 -> sb.append(formatFloat(elementAsDouble()));
+                case BOOLEAN -> sb.append(elementAsBoolean());
+            }
+            sb.append(')');
+            return sb.toString();
+        } else {
+            sb.append("shape=")
+                    .append(Arrays.toString(shape))
+                    .append(", data=");
+            if (nElements >= 15) {
+                sb.append('\n');
+                isNewLine = true;
+            }
+        }
         ITensorIterator iterator = iterator();
-        boolean isNewLine = true;
         int nElementsInLine = 0;
         while (iterator.hasNext()) {
             long nStartingDimensions = iterator.getNumStartingDimensions();
@@ -795,20 +839,20 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                 case INT16 -> sb.append(iterator.getShort());
                 case INT32 -> sb.append(iterator.getInt());
                 case INT64 -> sb.append(iterator.getLong());
-                case FLOAT32 -> sb.append(String.format("%4.3g", iterator.getFloat()));
-                case FLOAT64 -> sb.append(String.format("%4.3g", iterator.getDouble()));
+                case FLOAT32 -> sb.append(formatFloat(iterator.getFloat()));
+                case FLOAT64 -> sb.append(formatFloat(iterator.getDouble()));
                 case BOOLEAN -> sb.append(iterator.getBoolean());
             }
             for (long i = 0; i < nEndingDimensions; i++) {
                 sb.append("]");
             }
+            nElementsInLine++;
             iterator.moveNext();
             if (!iterator.hasNext()) {
                 continue;
             }
             sb.append(",");
-            //if ((nElementsInLine++ >= 5 && nEndingDimensions > 0) || nElementsInLine >= 10) {
-            if (nEndingDimensions > 0) {
+            if (nEndingDimensions > 0 && nElementsInLine >= 15) {
                 sb.append("\n");
                 isNewLine = true;
                 nElementsInLine = 0;
@@ -817,7 +861,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                 isNewLine = false;
             }
         }
-        sb.append(")\n");
+        sb.append(")");
         return sb.toString();
     }
 

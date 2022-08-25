@@ -25,16 +25,15 @@ public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
+
         long aNumElements = ShapeUtils.getNumElements(shapeA);
         long bNumElements = ShapeUtils.getNumElements(shapeB);
 
         long[] finalShape = shapeA;
         boolean broadcast = false;
-        if (!b.isScalar()) {
-            if (!ShapeUtils.equals(shapeA, shapeB)) {
-                finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
-                broadcast = true;
-            }
+        if (!ShapeUtils.equals(shapeA, shapeB)) {
+            finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
+            broadcast = true;
         }
 
         DataType dataTypeA = a.getDataType();
@@ -81,12 +80,11 @@ public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] finalShape = shapeA;
-        if (!b.isScalar()) {
-            long[] shapeB = b.getShape();
-            if (!ShapeUtils.equals(shapeA, shapeB)) {
-                finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
-            }
+        long[] shapeB = b.getShape();
+        if (!ShapeUtils.equals(shapeA, shapeB)) {
+            finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
         }
+
         DataType dataTypeA = a.getDataType();
         DataType dataTypeB = b.getDataType();
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
@@ -95,7 +93,11 @@ public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
 
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
-        a.accumulateGradient(upstreamGradient.multiply(b.getValue()));
-        b.accumulateGradient(upstreamGradient.multiply(a.getValue()));
+        if (a.requiresGradients()) {
+            a.accumulateGradient(upstreamGradient.multiply(b.getValue()));
+        }
+        if (b.requiresGradients()) {
+            b.accumulateGradient(upstreamGradient.multiply(a.getValue()));
+        }
     }
 }

@@ -22,7 +22,8 @@ public class JvmBackend extends AbstractSciCoreBackend {
             OperationType.EXP, new JvmExpOp(this),
             OperationType.TRANSPOSE, new JvmTransposeOp(this),
             OperationType.POW, new JvmPowerOp(this),
-            OperationType.MULTIPLY, new JvmMultiplyOp(this)
+            OperationType.MULTIPLY, new JvmMultiplyOp(this),
+            OperationType.RELU, new JvmReluOp(this)
     );
 
     @Override

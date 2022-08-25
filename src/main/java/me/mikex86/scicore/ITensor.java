@@ -470,7 +470,7 @@ public interface ITensor extends IValue {
 
     void setContents(@NotNull ITensor tensor);
 
-    void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView);
+    void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView);
 
     default long getNumberOfElements() {
         return ShapeUtils.getNumElements(getShape());
@@ -480,7 +480,43 @@ public interface ITensor extends IValue {
 
     @NotNull ITensor divided(@NotNull ITensor other);
 
+    @NotNull ITensor divided(byte value);
+
+    @NotNull ITensor divided(short value);
+
+    @NotNull ITensor divided(int value);
+
+    @NotNull ITensor divided(long value);
+
+    @NotNull ITensor divided(float value);
+
+    @NotNull ITensor divided(double value);
+
+    @NotNull ITensor plus(byte value);
+
+    @NotNull ITensor plus(short value);
+
+    @NotNull ITensor plus(int value);
+
+    @NotNull ITensor plus(long value);
+
+    @NotNull ITensor plus(float value);
+
+    @NotNull ITensor plus(double value);
+
     @NotNull ITensor plus(@NotNull ITensor other);
+
+    @NotNull ITensor minus(byte value);
+
+    @NotNull ITensor minus(short value);
+
+    @NotNull ITensor minus(int value);
+
+    @NotNull ITensor minus(long value);
+
+    @NotNull ITensor minus(float value);
+
+    @NotNull ITensor minus(double value);
 
     @NotNull ITensor minus(@NotNull ITensor other);
 
@@ -537,6 +573,7 @@ public interface ITensor extends IValue {
      * Multiplies this tensor by the other tensor either:
      * Element-wise multiplication if the tensors have the same shape,
      * or dimension-wise multiplication if the tensors have different shapes that are broadcastable.
+     *
      * @param other the other tensor.
      * @return the result of the multiplication.
      */
@@ -553,4 +590,6 @@ public interface ITensor extends IValue {
     @NotNull ITensor multiply(float value);
 
     @NotNull ITensor multiply(double value);
+
+    ITensor relu();
 }

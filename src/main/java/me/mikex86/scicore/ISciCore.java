@@ -8,6 +8,8 @@ import org.jetbrains.annotations.NotNull;
 public interface ISciCore {
     @NotNull ITensor zeros(@NotNull DataType dataType, long @NotNull ... shape);
 
+    void seed(long seed);
+
     @NotNull ITensor uniform(@NotNull DataType dataType, long @NotNull ... shape);
 
     void setBackend(@NotNull BackendType backendType);

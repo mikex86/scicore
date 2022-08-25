@@ -208,7 +208,7 @@ class View extends AbstractTensor {
     }
 
     @Override
-    public void setContents(long @NotNull [] dimension, @NotNull ITensor tensor, boolean useView) {
+    public void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView) {
         throw new UnsupportedOperationException("Views are read-only");
     }
 

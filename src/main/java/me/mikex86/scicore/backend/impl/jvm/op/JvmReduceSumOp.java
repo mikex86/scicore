@@ -34,17 +34,10 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
         Validator.validateNotNull(dimension, "Dimension must not be null");
         Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
 
-        // TODO: OPTIMIZE
         DataType dataType = tensor.getDataType();
         long[] shape = tensor.getShape();
         if (dimension == -1) {
-            long[] outputShape;
-            if (keepDimensions) {
-                outputShape = new long[shape.length];
-            } else {
-                outputShape = new long[1];
-            }
-            Arrays.fill(outputShape, 1);
+            long[] outputShape = getOutputShape(shape, dimension, keepDimensions);
 
             ITensor result = backend.createTensor(dataType, outputShape);
             long numElements = ShapeUtils.getNumElements(shape);
@@ -93,28 +86,11 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
 
                 result.setLong(sum, reducedIndex);
             }
-            // increment index, but only for dimensions that are not being summed along
-            {
-                boolean hasNext = false;
-                for (int dim = 0; dim < completeIndex.length; dim++) {
-                    if (dim == dimension) {
-                        continue;
-                    }
-                    if (completeIndex[dim] < shape[dim] - 1) {
-                        completeIndex[dim]++;
-                        if (dim > dimension) {
-                            reducedIndex[dim - 1] = completeIndex[dim];
-                        } else {
-                            reducedIndex[dim] = completeIndex[dim];
-                        }
-                        hasNext = true;
-                        break;
-                    }
-                    completeIndex[dim] = 0;
-                }
-                if (!hasNext) {
-                    break;
-                }
+            if (!ShapeUtils.incrementIndex(reducedShape, reducedIndex)) {
+                break;
+            }
+            if (!ShapeUtils.incrementIndex(shape, completeIndex)) {
+                break;
             }
         }
         return result;
@@ -127,18 +103,7 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
         Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
         DataType dataType = tensor.getDataType();
         long[] shape = tensor.getShape();
-        long[] outputShape;
-        if (dimension == -1) {
-            if (keepDimensions) {
-                outputShape = new long[shape.length];
-            } else {
-                outputShape = new long[1];
-            }
-            Arrays.fill(outputShape, 1);
-        } else {
-            outputShape = new long[shape.length - (keepDimensions ? 0 : 1)];
-            reduceShape(shape, outputShape, dimension, keepDimensions);
-        }
+        long[] outputShape = getOutputShape(shape, dimension, keepDimensions);
         return new LazyTensor(backend, outputShape, dataType, () -> perform(ctx, tensor, dimension, keepDimensions));
     }
 
@@ -147,11 +112,13 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
         Validator.validateNotNull(dimension, "Dimension must not be null");
         Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
 
-        ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), node.getValue().getShape());
-        gradients.fill(1);
-        gradients = gradients.multiply(upstreamGradient);
+        if (node.requiresGradients()) {
+            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), node.getValue().getShape());
+            gradients.fill(1);
+            gradients = gradients.multiply(upstreamGradient);
 
-        node.accumulateGradient(gradients);
+            node.accumulateGradient(gradients);
+        }
     }
 
     private static void reduceShape(long[] shape, long[] outputShape, Integer dimension, Boolean keepDimensions) {
@@ -170,6 +137,26 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
                 }
             }
         }
+    }
+
+
+    private static long[] getOutputShape(long[] srcShape, int dimension, boolean keepDimensions) {
+        long[] outputShape;
+        if (dimension == -1) {
+            if (keepDimensions) {
+                outputShape = new long[srcShape.length];
+            } else {
+                outputShape = new long[0];
+            }
+            Arrays.fill(outputShape, 1);
+        } else {
+            if (dimension < 0 || dimension >= srcShape.length) {
+                throw new IllegalArgumentException("Dimension out of bounds: " + dimension);
+            }
+            outputShape = new long[srcShape.length - (keepDimensions ? 0 : 1)];
+            reduceShape(srcShape, outputShape, dimension, keepDimensions);
+        }
+        return outputShape;
     }
 
     @Override

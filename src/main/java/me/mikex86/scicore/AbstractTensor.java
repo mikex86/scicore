@@ -42,11 +42,228 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
+    public @NotNull ITensor divided(byte value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.DIVIDED, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor divided(short value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.DIVIDED, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor divided(int value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.DIVIDED, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor divided(long value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
+            valueScalar.setLongFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.DIVIDED, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor divided(float value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
+            valueScalar.setFloatFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.DIVIDED, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor divided(double value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
+            valueScalar.setDoubleFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.DIVIDED, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor plus(byte value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor plus(short value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor plus(int value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor plus(long value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
+            valueScalar.setLongFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor plus(float value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
+            valueScalar.setFloatFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor plus(double value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
+            valueScalar.setDoubleFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+    }
+
+    @Override
     @NotNull
     public ITensor plus(@NotNull ITensor other) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         return operationRecorder.recordOperation(OperationType.PLUS, this, other);
+    }
+
+
+    @Override
+    public @NotNull ITensor minus(byte value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor minus(short value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor minus(int value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            valueScalar.setIntFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor minus(long value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
+            valueScalar.setLongFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor minus(float value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
+            valueScalar.setFloatFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+    }
+
+    @Override
+    public @NotNull ITensor minus(double value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
+            valueScalar.setDoubleFlat(value, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
     }
 
     @Override
@@ -265,6 +482,13 @@ public abstract class AbstractTensor implements ITensor {
         return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
     }
 
+    @Override
+    public ITensor relu() {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.RELU, this);
+    }
+
     protected void validateDataType(@NotNull DataType requestedDataType) {
         DataType ownDataType = getDataType();
         if (requestedDataType != ownDataType) {
@@ -292,6 +516,7 @@ public abstract class AbstractTensor implements ITensor {
         if (!(obj instanceof ITensor other)) {
             return false;
         }
+
         long[] shape = getShape();
         if (!ShapeUtils.equals(shape, other.getShape())) {
             return false;
