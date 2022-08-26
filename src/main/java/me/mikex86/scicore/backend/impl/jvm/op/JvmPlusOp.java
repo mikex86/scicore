@@ -88,7 +88,6 @@ public class JvmPlusOp implements IDifferentiableBinaryOperation {
 
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
-        // TODO: TEST HIGHER BROADCAST RANKS
         // TODO: DO THIS FOR MINUS AS WELL
 
         // Note that the upstream gradient dL/dz where z is the output of the current node
