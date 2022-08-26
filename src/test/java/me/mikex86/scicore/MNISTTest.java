@@ -119,7 +119,7 @@ public class MNISTTest {
 
         float learningRate = 0.01f;
 
-        IOptimizer optimizer = new Sgd(sciCore, learningRate, bobNet.parameters());
+        IOptimizer optimizer = new Sgd(sciCore, learningRate, bobNet.parameters(), true, 0.98f);
 
         try (ProgressBar progressBar = new ProgressBar("Training", nSteps)) {
             for (long step = 0; step < nSteps; step++) {

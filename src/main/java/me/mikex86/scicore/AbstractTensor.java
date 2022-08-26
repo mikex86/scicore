@@ -522,8 +522,11 @@ public abstract class AbstractTensor implements ITensor {
             return false;
         }
         long nElements = ShapeUtils.getNumElements(shape);
-        boolean oneIsFloatingPoint = getDataType().isFloatingPoint() || other.getDataType().isFloatingPoint();
-        if (oneIsFloatingPoint) {
+        DataType dataType = getDataType();
+        if (dataType != other.getDataType()) {
+            return false;
+        }
+        if (dataType.isFloatingPoint()) {
             for (long i = 0; i < nElements; i++) {
                 double a = getAsDoubleFlat(i);
                 double b = other.getAsDoubleFlat(i);

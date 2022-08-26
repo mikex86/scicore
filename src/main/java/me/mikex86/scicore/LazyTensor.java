@@ -36,7 +36,8 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     }
 
     @NotNull
-    private ITensor result() {
+    @Override
+    public ITensor result() {
         if (lazyResult == null) {
             lazyResult = resultSupplier.get();
         }

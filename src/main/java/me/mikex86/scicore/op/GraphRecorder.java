@@ -25,12 +25,11 @@ public class GraphRecorder implements IGraphRecorder {
         for (ITensor input : inputs) {
             Graph.IGraphNode node = valueToNodeMap.get(input);
             if (node == null) {
-                if (input instanceof IDerivedTensor) {
-                    throw new IllegalStateException("Derive tensor not computed in current graph!");
-                } else {
-                    node = new Graph.TensorDeclarationGraphNode(input);
-                    valueToNodeMap.put(input, node);
+                if (input instanceof IDerivedTensor derivedTensor) {
+                    input = derivedTensor.result();
                 }
+                node = new Graph.TensorDeclarationGraphNode(input);
+                valueToNodeMap.put(input, node);
             }
             inputNodes.add(node);
         }
@@ -49,6 +48,11 @@ public class GraphRecorder implements IGraphRecorder {
             throw new IllegalStateException("Tensor was not recorded as an output computed by this graph: " + rootTensor);
         }
         return new Graph(rootNode.deepCopy(), sciCoreBackend);
+    }
+
+    @Override
+    public void resetRecording() {
+        valueToNodeMap.clear();
     }
 
 }

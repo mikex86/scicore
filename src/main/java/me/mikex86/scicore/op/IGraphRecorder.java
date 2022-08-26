@@ -13,4 +13,5 @@ public interface IGraphRecorder {
      */
     @NotNull Graph getGraphFor(@NotNull ITensor root);
 
+    void resetRecording();
 }

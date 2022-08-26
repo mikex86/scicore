@@ -27,7 +27,7 @@ public class Linear implements IModule {
     public Linear(@NotNull ISciCore sciCore, @NotNull DataType dataType, long inputSize, long outputSize, boolean useBias) {
         this.sciCore = sciCore;
         this.inputSize = inputSize;
-        double k = 1.0 / Math.sqrt(inputSize);
+        float k = (float) (1.0 / Math.sqrt(inputSize));
         this.weights = sciCore.uniform(dataType, outputSize, inputSize).multiply(k).minus(-k);
         if (useBias) {
             this.bias = sciCore.uniform(dataType, outputSize).multiply(k).minus(-k);
@@ -62,4 +62,13 @@ public class Linear implements IModule {
         return parameters;
     }
 
+    @NotNull
+    public ITensor getWeights() {
+        return weights;
+    }
+
+    @NotNull
+    public ITensor getBias() {
+        return bias;
+    }
 }

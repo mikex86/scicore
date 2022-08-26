@@ -16,6 +16,8 @@ import org.junit.jupiter.api.TestInstance;
 import java.util.List;
 import java.util.Random;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 public class ApproxLinearFuncTrainingTest {
     ISciCore sciCore;
@@ -34,7 +36,7 @@ public class ApproxLinearFuncTrainingTest {
         Random random = new Random(123);
         return new DatasetIterator(batchSize, () -> {
             float x = random.nextFloat();
-            float y = random.nextFloat();
+            float y = 2 * x + 0.5f;
             ITensor featureTensor = sciCore.array(new float[]{x});
             ITensor labelTensor = sciCore.array(new float[]{y});
             return Pair.of(featureTensor, labelTensor);
@@ -42,7 +44,7 @@ public class ApproxLinearFuncTrainingTest {
     }
 
     @Test
-    void testEasyExample() {
+    void testApproxLinearFunction() {
 
         class BobNet implements IModule {
 
@@ -64,8 +66,9 @@ public class ApproxLinearFuncTrainingTest {
         int batchSize = 32;
 
         DatasetIterator dataIt = getBobData(batchSize);
-        IOptimizer optimizer = new Sgd(sciCore, 0.01f, bobNet.parameters());
-        for (int step = 0; step < 10000; step++) {
+        IOptimizer optimizer = new Sgd(sciCore, 0.6f, bobNet.parameters(), true, 0.9999999f);
+        for (int step = 0; step < 150; step++) {
+            sciCore.getBackend().getOperationRecorder().resetRecording();
             Pair<ITensor, ITensor> next = dataIt.next();
             ITensor X = next.getFirst();
             ITensor Y = next.getSecond();
@@ -75,10 +78,11 @@ public class ApproxLinearFuncTrainingTest {
             IGraph graph = sciCore.getGraphUpTo(loss);
             optimizer.step(graph);
 
-            if (step % 100 == 0) {
+            if (step % 10 == 0) {
                 System.out.println("Step " + step + ", loss: " + loss.elementAsFloat());
             }
         }
+        assertEquals(sciCore.matrix(new float[][]{{2.0f}}), bobNet.f1.getWeights());
+        assertEquals(sciCore.array(new float[]{0.5f}), bobNet.f1.getBias());
     }
-
 }

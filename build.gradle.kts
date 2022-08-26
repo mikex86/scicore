@@ -41,7 +41,7 @@ val skiaArtifact = "skija-" + System.getProperty("os.name")!!.let {
         it.startsWith("Linux") -> "linux"
         it.startsWith("Mac OS X") || it.startsWith("Darwin") -> "macos-" + System.getProperty("os.arch")!!.let { arch ->
             when {
-                arch.startsWith("aarch64") -> "aarch64"
+                arch.startsWith("aarch64") -> "arm64"
                 else -> "x64"
             }
         }
