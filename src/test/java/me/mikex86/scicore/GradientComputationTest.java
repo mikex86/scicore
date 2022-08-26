@@ -146,6 +146,156 @@ public class GradientComputationTest {
     }
 
     @Test
+    void testMatmulWithScalarMultiply() {
+        ITensor a = sciCore.matrix(new float[][]{{2, 3}});
+        ITensor b = sciCore.scalar(4);
+        ITensor c = sciCore.matrix(new float[][]{{5}, {6}});
+        ITensor d = a.multiply(b); // scalar multiplication
+        ITensor e = d.matmul(c); // matrix multiplication to get a scalar
+
+        IGraph graph = sciCore.getGraphUpTo(e);
+        graph.requestGradientsFor(a, b, c);
+        graph.backward();
+
+        ITensor dLdA = graph.getGradient(a).orElseThrow();
+        ITensor dLdB = graph.getGradient(b).orElseThrow();
+        ITensor dLdC = graph.getGradient(c).orElseThrow();
+
+        assertEquals(sciCore.matrix(new float[][]{{8.0f}, {12.0f}}), dLdC);
+        assertEquals(sciCore.matrix(new float[][]{{20.0f, 24.0f}}), dLdA);
+        assertEquals(sciCore.scalar(28), dLdB);
+    }
+
+    @Test
+    void testMatmulWithScalarMultiply_2() {
+        ITensor a = sciCore.matrix(new float[][]{{2, 3}});
+        ITensor b = sciCore.scalar(4);
+        ITensor c = sciCore.matrix(new float[][]{{5}, {6}});
+        ITensor d = b.multiply(a); // scalar multiplication
+        ITensor e = d.matmul(c); // matrix multiplication to get a scalar
+
+        IGraph graph = sciCore.getGraphUpTo(e);
+        graph.requestGradientsFor(a, b, c);
+        graph.backward();
+
+        ITensor dLdA = graph.getGradient(a).orElseThrow();
+        ITensor dLdB = graph.getGradient(b).orElseThrow();
+        ITensor dLdC = graph.getGradient(c).orElseThrow();
+
+        assertEquals(sciCore.matrix(new float[][]{{8.0f}, {12.0f}}), dLdC);
+        assertEquals(sciCore.matrix(new float[][]{{20.0f, 24.0f}}), dLdA);
+        assertEquals(sciCore.scalar(28), dLdB);
+    }
+
+    @Test
+    void testMatmulWithMultiply4dby2d_2dBroadcast() {
+        ITensor a = sciCore.arange(0, 5 * 4 * 3, 1, new long[]{5, 4, 3, 2}, DataType.FLOAT32);
+        ITensor b = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});
+        ITensor c = a.multiply(b);
+        ITensor d = c.reduceSum(0);
+        ITensor e = d.reduceSum(0);
+        ITensor f = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+        ITensor g = e.matmul(f);
+        ITensor h = g.reduceSum(0);
+        ITensor i = h.reduceSum(0);
+
+        IGraph graph = sciCore.getGraphUpTo(i);
+        graph.requestGradientsFor(a, b, c, d, e, f, g, h, i);
+        graph.backward();
+
+        ITensor dLdA = graph.getGradient(a).orElseThrow();
+        ITensor dLdB = graph.getGradient(b).orElseThrow();
+        ITensor dLdC = graph.getGradient(c).orElseThrow();
+        ITensor dLdD = graph.getGradient(d).orElseThrow();
+        ITensor dLdE = graph.getGradient(e).orElseThrow();
+        ITensor dLdF = graph.getGradient(f).orElseThrow();
+        ITensor dLdG = graph.getGradient(g).orElseThrow();
+        ITensor dLdH = graph.getGradient(h).orElseThrow();
+        ITensor dLdI = graph.getGradient(i).orElseThrow();
+
+        assertEquals(sciCore.scalar(1.0f), dLdI);
+        assertEquals(sciCore.array(new float[]{1.0f, 1.0f}), dLdH);
+        assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 1.0f}}), dLdG);
+        assertEquals(sciCore.matrix(new float[][]{{10780.0f, 10780.0f}, {14560.0f, 14560.0f}}), dLdF);
+        assertEquals(sciCore.matrix(new float[][]{{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}), dLdE);
+        assertEquals(sciCore.ndarray(new float[][][]{
+                {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}}), dLdD);
+        assertEquals(sciCore.ndarray(new float[][][][]{
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                }
+        }), dLdC);
+        assertEquals(sciCore.matrix(new float[][]{
+                {3420.0f, 8120.0f},
+                {3540.0f, 8400.0f},
+                {3660.0f, 8680.0f}
+        }), dLdB);
+        assertEquals(sciCore.ndarray(new float[][][][]{
+                {
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}}
+                },
+                {
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}}
+                },
+                {
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}}
+                },
+
+                {
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}}
+                },
+                {
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
+                        {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}}
+                }
+        }), dLdA);
+    }
+
+    @Test
     void testMatmulWithDivided() {
         ITensor a = sciCore.matrix(new float[][]{{2, 3}});
         ITensor b = sciCore.matrix(new float[][]{{10, 11}});
@@ -593,6 +743,118 @@ public class GradientComputationTest {
         assertEquals(sciCore.ndarray(new float[][][]{
                 {{-13.0f, -14.0f}, {-13.0f, -14.0f}},
                 {{-13.0f, -14.0f}, {-13.0f, -14.0f}}
+        }), dLdA);
+    }
+
+    @Test
+    void test4dPlus2dAndMatmul_2dBroadcast() {
+        // (5, 4, 3, 2) + (3, 2) = (5, 4, 3, 2)
+        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, new long[]{5, 4, 3, 2}, DataType.FLOAT32);
+        ITensor b = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});
+        ITensor c = a.plus(b);
+        ITensor d = c.reduceSum(0);
+        ITensor e = d.reduceSum(0);
+        ITensor f = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+        ITensor g = e.matmul(f);
+        ITensor h = g.reduceSum(0);
+        ITensor i = h.reduceSum(0);
+
+        IGraph graph = sciCore.getGraphUpTo(i);
+        graph.requestGradientsFor(a, b, c, d, e, f, g, h, i);
+        graph.backward();
+
+        ITensor dLdA = graph.getGradient(a).orElseThrow();
+        ITensor dLdB = graph.getGradient(b).orElseThrow();
+        ITensor dLdC = graph.getGradient(c).orElseThrow();
+        ITensor dLdD = graph.getGradient(d).orElseThrow();
+        ITensor dLdE = graph.getGradient(e).orElseThrow();
+        ITensor dLdF = graph.getGradient(f).orElseThrow();
+        ITensor dLdG = graph.getGradient(g).orElseThrow();
+        ITensor dLdH = graph.getGradient(h).orElseThrow();
+        ITensor dLdI = graph.getGradient(i).orElseThrow();
+
+        assertEquals(sciCore.scalar(1.0f), dLdI);
+        assertEquals(sciCore.array(new float[]{1.0f, 1.0f}), dLdH);
+        assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 1.0f}}), dLdG);
+        assertEquals(sciCore.matrix(new float[][]{{3720.0f, 3720.0f}, {3840.0f, 3840.0f}}), dLdF);
+        assertEquals(sciCore.matrix(new float[][]{
+                {3.0f, 7.0f},
+                {3.0f, 7.0f},
+                {3.0f, 7.0f}
+        }), dLdE);
+        assertEquals(sciCore.ndarray(new float[][][]{
+                {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+        }), dLdD);
+        assertEquals(sciCore.ndarray(new float[][][][]{
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}},
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                }
+        }), dLdC);
+        assertEquals(sciCore.matrix(new float[][]{
+                {60.0f, 140.0f},
+                {60.0f, 140.0f},
+                {60.0f, 140.0f}
+        }), dLdB);
+        assertEquals(sciCore.ndarray(new float[][][][]{
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                },
+                {
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
+                        {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
+                }
         }), dLdA);
     }
 

@@ -520,4 +520,16 @@ public class SciCore implements ISciCore {
     public @NotNull ITensor pow(ITensor base, double exponent) {
         return base.pow(exponent);
     }
+
+    @Override
+    public @NotNull ITensor arange(double start, double stop, double step, long @NotNull [] shape, @NotNull DataType dataType) {
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = backend.createTensor(dataType, shape);
+        long nElements = ShapeUtils.getNumElements(shape);
+        for (long i = 0; i < nElements; i++) {
+            tensor.setByDoubleFlat(start, i);
+            start += step;
+        }
+        return tensor;
+    }
 }

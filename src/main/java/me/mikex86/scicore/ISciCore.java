@@ -98,6 +98,17 @@ public interface ISciCore {
 
     @NotNull ITensor pow(ITensor base, double exponent);
 
+    /**
+     * Returns evenly spaced values within a given interval.
+     * @param start the start of the interval.
+     * @param stop the end of the interval.
+     * @param step the step size.
+     * @param shape the shape of the resulting tensor.
+     * @param dataType the data type of the resulting tensor.
+     * @return the tensor with evenly spaced values.
+     */
+    @NotNull ITensor arange(double start, double stop, double step, long @NotNull [] shape, @NotNull DataType dataType);
+
     enum BackendType {
 
         JVM {
