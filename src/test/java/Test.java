@@ -13,7 +13,6 @@ public class Test {
         System.out.println("A: \n" + a);
         System.out.println("B: \n" + b);
         System.out.println("Result: \n" + c);
-
     }
 
 }
