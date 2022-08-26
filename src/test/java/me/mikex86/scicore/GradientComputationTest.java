@@ -324,7 +324,7 @@ public class GradientComputationTest {
      * in respect to.
      */
     @Test
-    void testPlusAndMatmulWithMSE() { // TODO: FIX
+    void testMatmulAndPlusWithMSE() {
         // batch_size = n = 3
         // X = input = (4, n)
         // W = weights = (2, 4)
@@ -337,8 +337,9 @@ public class GradientComputationTest {
         ITensor B = sciCore.array(new float[]{0.4f, 0.32f});
         ITensor Y = sciCore.matrix(new float[][]{{0.93f, 0.42f}, {0.94f, 0.1f}, {0.5f, 0.24f}});
 
-        ITensor D = B.plus(X.matmul(W.transpose()));
-        ITensor diff = Y.minus(D);
+        ITensor D = X.matmul(W.transpose());
+        ITensor Y_pred = D.plus(B);
+        ITensor diff = Y.minus(Y_pred);
         ITensor squared = sciCore.pow(diff, 2);
         ITensor lossPerSample = squared.reduceSum(0);
         ITensor loss = lossPerSample.reduceSum(0).divided(X.getShape()[0]);
@@ -359,13 +360,13 @@ public class GradientComputationTest {
     }
 
     @Test
-    void testMatmulAndPlusWithMSE_2() {
+    void testPlusAndMatmulWithMSE() {
         ITensor X = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
         ITensor W = sciCore.matrix(new float[][]{{5, 6}, {7, 8}});
         ITensor B = sciCore.matrix(new float[][]{{9, 10}});
 
         ITensor D = X.matmul(W.transpose());
-        ITensor Y_pred = D.plus(B);
+        ITensor Y_pred = B.plus(D);
         ITensor Y = sciCore.matrix(new float[][]{{11, 12}, {13, 14}});
         ITensor diff = Y_pred.minus(Y);
         ITensor diffSquared = diff.pow(2);
@@ -400,6 +401,50 @@ public class GradientComputationTest {
         assertEquals(sciCore.matrix(new float[][]{{120.0f, 170.0f}, {168.0f, 238.0f}}), dLdW);
         assertEquals(sciCore.matrix(new float[][]{{222.0f, 258.0f}, {518.0f, 602.0f}}), dLdX);
         assertEquals(sciCore.array(new float[]{50.0f, 70.0f}), dLdB);
+    }
+
+    @Test
+    void testPlusWithoutBroadcastAndMatmulWithMSE() {
+        ITensor X = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+        ITensor W = sciCore.matrix(new float[][]{{5, 6}, {7, 8}});
+        ITensor B = sciCore.matrix(new float[][]{{9, 10}, {11, 12}});
+
+        ITensor D = X.matmul(W.transpose());
+        ITensor Y_pred = B.plus(D);
+        ITensor Y = sciCore.matrix(new float[][]{{11, 12}, {13, 14}});
+        ITensor diff = Y_pred.minus(Y);
+        ITensor diffSquared = diff.pow(2);
+        ITensor lossPerSample = diffSquared.reduceSum(0);
+        ITensor totalLoss = lossPerSample.reduceSum(0);
+        ITensor L = totalLoss.divided(X.getShape()[0]);
+
+        IGraph graph = sciCore.getGraphUpTo(L);
+        graph.requestGradientsFor(L, totalLoss, lossPerSample, diffSquared, diff, Y, Y_pred, D, W, X, B);
+        graph.backward();
+
+        ITensor dLdL = graph.getGradient(L).orElseThrow();
+        ITensor dLdTotalLoss = graph.getGradient(totalLoss).orElseThrow();
+        ITensor dLdLossPerSample = graph.getGradient(lossPerSample).orElseThrow();
+        ITensor dLdDiffSquared = graph.getGradient(diffSquared).orElseThrow();
+        ITensor dLdDiff = graph.getGradient(diff).orElseThrow();
+        ITensor dLdY = graph.getGradient(Y).orElseThrow();
+        ITensor dLdYPred = graph.getGradient(Y_pred).orElseThrow();
+        ITensor dLdD = graph.getGradient(D).orElseThrow();
+        ITensor dLdW = graph.getGradient(W).orElseThrow();
+        ITensor dLdX = graph.getGradient(X).orElseThrow();
+        ITensor dLdB = graph.getGradient(B).orElseThrow();
+
+        assertEquals(sciCore.array(new float[]{1.0f}), dLdL);
+        assertEquals(sciCore.array(new float[]{0.5f}), dLdTotalLoss);
+        assertEquals(sciCore.array(new float[]{0.5f, 0.5f}), dLdLossPerSample);
+        assertEquals(sciCore.matrix(new float[][]{{0.5f, 0.5f}, {0.5f, 0.5f}}), dLdDiffSquared);
+        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdDiff);
+        assertEquals(sciCore.matrix(new float[][]{{-15.0f, -21.0f}, {-37.0f, -51.0f}}), dLdY);
+        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdYPred);
+        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdD);
+        assertEquals(sciCore.matrix(new float[][]{{126.0f, 178.0f}, {174.0f, 246.0f}}), dLdW);
+        assertEquals(sciCore.matrix(new float[][]{{222.0f, 258.0f}, {542.0f, 630.0f}}), dLdX);
+        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdB);
     }
 
     @Test

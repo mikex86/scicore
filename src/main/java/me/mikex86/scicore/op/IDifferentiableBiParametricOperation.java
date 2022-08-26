@@ -39,7 +39,7 @@ public interface IDifferentiableBiParametricOperation<F, S> extends IBiParametri
         F f = b.element(fClass);
         S s = c.element(sClass);
 
-        ITensor upstreamGradients = operationNode.getGradient(); // gradients with respect to z where z is the output of this operation
+        ITensor upstreamGradients = operationNode.getUpstreamGradient(); // gradients with respect to z where z is the output of this operation and p1, p2...pn that are parameters of z
         Validator.assertTrue(upstreamGradients != null, "Upstream gradients not yet computed! This is a bug in DAG topology iteration!");
         computeGradients(operationNode.getOperationContext(), upstreamGradients, (IGraph.IDifferentiableNode) input0, f, s);
     }

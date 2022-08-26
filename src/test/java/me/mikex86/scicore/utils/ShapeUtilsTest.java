@@ -257,4 +257,56 @@ class ShapeUtilsTest {
         );
     }
 
+    @ParameterizedTest
+    @MethodSource("compareBroadcastRank_successData")
+    void compareBroadcastRank_success(long @NotNull [] shapeA, long @NotNull [] shapeB, int expectedResult) {
+        assertEquals(expectedResult, ShapeUtils.compareBroadcastRank(shapeA, shapeB));
+    }
+
+    Stream<Arguments> compareBroadcastRank_successData() {
+        return Stream.of(
+                Arguments.of(new long[]{1}, new long[]{1, 1}, -1),
+                Arguments.of(new long[]{1, 1}, new long[]{1, 1}, 0),
+                Arguments.of(new long[]{1, 1}, new long[]{1}, 1),
+
+                Arguments.of(new long[]{2, 1}, new long[]{1, 1}, 1),
+                Arguments.of(new long[]{1, 1}, new long[]{2, 1}, -1),
+                Arguments.of(new long[]{2, 1}, new long[]{2, 1}, 0),
+
+                Arguments.of(new long[]{1, 1, 1}, new long[]{1, 1, 1}, 0),
+                Arguments.of(new long[]{1, 1, 1}, new long[]{1, 1, 1, 1}, -1),
+                Arguments.of(new long[]{1, 1, 1}, new long[]{1, 1, 1, 1, 1}, -1),
+
+                Arguments.of(new long[]{1, 2, 3}, new long[]{2, 2, 3}, -1),
+                Arguments.of(new long[]{2, 2, 3}, new long[]{1, 2, 3}, 1),
+                Arguments.of(new long[]{2, 2, 3}, new long[]{2, 2, 3}, 0),
+                Arguments.of(new long[]{2, 2, 3}, new long[]{3, 2, 2, 3}, -1),
+                Arguments.of(new long[]{3, 2, 2, 3}, new long[]{2, 2, 3}, 1),
+
+                Arguments.of(new long[]{1, 1, 1, 1}, new long[]{1, 1, 1}, 1),
+                Arguments.of(new long[]{1, 1, 1, 1}, new long[]{1, 1, 1, 1}, 0),
+                Arguments.of(new long[]{1, 1, 1, 1}, new long[]{1, 1, 1, 1, 1}, -1),
+                Arguments.of(new long[]{2}, new long[]{1, 1, 1, 2}, -1),
+
+                Arguments.of(new long[]{1, 2, 2, 2}, new long[]{2, 2, 2, 2}, -1),
+                Arguments.of(new long[]{2, 2, 2, 2}, new long[]{1, 2, 2, 2}, 1),
+                Arguments.of(new long[]{2, 2, 2, 2}, new long[]{2, 2, 2, 2}, 0),
+                Arguments.of(new long[]{2, 2, 3, 4}, new long[]{1, 2, 3, 4}, 1)
+        );
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("compareBroadcastRank_failureData")
+    void compareBroadcastRank_failure(long @NotNull [] shapeA, long @NotNull [] shapeB) {
+        assertThrows(IllegalArgumentException.class, () -> ShapeUtils.compareBroadcastRank(shapeA, shapeB));
+    }
+
+    Stream<Arguments> compareBroadcastRank_failureData() {
+        return Stream.of(
+                Arguments.of(new long[]{2, 3, 4}, new long[]{1, 2, 3}),
+                Arguments.of(new long[]{1, 2, 3}, new long[]{2, 3, 4}),
+                Arguments.of(new long[]{3, 3, 4}, new long[]{1, 2, 3, 4})
+        );
+    }
 }

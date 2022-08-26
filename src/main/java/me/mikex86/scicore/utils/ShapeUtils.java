@@ -273,4 +273,34 @@ public class ShapeUtils {
         }
         return newDimension;
     }
+
+    /**
+     * Compares two shapes and returns whether 'shapeA broadcasts to shapeB' or vice versa, meaning whether shapeA is a subset of shapeB in the sense of a broadcast or not.
+     * @see #broadcastShapes(long[], long[]) for more information on broadcasting.
+     * @param shapeA the first shape to compare
+     * @param shapeB the second shape to compare
+     * @return -1 if shapeA < shapeB, 0 if shapeA == shapeB, 1 if shapeA > shapeB, where > means superset, < means subset, and == means the shapes are equivalent.
+     * @throws IllegalArgumentException if the shapes are not broadcast-able
+     */
+    public static int compareBroadcastRank(long@NotNull[] shapeA, long@NotNull[] shapeB) {
+        int maxLength = Math.max(shapeA.length, shapeB.length);
+        for (int i = 0; i < maxLength; i++) {
+            long elementA = i < shapeA.length ? shapeA[shapeA.length - 1 - i] : -1;
+            long elementB = i < shapeB.length ? shapeB[shapeB.length - 1 - i] : -1;
+            if (elementA != elementB) {
+                if (elementA == -1) {
+                    return -1; // shapeA is a subset of shapeB
+                } else if (elementB == -1) {
+                    return 1; // shapeB is a subset of shapeA
+                } else if (elementA == 1) {
+                    return -1; // shapeA is a subset of shapeB
+                } else if (elementB == 1) {
+                    return 1; // shapeB is a subset of shapeA
+                } else {
+                    throw new IllegalArgumentException("Shapes are not broadcast-able: shapeA: " + ShapeUtils.toString(shapeA) + ", shapeB: " + ShapeUtils.toString(shapeB));
+                }
+            }
+        }
+        return 0;
+    }
 }

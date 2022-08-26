@@ -16,9 +16,9 @@ public interface IDifferentiableUnaryOperation extends IUnaryOperation, IDiffere
 
         Validator.assertTrue(input0 instanceof IGraph.ITensorNodeWithGradient, "input0 DAG node must be able to hold a gradient.");
 
-        ITensor upstreamGradient = operationNode.getGradient(); // gradient with respect to z where z is the output of the operation
-        Validator.assertTrue(upstreamGradient != null, "Upstream gradient not yet computed! This is a bug in DAG topology iteration!");
-        computeGradients(operationNode.getOperationContext(), upstreamGradient, (IGraph.ITensorNodeWithGradient) input0);
+        ITensor upstreamGradients = operationNode.getUpstreamGradient(); // gradients with respect to z where z is the output of this operation and p1, p2...pn that are parameters of z
+        Validator.assertTrue(upstreamGradients != null, "Upstream gradient not yet computed! This is a bug in DAG topology iteration!");
+        computeGradients(operationNode.getOperationContext(), upstreamGradients, (IGraph.ITensorNodeWithGradient) input0);
     }
 
     void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input);

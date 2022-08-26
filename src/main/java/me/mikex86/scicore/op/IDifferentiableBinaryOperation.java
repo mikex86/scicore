@@ -18,9 +18,9 @@ public interface IDifferentiableBinaryOperation extends IBinaryOperation, IDiffe
         Validator.assertTrue(input0 instanceof IGraph.ITensorNodeWithGradient, "input0 DAG node must be able to hold a gradient.");
         Validator.assertTrue(input1 instanceof IGraph.ITensorNodeWithGradient, "input1 DAG node must be able to hold a a gradient.");
 
-        ITensor upstreamGradient = operationNode.getGradient(); // gradient with respect to z where z is the output of the operation
-        Validator.assertTrue(upstreamGradient != null, "Upstream gradient not yet computed! This is a bug in DAG topology iteration!");
-        computeGradients(operationNode.getOperationContext(), upstreamGradient, (IGraph.ITensorNodeWithGradient) input0, (IGraph.ITensorNodeWithGradient) input1);
+        ITensor upstreamGradients = operationNode.getUpstreamGradient(); // gradients with respect to z where z is the output of this operation and p1, p2...pn that are parameters of z
+        Validator.assertTrue(upstreamGradients != null, "Upstream gradients not yet computed! This is a bug in DAG topology iteration!");
+        computeGradients(operationNode.getOperationContext(), upstreamGradients, (IGraph.ITensorNodeWithGradient) input0, (IGraph.ITensorNodeWithGradient) input1);
     }
 
     void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b);

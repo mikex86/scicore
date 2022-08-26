@@ -86,6 +86,8 @@ public interface IGraph {
 
         @Nullable ITensor getGradient();
 
+        @Nullable ITensor getUpstreamGradient();
+
         /**
          * Requests gradients to be computed for this node. This marks an explicit request for the autograd engine
          * to compute gradients for this node, as well as save the gradient for this node.

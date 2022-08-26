@@ -42,7 +42,7 @@ public class JvmPlusOp implements IDifferentiableBinaryOperation {
         DataType dataTypeB = b.getDataType();
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
 
-        long nElements = ShapeUtils.getNumElements(shapeA);
+        long nElements = ShapeUtils.getNumElements(finalShape);
 
         ITensor tensor = new JvmTensor(this.backend, resultDataType, finalShape);
         if (broadcast) {
@@ -88,30 +88,51 @@ public class JvmPlusOp implements IDifferentiableBinaryOperation {
 
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
-        // TODO: TEST GRADIENTS FOR B + WX as well not just WX + B
         // TODO: TEST HIGHER BROADCAST RANKS
+        // TODO: DO THIS FOR MINUS AS WELL
+
+        // Note that the upstream gradient dL/dz where z is the output of the current node
+        // is with respect to all parameters a(p11,p12,...p1n) and b(p21,p22,...p2n) where are and b are the
+        // inputs to the current node.
+        // When computing the gradient for a, we need to sum over all the other parameters in b, and vice versa.
+
         if (a.requiresGradients()) {
             ITensor aValue = a.getValue();
-            ITensor bValue = b.getValue();
-            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), aValue.getShape());
-            gradients.fill(1);
-            gradients = gradients.multiply(upstreamGradient);
-            a.accumulateGradient(gradients);
-        }
-        if (b.requiresGradients()) {
-            ITensor aValue = a.getValue();
-            ITensor bValue = b.getValue();
 
             long[] shapeA = aValue.getShape();
-            long[] shapeB = bValue.getShape();
 
-            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), bValue.getShape());
+            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), shapeA);
             gradients.fill(1);
             gradients = gradients.multiply(upstreamGradient);
 
-            int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeA, shapeB);
-            for (int i = 0; i < nCommonDimensions; i++) {
-                gradients = gradients.reduceSum(0);
+            long[] gradientShape = gradients.getShape();
+
+            if (ShapeUtils.compareBroadcastRank(gradientShape, shapeA) > 0) {
+                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeA, gradientShape);
+                for (int i = 0; i < nCommonDimensions; i++) {
+                    gradients = gradients.reduceSum(0);
+                }
+            }
+
+            a.accumulateGradient(gradients);
+        }
+
+        if (b.requiresGradients()) {
+            ITensor bValue = b.getValue();
+
+            long[] shapeB = bValue.getShape();
+
+            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), shapeB);
+            gradients.fill(1);
+            gradients = gradients.multiply(upstreamGradient);
+
+            long[] gradientsShape = gradients.getShape();
+
+            if (ShapeUtils.compareBroadcastRank(gradientsShape, shapeB) > 0) {
+                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(gradientsShape, shapeB);
+                for (int i = 0; i < nCommonDimensions; i++) {
+                    gradients = gradients.reduceSum(0);
+                }
             }
 
             b.accumulateGradient(gradients);

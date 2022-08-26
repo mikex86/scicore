@@ -158,7 +158,8 @@ public class Graph implements IGraph {
 
     public static abstract class AbstractTensorNodeWithGradient extends AbstractGraphNode implements ITensorNodeWithGradient {
 
-        private @Nullable ITensor gradient = null;
+        private @Nullable ITensor upstreamGradient = null;
+
 
         private boolean requiresGradients = false;
 
@@ -166,34 +167,39 @@ public class Graph implements IGraph {
 
         @Override
         public void zeroGrad() {
-            if (this.gradient != null) {
-                this.gradient.fill(0);
+            if (this.upstreamGradient != null) {
+                this.upstreamGradient.fill(0);
             }
         }
 
         @Override
+        public @Nullable ITensor getUpstreamGradient() {
+            return this.upstreamGradient;
+        }
+
+        @Override
         public void deleteGradient() {
-            this.gradient = null;
+            this.upstreamGradient = null;
         }
 
         @Override
         public void accumulateGradient(@NotNull ITensor gradient) {
-            if (this.gradient == null) {
-                this.gradient = gradient;
+            if (this.upstreamGradient == null) {
+                this.upstreamGradient = gradient;
             } else {
-                Validator.assertTrue(ShapeUtils.equals(this.gradient.getShape(), gradient.getShape()), "Accumulative gradients must match shape");
-                this.gradient = this.gradient.plus(gradient);
+                Validator.assertTrue(ShapeUtils.equals(this.upstreamGradient.getShape(), gradient.getShape()), "Accumulative gradients must match shape");
+                this.upstreamGradient = this.upstreamGradient.plus(gradient);
             }
         }
 
         @Nullable
         @Override
         public ITensor getGradient() {
-            return gradient;
+            return upstreamGradient;
         }
 
         void setGradient(@Nullable ITensor gradient) {
-            this.gradient = gradient;
+            this.upstreamGradient = gradient;
         }
 
         @Override

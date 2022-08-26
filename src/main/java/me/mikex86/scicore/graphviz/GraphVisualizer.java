@@ -1,24 +1,34 @@
 package me.mikex86.scicore.graphviz;
 
+import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.skija.*;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 
 public class GraphVisualizer {
 
 
     private static final int GRAPH_SCALE = 2;
 
-    private static final int TENSOR_NODE_HEAD_WIDTH = 400 * GRAPH_SCALE;
+    private static final int TENSOR_NODE_HEAD_WIDTH = 200 * GRAPH_SCALE;
 
-    private static final int TENSOR_NODE_HEAD_HEIGHT = 400 * GRAPH_SCALE;
+    private static final int TENSOR_NODE_HEAD_HEIGHT = 145 * GRAPH_SCALE;
 
-    private static final int OPERATION_NODE_RADIUS = 250 * GRAPH_SCALE;
+    private static final int OPERATION_NODE_RADIUS = 150 * GRAPH_SCALE;
 
-    private static final int NODE_INTERCONNECT_SPACE_HEIGHT = 140 * GRAPH_SCALE;
+    private static final int NODE_INTERCONNECT_SPACE_HEIGHT = 80 * GRAPH_SCALE;
 
     private static final int WIDTH_PER_NODE = TENSOR_NODE_HEAD_WIDTH;
 
@@ -34,16 +44,19 @@ public class GraphVisualizer {
 
     private static final int NODE_HEADING_FONT_SIZE = 18 * GRAPH_SCALE;
 
-    private static final int NODE_MAIN_FONT_SIZE = 13 * GRAPH_SCALE;
+    private static final int NODE_ATTRIBUTE_FONT_SIZE = 14 * GRAPH_SCALE;
 
     private static final int NODE_HEADING_TEXT_PADDING = 10 * GRAPH_SCALE;
 
-    private static final int NODE_MAIN_TEXT_PADDING = 10 * GRAPH_SCALE;
+    private static final int NODE_ATTRIBUTE_TEXT_PADDING = 10 * GRAPH_SCALE;
 
     private static final int NODE_MAIN_TEXT_BACKGROUND_BORDER_RADIUS = 8 * GRAPH_SCALE;
 
     @NotNull
-    private static final Typeface TYPEFACE = FontMgr.getDefault().matchFamilyStyle("Roboto", FontStyle.NORMAL);
+    private static final Typeface HEADING_TYPEFACE = Objects.requireNonNull(FontMgr.getDefault().matchFamilyStyle("Roboto", FontStyle.NORMAL));
+
+    @NotNull
+    private static final Typeface ATTRIBUTE_TYPEFACE = Objects.requireNonNull(FontMgr.getDefault().matchFamilyStyle("Roboto Mono", FontStyle.NORMAL));
 
     @NotNull
     private static final Paint COLUM_BACKGROUND_COLOR = new Paint();
@@ -64,6 +77,9 @@ public class GraphVisualizer {
     private static final Paint HEADING_TEXT_COLOR = new Paint();
 
     @NotNull
+    private static final Paint ATTRIBUTE_TEXT_COLOR = new Paint();
+
+    @NotNull
     private static final Paint LINE_PAINT = new Paint();
 
     private static final int NODE_BORDER_WIDTH = 4 * GRAPH_SCALE;
@@ -76,6 +92,7 @@ public class GraphVisualizer {
         TENSOR_NODE_COLOR_STROKE.setMode(PaintMode.STROKE);
         OPERATION_NODE_COLOR.setColor(0xffd63031);
         HEADING_TEXT_COLOR.setColor(0xFFFFFFFF);
+        ATTRIBUTE_TEXT_COLOR.setColor(0xFFFBFBFB);
         TENSOR_NODE_BACKGROUND_COLOR.setColor(0xFF2c3e50);
         LINE_PAINT.setColor(0xFF000000);
         LINE_PAINT.setMode(PaintMode.STROKE);
@@ -112,6 +129,19 @@ public class GraphVisualizer {
             }
 
             return surface.makeImageSnapshot();
+        }
+    }
+
+    public static void saveGraph(@NotNull IGraph graph, @NotNull String filename) {
+        Image image = visualizeGraph(graph);
+        try {
+            ByteChannel channel = Files.newByteChannel(
+                    java.nio.file.Path.of(filename),
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+            channel.write(ByteBuffer.wrap(Objects.requireNonNull(image.encodeToData(EncodedImageFormat.PNG)).getBytes()));
+            channel.close();
+        } catch (IOException ex) {
+            throw new IllegalStateException(ex);
         }
     }
 
@@ -198,11 +228,16 @@ public class GraphVisualizer {
     }
 
     private static int renderTensorNode(@NotNull Graph.TensorDeclarationGraphNode node, int x, int y, Canvas canvas) {
-        return renderNode(node.getName() + " (Tensor)", new LinkedHashMap<>(), x, y, canvas);
+        ITensor value = node.getValue();
+        Map<String, String> attributes = new LinkedHashMap<>();
+        attributes.put("dataType", value.getDataType().toString());
+        attributes.put("shape", ShapeUtils.toString(value.getShape()));
+        attributes.put("isScalar", Boolean.toString(value.isScalar()));
+        return renderNode(node.getName() + " (Tensor)", attributes, x, y, canvas);
     }
 
-    private static int renderNode(@NotNull String title, @NotNull LinkedHashMap<String, String> attributes, int x, int y, Canvas canvas) {
-        try (Font headingFont = new Font(TYPEFACE, NODE_HEADING_FONT_SIZE)) {
+    private static int renderNode(@NotNull String title, @NotNull Map<String, String> attributes, int x, int y, Canvas canvas) {
+        try (Font headingFont = new Font(HEADING_TYPEFACE, NODE_HEADING_FONT_SIZE)) {
 
             // render background
             {
@@ -245,6 +280,21 @@ public class GraphVisualizer {
                     headingFont,
                     HEADING_TEXT_COLOR
             );
+
+            try (Font attributeFont = new Font(ATTRIBUTE_TYPEFACE, NODE_ATTRIBUTE_FONT_SIZE)) {
+                // render attributes
+                float yOffset = y + COLUMN_PADDING + NODE_PADDING + NODE_HEADING_TEXT_PADDING + (headingFont.getMetrics().getBottom() - headingFont.getMetrics().getTop()) + NODE_HEADING_TEXT_PADDING;
+                for (Map.Entry<String, String> attribute : attributes.entrySet()) {
+                    canvas.drawString(
+                            attribute.getKey() + ": " + attribute.getValue(),
+                            x + COLUMN_PADDING + NODE_PADDING + NODE_ATTRIBUTE_TEXT_PADDING,
+                            yOffset - attributeFont.getMetrics().getTop(),
+                            attributeFont,
+                            ATTRIBUTE_TEXT_COLOR
+                    );
+                    yOffset += attributeFont.getMetrics().getHeight();
+                }
+            }
         }
         return x + WIDTH_PER_NODE;
     }
@@ -259,7 +309,7 @@ public class GraphVisualizer {
         );
 
         // render text
-        try (Font font = new Font(TYPEFACE, NODE_HEADING_FONT_SIZE)) {
+        try (Font font = new Font(HEADING_TYPEFACE, NODE_HEADING_FONT_SIZE)) {
             canvas.drawString(
                     node.getName(),
                     x + WIDTH_PER_NODE / 2f - font.measureTextWidth(node.getName()) / 2f,
