@@ -94,15 +94,42 @@ public class JvmMinusOp implements IDifferentiableBinaryOperation {
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
         if (a.requiresGradients()) {
-            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), a.getValue().getShape());
+            ITensor aValue = a.getValue();
+
+            long[] shapeA = aValue.getShape();
+
+            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), shapeA);
             gradients.fill(1);
             gradients = gradients.multiply(upstreamGradient);
+
+            long[] gradientShape = gradients.getShape();
+
+            if (ShapeUtils.compareBroadcastRank(gradientShape, shapeA) > 0) {
+                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeA, gradientShape);
+                for (int i = 0; i < nCommonDimensions; i++) {
+                    gradients = gradients.reduceSum(0);
+                }
+            }
+
             a.accumulateGradient(gradients);
         }
         if (b.requiresGradients()) {
+            ITensor bValue = b.getValue();
+
+            long[] shapeB = bValue.getShape();
             ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), b.getValue().getShape());
             gradients.fill(-1);
             gradients = gradients.multiply(upstreamGradient);
+
+            long[] gradientsShape = gradients.getShape();
+
+            if (ShapeUtils.compareBroadcastRank(gradientsShape, shapeB) > 0) {
+                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(gradientsShape, shapeB);
+                for (int i = 0; i < nCommonDimensions; i++) {
+                    gradients = gradients.reduceSum(0);
+                }
+            }
+
             b.accumulateGradient(gradients);
         }
     }

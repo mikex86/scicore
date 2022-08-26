@@ -93,6 +93,7 @@ public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
 
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
+        // TODO: HANDLE PARAMETER REDUCTION
         if (a.requiresGradients()) {
             a.accumulateGradient(upstreamGradient.multiply(b.getValue()));
         }
