@@ -163,7 +163,7 @@ public class GradientComputationTest {
 
         assertEquals(sciCore.matrix(new float[][]{{8.0f}, {12.0f}}), dLdC);
         assertEquals(sciCore.matrix(new float[][]{{20.0f, 24.0f}}), dLdA);
-        assertEquals(sciCore.scalar(28), dLdB);
+        assertEquals(sciCore.scalar(28.0f), dLdB);
     }
 
     @Test
@@ -184,7 +184,7 @@ public class GradientComputationTest {
 
         assertEquals(sciCore.matrix(new float[][]{{8.0f}, {12.0f}}), dLdC);
         assertEquals(sciCore.matrix(new float[][]{{20.0f, 24.0f}}), dLdA);
-        assertEquals(sciCore.scalar(28), dLdB);
+        assertEquals(sciCore.scalar(28.0f), dLdB);
     }
 
     @Test
