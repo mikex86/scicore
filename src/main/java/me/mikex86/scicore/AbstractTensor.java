@@ -489,6 +489,13 @@ public abstract class AbstractTensor implements ITensor {
         return operationRecorder.recordOperation(OperationType.RELU, this);
     }
 
+    @Override
+    public @NotNull ITensor sigmoid() {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.SIGMOID, this);
+    }
+
     protected void validateDataType(@NotNull DataType requestedDataType) {
         DataType ownDataType = getDataType();
         if (requestedDataType != ownDataType) {

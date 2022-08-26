@@ -900,6 +900,35 @@ public class GradientComputationTest {
     }
 
     @Test
+    void testMatmulAndPlusWithSigmoidAndMSE() {
+        ITensor X = sciCore.matrix(new float[][]{{0.1f, 0.3f, 0.9f, 0.3f}, {0.4f, 0.01f, 0.23f, 0.93f}, {0.93f, 0.5f, 0.9f, 0.44f}});
+        ITensor W = sciCore.matrix(new float[][]{{0.4f, 0.2f, 0.34f, 0.24f}, {0.5f, 0.36f, 0.67f, 0.38f}});
+        ITensor B = sciCore.array(new float[]{0.4f, 0.32f});
+        ITensor Y = sciCore.matrix(new float[][]{{0.93f, 0.42f}, {0.94f, 0.1f}, {0.5f, 0.24f}});
+
+        ITensor D = X.matmul(W.transpose());
+        ITensor Y_pred = D.plus(B).sigmoid();
+        ITensor diff = Y.minus(Y_pred);
+        ITensor squared = sciCore.pow(diff, 2);
+        ITensor lossPerSample = squared.reduceSum(0);
+        ITensor loss = lossPerSample.reduceSum(0).divided(X.getShape()[0]);
+
+        IGraph graph = sciCore.getGraphUpTo(loss);
+        graph.requestGradientsFor(W, B);
+        graph.backward();
+
+        ITensor dLdW = graph.getGradient(W).orElseThrow();
+        ITensor dLdB = graph.getGradient(B).orElseThrow();
+
+        assertEquals(sciCore.matrix(new float[][]{
+                {0.013556f, 0.006425f, -0.006542f, -0.025779f},
+                {0.085262f, 0.039142f, 0.10286f, 0.111752f}
+        }), dLdW);
+
+        assertEquals(sciCore.array(new float[]{-0.0318f, 0.1755f}), dLdB);
+    }
+
+    @Test
     void testPlusAndMatmulWithMSE() {
         ITensor X = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
         ITensor W = sciCore.matrix(new float[][]{{5, 6}, {7, 8}});

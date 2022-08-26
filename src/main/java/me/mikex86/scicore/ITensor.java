@@ -591,5 +591,8 @@ public interface ITensor extends IValue {
 
     @NotNull ITensor multiply(double value);
 
-    ITensor relu();
+    @NotNull ITensor relu();
+
+    @NotNull ITensor sigmoid();
+
 }

@@ -3,7 +3,7 @@ package me.mikex86.scicore;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
-import me.mikex86.scicore.nn.layers.ReLU;
+import me.mikex86.scicore.nn.layers.Sigmoid;
 import me.mikex86.scicore.nn.layers.Softmax;
 import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
@@ -73,7 +73,7 @@ public class MNISTTest {
     private static class MnistNet implements IModule {
 
         @NotNull
-        private final ReLU act;
+        private final Sigmoid act;
 
         @NotNull
         private final Linear f1, f2;
@@ -82,7 +82,7 @@ public class MNISTTest {
         private final Softmax f3;
 
         public MnistNet(@NotNull ISciCore sciCore) {
-            this.act = new ReLU();
+            this.act = new Sigmoid();
             this.f1 = new Linear(sciCore, DataType.FLOAT32, 28 * 28, 128, true);
             this.f2 = new Linear(sciCore, DataType.FLOAT32, 128, 10, true);
             this.f3 = new Softmax(sciCore, 1);
@@ -93,7 +93,8 @@ public class MNISTTest {
             ITensor h1 = f1.forward(input);
             ITensor h2 = act.forward(h1);
             ITensor h3 = f2.forward(h2);
-            return f3.forward(h3);
+            ITensor h4 = act.forward(h3);
+            return f3.forward(h4);
         }
 
         @Override
@@ -117,12 +118,13 @@ public class MNISTTest {
 
         long nSteps = 1000;
 
-        float learningRate = 0.01f;
+        float learningRate = 0.1f;
 
-        IOptimizer optimizer = new Sgd(sciCore, learningRate, bobNet.parameters(), true, 0.98f);
+        IOptimizer optimizer = new Sgd(sciCore, learningRate, bobNet.parameters());
 
         try (ProgressBar progressBar = new ProgressBar("Training", nSteps)) {
             for (long step = 0; step < nSteps; step++) {
+                sciCore.getBackend().getOperationRecorder().resetRecording();
                 Pair<ITensor, ITensor> batch = trainIt.next();
                 ITensor X = batch.getFirst();
                 ITensor Y = batch.getSecond();

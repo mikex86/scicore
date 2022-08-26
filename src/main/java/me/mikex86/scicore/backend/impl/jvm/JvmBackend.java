@@ -8,23 +8,27 @@ import me.mikex86.scicore.op.IOperation;
 import me.mikex86.scicore.op.OperationType;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class JvmBackend extends AbstractSciCoreBackend {
 
     @NotNull
-    private final Map<OperationType, IOperation> operationTable = Map.of(
-            OperationType.MATMUL, new JvmMatMulOp(this),
-            OperationType.DIVIDED, new JvmDividedOp(this),
-            OperationType.PLUS, new JvmPlusOp(this),
-            OperationType.MINUS, new JvmMinusOp(this),
-            OperationType.REDUCE_SUM, new JvmReduceSumOp(this),
-            OperationType.EXP, new JvmExpOp(this),
-            OperationType.TRANSPOSE, new JvmTransposeOp(this),
-            OperationType.POW, new JvmPowerOp(this),
-            OperationType.MULTIPLY, new JvmMultiplyOp(this),
-            OperationType.RELU, new JvmReluOp(this)
-    );
+    private final Map<OperationType, IOperation> operationTable = new HashMap<>();
+
+    {
+        operationTable.put(OperationType.MATMUL, new JvmMatMulOp(this));
+        operationTable.put(OperationType.DIVIDED, new JvmDividedOp(this));
+        operationTable.put(OperationType.PLUS, new JvmPlusOp(this));
+        operationTable.put(OperationType.MINUS, new JvmMinusOp(this));
+        operationTable.put(OperationType.REDUCE_SUM, new JvmReduceSumOp(this));
+        operationTable.put(OperationType.EXP, new JvmExpOp(this));
+        operationTable.put(OperationType.TRANSPOSE, new JvmTransposeOp(this));
+        operationTable.put(OperationType.POW, new JvmPowerOp(this));
+        operationTable.put(OperationType.MULTIPLY, new JvmMultiplyOp(this));
+        operationTable.put(OperationType.RELU, new JvmReluOp(this));
+        operationTable.put(OperationType.SIGMOID, new JvmSigmoidOp(this));
+    }
 
     @Override
     public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
