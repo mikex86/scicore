@@ -101,7 +101,7 @@ public class ApproxNonlinearFuncTrainingTest {
         // plot loss
         {
             JPlot plot = new JPlot();
-            plot.plot(losses, new Color(26, 188, 156));
+            plot.plot(losses, new Color(26, 188, 156), false);
             plot.setXLabel("Step");
             plot.setYLabel("Loss (log)");
             plot.save(Path.of("non_lin_approx_loss.png"));
