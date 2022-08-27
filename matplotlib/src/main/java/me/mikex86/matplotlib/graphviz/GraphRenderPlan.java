@@ -1,4 +1,4 @@
-package me.mikex86.graphviz;
+package me.mikex86.matplotlib.graphviz;
 
 import org.jetbrains.annotations.NotNull;
 
