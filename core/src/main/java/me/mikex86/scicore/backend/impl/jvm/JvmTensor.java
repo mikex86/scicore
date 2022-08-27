@@ -6,9 +6,9 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.*;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Locale;
 import java.util.Objects;
 
 import static me.mikex86.scicore.utils.StringUtils.formatFloat;
@@ -53,27 +53,9 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public byte getByte(long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        return this.dataContainer.getByte(index);
-    }
-
-    @Override
-    public void setByte(byte value, long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        this.dataContainer.setByte(index, value);
-    }
-
-    @Override
     public short getShort(long @NotNull [] indices) {
         long index = ShapeUtils.getFlatIndex(indices, this.strides);
         return this.dataContainer.getShort(index);
-    }
-
-    @Override
-    public void setShort(short value, long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        this.dataContainer.setShort(index, value);
     }
 
     @Override
@@ -83,45 +65,9 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public void setInt(int value, long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        this.dataContainer.setInt(index, value);
-    }
-
-    @Override
     public long getLong(long @NotNull [] indices) {
         long index = ShapeUtils.getFlatIndex(indices, this.strides);
         return this.dataContainer.getLong(index);
-    }
-
-    @Override
-    public void setLong(long value, long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        this.dataContainer.setLong(index, value);
-    }
-
-    @Override
-    public float getFloat(long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        return this.dataContainer.getFloat(index);
-    }
-
-    @Override
-    public void setFloat(float value, long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        this.dataContainer.setFloat(index, value);
-    }
-
-    @Override
-    public double getDouble(long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        return this.dataContainer.getDouble(index);
-    }
-
-    @Override
-    public void setDouble(double value, long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        this.dataContainer.setDouble(index, value);
     }
 
     @Override
@@ -132,18 +78,6 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     @Override
     public void setBooleanFlat(boolean value, long flatIndex) {
         this.dataContainer.setBoolean(flatIndex, value);
-    }
-
-    @Override
-    public boolean getBoolean(long @NotNull ... indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        return this.dataContainer.getBoolean(index);
-    }
-
-    @Override
-    public void setBoolean(boolean value, long @NotNull ... indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        this.dataContainer.setBoolean(index, value);
     }
 
     @Override
@@ -232,6 +166,41 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                 }
             }
         }
+    }
+
+    @Override
+    public void setContents(@NotNull ByteBuffer buffer) {
+        this.dataContainer.setContents(buffer);
+    }
+
+    @Override
+    public void setContents(@NotNull ShortBuffer buffer) {
+        this.dataContainer.setContents(buffer);
+    }
+
+    @Override
+    public void setContents(@NotNull IntBuffer buffer) {
+        this.dataContainer.setContents(buffer);
+    }
+
+    @Override
+    public void setContents(@NotNull LongBuffer buffer) {
+        this.dataContainer.setContents(buffer);
+    }
+
+    @Override
+    public void setContents(@NotNull FloatBuffer buffer) {
+        this.dataContainer.setContents(buffer);
+    }
+
+    @Override
+    public void setContents(@NotNull DoubleBuffer buffer) {
+        this.dataContainer.setContents(buffer);
+    }
+
+    @Override
+    public void setContents(boolean @NotNull [] buffer) {
+        this.dataContainer.setContents(buffer);
     }
 
     @Override
@@ -730,6 +699,97 @@ public class JvmTensor extends AbstractTensor implements ITensor {
 
         public long @NotNull [] getShape() {
             return shape;
+        }
+
+        public void setContents(@NotNull ByteBuffer buffer) {
+            if (dataType != DataType.INT8) {
+                throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
+            }
+            byte[] byteData = getByteData();
+            if (buffer.remaining() > byteData.length) {
+                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " bytes, but DataContainer has " + byteData.length + " bytes");
+            }
+            buffer.get(byteData);
+        }
+
+        public void setContents(@NotNull ShortBuffer buffer) {
+            if (dataType != DataType.INT16) {
+                throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
+            }
+            short[] shortData = getShortData();
+            if (buffer.remaining() > shortData.length) {
+                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " shorts, but DataContainer has " + shortData.length + " shorts");
+            }
+            buffer.get(shortData);
+        }
+
+        public void setContents(@NotNull IntBuffer buffer) {
+            if (dataType != DataType.INT32) {
+                throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
+            }
+            int[] intData = getIntData();
+            if (buffer.remaining() > intData.length) {
+                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " ints, but DataContainer has " + intData.length + " ints");
+            }
+            buffer.get(intData);
+        }
+
+        public void setContents(@NotNull LongBuffer buffer) {
+            if (dataType != DataType.INT64) {
+                throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
+            }
+            long[] longData = getLongData();
+            if (buffer.remaining() > longData.length) {
+                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " longs, but DataContainer has " + longData.length + " longs");
+            }
+            buffer.get(longData);
+        }
+
+        public void setContents(@NotNull FloatBuffer buffer) {
+            if (dataType != DataType.FLOAT32) {
+                throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
+            }
+            float[] floatData = getFloatData();
+            if (buffer.remaining() > floatData.length) {
+                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " floats, but DataContainer has " + floatData.length + " floats");
+            }
+            buffer.get(floatData);
+        }
+
+        public void setContents(@NotNull DoubleBuffer buffer) {
+            if (dataType != DataType.FLOAT64) {
+                throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
+            }
+            double[] doubleData = getDoubleData();
+            if (buffer.remaining() > doubleData.length) {
+                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " doubles, but DataContainer has " + doubleData.length + " doubles");
+            }
+            buffer.get(doubleData);
+        }
+
+        public void setContents(boolean @NotNull [] data) {
+            if (dataType != DataType.BOOLEAN) {
+                throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
+            }
+            BitSet booleanData = getBooleanData();
+            if (data.length > nBits) {
+                throw new IllegalArgumentException("Contents too large: Array has " + data.length + " booleans, but DataContainer has " + nBits + " booleans");
+            }
+            for (int i = 0; i < data.length; i++) {
+                booleanData.set(i, data[i]);
+            }
+        }
+
+        public void setContents(@NotNull BitSet data) {
+            if (dataType != DataType.BOOLEAN) {
+                throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
+            }
+            BitSet booleanData = getBooleanData();
+            if (data.length() > nBits) {
+                throw new IllegalArgumentException("Contents too large: BitSet has " + data.length() + " booleans, but DataContainer has " + nBits + " booleans");
+            }
+            booleanData.clear();
+            booleanData.or(data);
         }
 
         public void setContents(@NotNull JvmTensorDataContainer container) {

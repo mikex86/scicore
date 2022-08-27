@@ -7,6 +7,7 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.*;
 import java.util.Objects;
 import java.util.Random;
 
@@ -151,9 +152,8 @@ public class SciCore implements ISciCore {
     public ITensor array(byte @NotNull [] array) {
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(DataType.INT8, new long[]{array.length});
-        for (int i = 0; i < array.length; i++) {
-            tensor.setByteFlat(array[i], i);
-        }
+        ByteBuffer buffer = ByteBuffer.wrap(array);
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -162,9 +162,8 @@ public class SciCore implements ISciCore {
     public ITensor array(short @NotNull [] array) {
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(DataType.INT16, new long[]{array.length});
-        for (int i = 0; i < array.length; i++) {
-            tensor.setShortFlat(array[i], i);
-        }
+        ShortBuffer buffer = ShortBuffer.wrap(array);
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -173,9 +172,8 @@ public class SciCore implements ISciCore {
     public ITensor array(int @NotNull [] array) {
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(DataType.INT32, new long[]{array.length});
-        for (int i = 0; i < array.length; i++) {
-            tensor.setIntFlat(array[i], i);
-        }
+        IntBuffer buffer = IntBuffer.wrap(array);
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -184,9 +182,8 @@ public class SciCore implements ISciCore {
     public ITensor array(long @NotNull [] array) {
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(DataType.INT64, new long[]{array.length});
-        for (int i = 0; i < array.length; i++) {
-            tensor.setLongFlat(array[i], i);
-        }
+        LongBuffer buffer = LongBuffer.wrap(array);
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -195,9 +192,8 @@ public class SciCore implements ISciCore {
     public ITensor array(float @NotNull [] array) {
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(DataType.FLOAT32, new long[]{array.length});
-        for (int i = 0; i < array.length; i++) {
-            tensor.setFloatFlat(array[i], i);
-        }
+        FloatBuffer buffer = FloatBuffer.wrap(array);
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -206,9 +202,8 @@ public class SciCore implements ISciCore {
     public ITensor array(double @NotNull [] array) {
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(DataType.FLOAT64, new long[]{array.length});
-        for (int i = 0; i < array.length; i++) {
-            tensor.setDoubleFlat(array[i], i);
-        }
+        DoubleBuffer buffer = DoubleBuffer.wrap(array);
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -216,11 +211,11 @@ public class SciCore implements ISciCore {
     public @NotNull ITensor array(boolean @NotNull [] array) {
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(DataType.BOOLEAN, new long[]{array.length});
-        for (int i = 0; i < array.length; i++) {
-            tensor.setBooleanFlat(array[i], i);
-        }
+        tensor.setContents(array);
         return tensor;
     }
+
+    // TODO: OPTIMIZE MATRIX CONSTRUCTION BY UTILIZING setContents(buffer)
 
     @Override
     @NotNull

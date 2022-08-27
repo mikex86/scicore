@@ -7,6 +7,7 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven(url = "https://packages.jetbrains.team/maven/p/skija/maven")
 }
 
 val lwjglVersion = "3.3.1"
@@ -36,6 +37,8 @@ val lwjglNatives = Pair(
 }
 
 dependencies {
+    implementation("org.jetbrains:annotations:23.0.0")
+
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.0")
 
@@ -44,6 +47,10 @@ dependencies {
     implementation("org.lwjgl", "lwjgl")
     implementation("org.lwjgl", "lwjgl-cuda")
     implementation("org.lwjgl", "lwjgl-jemalloc")
+
+    implementation("org.apache.logging.log4j:log4j-core:2.18.0")
+
+    implementation(project(":core"))
 
     runtimeOnly("org.lwjgl", "lwjgl", classifier = lwjglNatives)
     runtimeOnly("org.lwjgl", "lwjgl-jemalloc", classifier = lwjglNatives)

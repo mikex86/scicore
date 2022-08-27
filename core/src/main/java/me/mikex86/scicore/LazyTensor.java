@@ -5,6 +5,7 @@ import me.mikex86.scicore.op.IDerivedTensor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.*;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
@@ -60,11 +61,6 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     }
 
     @Override
-    public byte getByte(long @NotNull ... indices) {
-        return result().getByte(indices);
-    }
-
-    @Override
     public short getShort(long @NotNull ... indices) {
         return result().getShort(indices);
     }
@@ -80,46 +76,6 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     }
 
     @Override
-    public float getFloat(long @NotNull ... indices) {
-        return result().getFloat(indices);
-    }
-
-    @Override
-    public double getDouble(long @NotNull ... indices) {
-        return result().getDouble(indices);
-    }
-
-    @Override
-    public void setByte(byte value, long @NotNull ... indices) {
-        result().setByte(value, indices);
-    }
-
-    @Override
-    public void setShort(short value, long @NotNull ... indices) {
-        result().setShort(value, indices);
-    }
-
-    @Override
-    public void setInt(int value, long @NotNull ... indices) {
-        result().setInt(value, indices);
-    }
-
-    @Override
-    public void setLong(long value, long @NotNull ... indices) {
-        result().setLong(value, indices);
-    }
-
-    @Override
-    public void setFloat(float value, long @NotNull ... indices) {
-        result().setFloat(value, indices);
-    }
-
-    @Override
-    public void setDouble(double value, long @NotNull ... indices) {
-        result().setDouble(value, indices);
-    }
-
-    @Override
     public boolean getBooleanFlat(long flatIndex) {
         return result().getBooleanFlat(flatIndex);
     }
@@ -127,16 +83,6 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     @Override
     public void setBooleanFlat(boolean value, long flatIndex) {
         result().setBooleanFlat(value, flatIndex);
-    }
-
-    @Override
-    public boolean getBoolean(long @NotNull ... indices) {
-        return result().getBoolean(indices);
-    }
-
-    @Override
-    public void setBoolean(boolean value, long @NotNull ... indices) {
-        result().setBoolean(value, indices);
     }
 
     @Override
@@ -207,6 +153,41 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     @Override
     public void setContents(@NotNull ITensor tensor) {
         result().setContents(tensor);
+    }
+
+    @Override
+    public void setContents(@NotNull ByteBuffer buffer) {
+        result().setContents(buffer);
+    }
+
+    @Override
+    public void setContents(@NotNull ShortBuffer buffer) {
+        result().setContents(buffer);
+    }
+
+    @Override
+    public void setContents(@NotNull IntBuffer buffer) {
+        result().setContents(buffer);
+    }
+
+    @Override
+    public void setContents(@NotNull LongBuffer buffer) {
+        result().setContents(buffer);
+    }
+
+    @Override
+    public void setContents(@NotNull FloatBuffer buffer) {
+        result().setContents(buffer);
+    }
+
+    @Override
+    public void setContents(@NotNull DoubleBuffer buffer) {
+        result().setContents(buffer);
+    }
+
+    @Override
+    public void setContents(boolean @NotNull [] buffer) {
+        result().setContents(buffer);
     }
 
     @Override

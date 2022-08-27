@@ -25,6 +25,78 @@ public abstract class AbstractTensor implements ITensor {
         return new View(this, sliceShape, offset, sliceStrides);
     }
 
+
+    @Override
+    public byte getByte(long @NotNull ... indices) {
+        return getByteFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public void setByte(byte value, long @NotNull ... indices) {
+        setByteFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public short getShort(long @NotNull ... indices) {
+        return getShortFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public void setShort(short value, long @NotNull ... indices) {
+        setShortFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+
+    @Override
+    public int getInt(long @NotNull ... indices) {
+        return getIntFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public void setInt(int value, long @NotNull ... indices) {
+        setIntFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public void setLong(long value, long @NotNull ... indices) {
+        setLongFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public long getLong(long @NotNull ... indices) {
+        return getLongFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public float getFloat(long @NotNull ... indices) {
+        return getFloatFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public void setFloat(float value, long @NotNull ... indices) {
+        setFloatFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public double getDouble(long @NotNull ... indices) {
+        return getDoubleFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public void setDouble(double value, long @NotNull ... indices) {
+        setDoubleFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public boolean getBoolean(long @NotNull ... indices) {
+        return getBooleanFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
+    @Override
+    public void setBoolean(boolean value, long @NotNull ... indices) {
+        setBooleanFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+    }
+
     @Override
     @NotNull
     public ITensor matmul(@NotNull ITensor other) {

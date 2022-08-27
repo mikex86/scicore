@@ -4,6 +4,7 @@ import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.*;
 import java.util.Arrays;
 
 class View extends AbstractTensor {
@@ -204,6 +205,41 @@ class View extends AbstractTensor {
 
     @Override
     public void setContents(@NotNull ITensor tensor) {
+        throw new UnsupportedOperationException("Views are read-only");
+    }
+
+    @Override
+    public void setContents(@NotNull ByteBuffer buffer) {
+        throw new UnsupportedOperationException("Views are read-only");
+    }
+
+    @Override
+    public void setContents(@NotNull ShortBuffer buffer) {
+        throw new UnsupportedOperationException("Views are read-only");
+    }
+
+    @Override
+    public void setContents(@NotNull IntBuffer buffer) {
+        throw new UnsupportedOperationException("Views are read-only");
+    }
+
+    @Override
+    public void setContents(@NotNull LongBuffer buffer) {
+        throw new UnsupportedOperationException("Views are read-only");
+    }
+
+    @Override
+    public void setContents(@NotNull FloatBuffer buffer) {
+        throw new UnsupportedOperationException("Views are read-only");
+    }
+
+    @Override
+    public void setContents(@NotNull DoubleBuffer buffer) {
+        throw new UnsupportedOperationException("Views are read-only");
+    }
+
+    @Override
+    public void setContents(boolean @NotNull [] buffer) {
         throw new UnsupportedOperationException("Views are read-only");
     }
 

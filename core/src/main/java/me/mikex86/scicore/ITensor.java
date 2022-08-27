@@ -5,6 +5,8 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.*;
+
 public interface ITensor extends IValue {
 
     float EPSILON = 1E-4f;
@@ -469,6 +471,20 @@ public interface ITensor extends IValue {
     @NotNull ITensor copy();
 
     void setContents(@NotNull ITensor tensor);
+
+    void setContents(@NotNull ByteBuffer buffer);
+
+    void setContents(@NotNull ShortBuffer buffer);
+
+    void setContents(@NotNull IntBuffer buffer);
+
+    void setContents(@NotNull LongBuffer buffer);
+
+    void setContents(@NotNull FloatBuffer buffer);
+
+    void setContents(@NotNull DoubleBuffer buffer);
+
+    void setContents(boolean @NotNull [] buffer);
 
     void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView);
 

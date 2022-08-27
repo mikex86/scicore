@@ -82,4 +82,12 @@ public enum DataType {
             return false;
         }
     }
+
+    public int getBits() {
+        return bits;
+    }
+
+    public int getSize(){
+        return bits / 8;
+    }
 }

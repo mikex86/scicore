@@ -5,6 +5,8 @@ import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.op.IGraph;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.InvocationTargetException;
+
 public interface ISciCore {
     @NotNull ITensor zeros(@NotNull DataType dataType, long @NotNull ... shape);
 
@@ -100,10 +102,11 @@ public interface ISciCore {
 
     /**
      * Returns evenly spaced values within a given interval.
-     * @param start the start of the interval.
-     * @param stop the end of the interval.
-     * @param step the step size.
-     * @param shape the shape of the resulting tensor.
+     *
+     * @param start    the start of the interval.
+     * @param stop     the end of the interval.
+     * @param step     the step size.
+     * @param shape    the shape of the resulting tensor.
      * @param dataType the data type of the resulting tensor.
      * @return the tensor with evenly spaced values.
      */
@@ -122,7 +125,18 @@ public interface ISciCore {
         CUDA {
             @Override
             public @NotNull ISciCoreBackend newInstance() {
-                throw new UnsupportedOperationException("CUDA backend is not yet implemented");
+                Class<?> cudaBackendClass;
+                try {
+                    cudaBackendClass = Class.forName("me.mikex86.scicore.backend.impl.cuda.CudaBackend");
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException("CUDA backend not found. Make sure you have the CUDA backend dependency in your classpath.");
+                }
+                try {
+                    return (ISciCoreBackend) cudaBackendClass.getConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException |
+                         NoSuchMethodException | InvocationTargetException e) {
+                    throw new RuntimeException("Could not instantiate CUDA backend.", e);
+                }
             }
         };
 
