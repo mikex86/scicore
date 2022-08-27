@@ -1,5 +1,6 @@
 package me.mikex86.scicore;
 
+import me.mikex86.matplotlib.jplot.JPlot;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
@@ -12,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
+import java.awt.*;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Random;
 
@@ -44,7 +47,7 @@ public class ApproxLinearFuncTrainingTest {
 
     @Test
     void testApproxLinearFunction() {
-
+        float[] losses = new float[150];
         class BobNet implements IModule {
 
             @NotNull
@@ -77,11 +80,22 @@ public class ApproxLinearFuncTrainingTest {
             IGraph graph = sciCore.getGraphUpTo(loss);
             optimizer.step(graph);
 
+            float lossValue = loss.elementAsFloat();
+            losses[step] = (float) Math.log(lossValue);
             if (step % 10 == 0) {
-                System.out.println("Step " + step + ", loss: " + loss.elementAsFloat());
+                System.out.println("Step " + step + ", loss: " + lossValue);
             }
         }
         assertEquals(sciCore.matrix(new float[][]{{2.0f}}), bobNet.f1.getWeights());
         assertEquals(sciCore.array(new float[]{0.5f}), bobNet.f1.getBias());
+
+        // plot loss
+        {
+            JPlot plot = new JPlot();
+            plot.plot(losses, new Color(26, 188, 156));
+            plot.setXLabel("Step");
+            plot.setYLabel("Loss (log)");
+            plot.save(Path.of("lin_approx_loss.png"));
+        }
     }
 }

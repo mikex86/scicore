@@ -93,7 +93,7 @@ public class JPlot {
             float yPixelRange = height - (2 * DEFAULT_MARGIN);
 
             float xPixelStart = (float) DEFAULT_MARGIN;
-            float yPixelStart = height - DEFAULT_MARGIN + (beginY * (yPixelRange/yValueRange));
+            float yPixelStart = height - DEFAULT_MARGIN + (beginY * (yPixelRange / yValueRange));
 
             for (Series series : series) {
                 try (Path path = new Path()) {
@@ -124,6 +124,16 @@ public class JPlot {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    public void save(@NotNull java.nio.file.Path path) {
+        BufferedImage image = render();
+        String extension = path.getFileName().toString().split("\\.")[1];
+        try {
+            ImageIO.write(image, extension, path.toFile());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -1,5 +1,6 @@
 package me.mikex86.scicore;
 
+import me.mikex86.matplotlib.jplot.JPlot;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
+import java.awt.*;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Random;
 
@@ -70,6 +73,8 @@ public class ApproxNonlinearFuncTrainingTest {
             }
         }
 
+        float[] losses = new float[250];
+
         BobNet bobNet = new BobNet();
         int batchSize = 64;
 
@@ -86,9 +91,20 @@ public class ApproxNonlinearFuncTrainingTest {
             IGraph graph = sciCore.getGraphUpTo(loss);
             optimizer.step(graph);
 
+            float lossValue = loss.elementAsFloat();
+            losses[step] = (float) Math.log(lossValue);
             if (step % 10 == 0) {
-                System.out.println("Step " + step + ", loss: " + loss.elementAsFloat());
+                System.out.println("Step " + step + ", loss: " + lossValue);
             }
+        }
+
+        // plot loss
+        {
+            JPlot plot = new JPlot();
+            plot.plot(losses, new Color(26, 188, 156));
+            plot.setXLabel("Step");
+            plot.setYLabel("Loss (log)");
+            plot.save(Path.of("non_lin_approx_loss.png"));
         }
     }
 
