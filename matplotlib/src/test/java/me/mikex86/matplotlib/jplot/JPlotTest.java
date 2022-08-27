@@ -14,13 +14,13 @@ class JPlotTest {
     @Test
     void plotSinAndCos() {
         JPlot jPlot = new JPlot();
-        float[] data = new float[50];
+        float[] data = new float[250];
         for (int i = 0; i < data.length; i++) {
-            data[i] = (float) Math.sin(i / 5.0f);
+            data[i] = (float) Math.sin(i / 25f);
         }
-        float[] data2 = new float[50];
+        float[] data2 = new float[250];
         for (int i = 0; i < data2.length; i++) {
-            data2[i] = (float) Math.cos(i / 5.0f);
+            data2[i] = (float) Math.cos(i / 25f);
         }
         jPlot.setName("Sin and Cos");
         jPlot.setXLabel("time");
