@@ -1,7 +1,5 @@
-package me.mikex86.scicore.graphviz;
+package me.mikex86.graphviz;
 
-import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IGraph;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -28,50 +26,18 @@ public class GraphRenderPlan {
         return rowStack.getRows();
     }
 
-    @NotNull
-    public static GraphRenderPlan makeRenderPlan(@NotNull IGraph graph) {
-        RowStack rowStack = new RowStack();
-        int rowIndex = 0;
+    public interface IGraphNode {
 
-        IGraph.IGraphNode currentNode = graph.getOutputNode();
-
-        // add current node
-        {
-            Column column = new Column(List.of(currentNode));
-            rowStack.getRow(rowIndex).add(column);
+        record Interconnect(@NotNull String name, @NotNull List<IGraphNode> incomingNodes) implements IGraphNode {
         }
 
-        makeRenderPlan(rowStack, currentNode, rowIndex + 1);
-        return new GraphRenderPlan(rowStack);
-    }
-
-    private static void makeRenderPlan(@NotNull RowStack rowStack, @NotNull IGraph.IGraphNode currentNode, int rowIndex) {
-        if (currentNode instanceof Graph.OperationGraphNode operationNode) {
-            makeOperationNodeRenderPlan(rowStack, operationNode, rowIndex);
+        record DataNode(@NotNull String name, @NotNull Map<String, String> attributes) implements IGraphNode {
         }
+
+        @NotNull String name();
+
     }
 
-    private static void makeOperationNodeRenderPlan(@NotNull RowStack rowStack, @NotNull Graph.OperationGraphNode currentNode, int rowIndex) {
-        // add inputs
-        {
-            List<IGraph.IGraphNode> inputs = currentNode.getInputs();
-
-            // Cluster the input nodes for the current node as a column in the current row
-            {
-                Column column = new Column(Collections.unmodifiableList(inputs));
-                rowStack.getRow(rowIndex).add(column);
-            }
-
-            // Recursive render planning for inputs. The inputs nodes themselves are already in the plan,
-            // now we just need recursively add the inputs of the inputs in the next row.
-            // Note this recursion is in a loop. The recursion will back off to rowIndex + 1
-            // potentially multiple times if inputs.size() > 0. This ensures that multiple columns are placed in the
-            // same row, such that their row is equal to the node's graph depth in the graph.
-            for (IGraph.IGraphNode input : inputs) {
-                makeRenderPlan(rowStack, input, rowIndex + 1);
-            }
-        }
-    }
 
     public static class RowStack {
 
@@ -141,7 +107,7 @@ public class GraphRenderPlan {
      *
      * @param nodes the nodes of the graph
      */
-    public record Column(@NotNull List<IGraph.IGraphNode> nodes) {
+    public record Column(@NotNull List<IGraphNode> nodes) {
 
         public int getNumNodes() {
             return nodes.size();

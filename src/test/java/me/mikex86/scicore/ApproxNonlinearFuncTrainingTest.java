@@ -3,6 +3,7 @@ package me.mikex86.scicore;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
+import me.mikex86.scicore.nn.layers.Sigmoid;
 import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
 import me.mikex86.scicore.op.IGraph;
@@ -15,10 +16,9 @@ import org.junit.jupiter.api.TestInstance;
 import java.util.List;
 import java.util.Random;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
-public class ApproxLinearFuncTrainingTest {
+public class ApproxNonlinearFuncTrainingTest {
+
     ISciCore sciCore;
 
     @BeforeEach
@@ -30,12 +30,12 @@ public class ApproxLinearFuncTrainingTest {
 
     @NotNull
     public DatasetIterator getData(int batchSize) {
-        // Function to approximate: f(x) = 2x + 0.5
+        // Function to approximate: f(x) = 2x^2 + 0.5
         // Value range x, y in [0, 1]
         Random random = new Random(123);
         return new DatasetIterator(batchSize, () -> {
             float x = random.nextFloat();
-            float y = 2 * x + 0.5f;
+            float y = 2 * (x * x) + 0.5f;
             ITensor featureTensor = sciCore.array(new float[]{x});
             ITensor labelTensor = sciCore.array(new float[]{y});
             return Pair.of(featureTensor, labelTensor);
@@ -43,30 +43,39 @@ public class ApproxLinearFuncTrainingTest {
     }
 
     @Test
-    void testApproxLinearFunction() {
+    void testNonLinearFunc() {
 
         class BobNet implements IModule {
 
             @NotNull
+            private final Sigmoid act = new Sigmoid();
+
+            @NotNull
             private final Linear f1 = new Linear(sciCore, DataType.FLOAT32, 1, 1, true);
+
+            @NotNull
+            private final Linear f2 = new Linear(sciCore, DataType.FLOAT32, 1, 1, true);
 
             @Override
             public @NotNull ITensor forward(@NotNull ITensor input) {
-                return f1.forward(input);
+                ITensor out = f1.forward(input);
+                out = act.forward(out);
+                out = f2.forward(out);
+                return out;
             }
 
             @Override
             public @NotNull List<ITensor> parameters() {
-                return collectParameters(f1);
+                return collectParameters(f1, f2);
             }
         }
 
         BobNet bobNet = new BobNet();
-        int batchSize = 32;
+        int batchSize = 64;
 
         DatasetIterator dataIt = getData(batchSize);
-        IOptimizer optimizer = new Sgd(sciCore, 0.6f, bobNet.parameters(), true, 0.9999999f);
-        for (int step = 0; step < 150; step++) {
+        IOptimizer optimizer = new Sgd(sciCore, 0.4f, bobNet.parameters(), true, 0.99999f);
+        for (int step = 0; step < 250; step++) {
             sciCore.getBackend().getOperationRecorder().resetRecording();
             Pair<ITensor, ITensor> next = dataIt.next();
             ITensor X = next.getFirst();
@@ -81,7 +90,6 @@ public class ApproxLinearFuncTrainingTest {
                 System.out.println("Step " + step + ", loss: " + loss.elementAsFloat());
             }
         }
-        assertEquals(sciCore.matrix(new float[][]{{2.0f}}), bobNet.f1.getWeights());
-        assertEquals(sciCore.array(new float[]{0.5f}), bobNet.f1.getBias());
     }
+
 }

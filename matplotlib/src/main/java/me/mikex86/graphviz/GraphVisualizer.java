@@ -1,38 +1,31 @@
-package me.mikex86.scicore.graphviz;
+package me.mikex86.graphviz;
 
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IGraph;
-import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.skija.*;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
 public class GraphVisualizer {
 
-
     private static final int GRAPH_SCALE = 2;
 
-    private static final int TENSOR_NODE_HEAD_WIDTH = 200 * GRAPH_SCALE;
+    private static final int DATA_NODE_HEAD_WIDTH = 200 * GRAPH_SCALE;
 
-    private static final int TENSOR_NODE_HEAD_HEIGHT = 145 * GRAPH_SCALE;
+    private static final int DATA_NODE_HEAD_HEIGHT = 145 * GRAPH_SCALE;
 
-    private static final int OPERATION_NODE_RADIUS = 150 * GRAPH_SCALE;
+    private static final int INTERCONNECT_NODE_RADIUS = 150 * GRAPH_SCALE;
 
     private static final int NODE_INTERCONNECT_SPACE_HEIGHT = 80 * GRAPH_SCALE;
 
-    private static final int WIDTH_PER_NODE = TENSOR_NODE_HEAD_WIDTH;
+    private static final int WIDTH_PER_NODE = DATA_NODE_HEAD_WIDTH;
 
-    private static final int HEIGHT_PER_ROW = TENSOR_NODE_HEAD_HEIGHT + NODE_INTERCONNECT_SPACE_HEIGHT;
+    private static final int HEIGHT_PER_ROW = DATA_NODE_HEAD_HEIGHT + NODE_INTERCONNECT_SPACE_HEIGHT;
 
     private static final int COLUMN_BACKGROUND_BORDER_RADIUS = 15 * GRAPH_SCALE;
 
@@ -62,13 +55,13 @@ public class GraphVisualizer {
     private static final Paint COLUM_BACKGROUND_COLOR = new Paint();
 
     @NotNull
-    private static final Paint TENSOR_NODE_COLOR = new Paint();
+    private static final Paint DATA_NODE_COLOR = new Paint();
 
     @NotNull
-    private static final Paint TENSOR_NODE_COLOR_STROKE = new Paint();
+    private static final Paint DATA_NODE_COLOR_STROKE = new Paint();
 
     @NotNull
-    private static final Paint TENSOR_NODE_BACKGROUND_COLOR = new Paint();
+    private static final Paint DATA_NODE_BACKGROUND_COLOR = new Paint();
 
     @NotNull
     private static final Paint OPERATION_NODE_COLOR = new Paint();
@@ -86,22 +79,21 @@ public class GraphVisualizer {
 
     static {
         COLUM_BACKGROUND_COLOR.setColor(0xFFafafaf);
-        TENSOR_NODE_COLOR.setColor(0xff0984e3);
-        TENSOR_NODE_COLOR_STROKE.setColor(0xff0984e3);
-        TENSOR_NODE_COLOR_STROKE.setStrokeWidth(NODE_BORDER_WIDTH);
-        TENSOR_NODE_COLOR_STROKE.setMode(PaintMode.STROKE);
+        DATA_NODE_COLOR.setColor(0xff0984e3);
+        DATA_NODE_COLOR_STROKE.setColor(0xff0984e3);
+        DATA_NODE_COLOR_STROKE.setStrokeWidth(NODE_BORDER_WIDTH);
+        DATA_NODE_COLOR_STROKE.setMode(PaintMode.STROKE);
         OPERATION_NODE_COLOR.setColor(0xffd63031);
         HEADING_TEXT_COLOR.setColor(0xFFFFFFFF);
         ATTRIBUTE_TEXT_COLOR.setColor(0xFFFBFBFB);
-        TENSOR_NODE_BACKGROUND_COLOR.setColor(0xFF2c3e50);
+        DATA_NODE_BACKGROUND_COLOR.setColor(0xFF2c3e50);
         LINE_PAINT.setColor(0xFF000000);
         LINE_PAINT.setMode(PaintMode.STROKE);
         LINE_PAINT.setStrokeWidth(2 * GRAPH_SCALE);
     }
 
     @NotNull
-    public static Image visualizeGraph(@NotNull IGraph graph) {
-        GraphRenderPlan renderPlan = GraphRenderPlan.makeRenderPlan(graph);
+    public static BufferedImage visualizeGraph(@NotNull GraphRenderPlan renderPlan) {
 
         try (Surface surface = Surface.makeRasterN32Premul(renderPlan.getMaxNumNodesPerRow() * WIDTH_PER_NODE, renderPlan.getNumRows() * HEIGHT_PER_ROW)) {
             Canvas canvas = surface.getCanvas();
@@ -128,20 +120,23 @@ public class GraphVisualizer {
                 }
             }
 
-            return surface.makeImageSnapshot();
+            Image image = surface.makeImageSnapshot();
+            Data data = image.encodeToData(EncodedImageFormat.PNG);
+            Objects.requireNonNull(data);
+            try {
+                return ImageIO.read(new ByteArrayInputStream(data.getBytes()));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
-    public static void saveGraph(@NotNull IGraph graph, @NotNull String filename) {
-        Image image = visualizeGraph(graph);
+    public static void saveGraph(@NotNull GraphRenderPlan renderPlan, @NotNull String filename) {
+        BufferedImage image = visualizeGraph(renderPlan);
         try {
-            ByteChannel channel = Files.newByteChannel(
-                    java.nio.file.Path.of(filename),
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-            channel.write(ByteBuffer.wrap(Objects.requireNonNull(image.encodeToData(EncodedImageFormat.PNG)).getBytes()));
-            channel.close();
-        } catch (IOException ex) {
-            throw new IllegalStateException(ex);
+            ImageIO.write(image, "png", new File(filename));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -150,17 +145,17 @@ public class GraphVisualizer {
         int nextY = (rowIndex - 1) * HEIGHT_PER_ROW;
         for (GraphRenderPlan.Column column : row.columns()) {
             int nodeIndex = 0;
-            for (IGraph.IGraphNode node : column.nodes()) {
+            for (GraphRenderPlan.IGraphNode node : column.nodes()) {
                 int x = nodeIndex * WIDTH_PER_NODE;
-                if (node instanceof Graph.OperationGraphNode operationGraphNode) {
-                    for (IGraph.IGraphNode input : operationGraphNode.getInputs()) {
+                if (node instanceof GraphRenderPlan.IGraphNode.Interconnect interconnect) {
+                    for (GraphRenderPlan.IGraphNode input : interconnect.incomingNodes()) {
                         int nextX = getXPosition(input, nextRow);
                         try (Path path = new Path()) {
                             path.moveTo(x + WIDTH_PER_NODE / 2f, y + HEIGHT_PER_ROW / 2f);
 //                            path.lineTo(nextX + WIDTH_PER_NODE / 2f, nextY + HEIGHT_PER_ROW / 2f);
                             path.cubicTo(
                                     x + WIDTH_PER_NODE / 2f, y + HEIGHT_PER_ROW / 2f,
-                                    nextX + WIDTH_PER_NODE / 2f, y,
+                                    nextX + WIDTH_PER_NODE / 2f, y - HEIGHT_PER_ROW / 8f,
                                     nextX + WIDTH_PER_NODE / 2f, nextY + HEIGHT_PER_ROW / 2f
                             );
                             canvas.drawPath(path, LINE_PAINT);
@@ -172,10 +167,10 @@ public class GraphVisualizer {
         }
     }
 
-    private static int getXPosition(@NotNull IGraph.IGraphNode input, @NotNull GraphRenderPlan.Row nextRow) {
+    private static int getXPosition(@NotNull GraphRenderPlan.IGraphNode input, @NotNull GraphRenderPlan.Row nextRow) {
         int x = 0;
         for (GraphRenderPlan.Column column : nextRow.columns()) {
-            for (IGraph.IGraphNode node : column.nodes()) {
+            for (GraphRenderPlan.IGraphNode node : column.nodes()) {
                 if (node == input) {
                     return x;
                 }
@@ -209,31 +204,26 @@ public class GraphVisualizer {
 
         // render nodes
         {
-            for (IGraph.IGraphNode node : column.nodes()) {
+            for (GraphRenderPlan.IGraphNode node : column.nodes()) {
                 x = renderNode(node, x, y, canvas);
             }
         }
         return x;
     }
 
-    private static int renderNode(@NotNull IGraph.IGraphNode node, int x, int y, @NotNull Canvas canvas) {
+    private static int renderNode(@NotNull GraphRenderPlan.IGraphNode node, int x, int y, @NotNull Canvas canvas) {
         // render node
-        if (node instanceof Graph.TensorDeclarationGraphNode tensorNode) {
-            return renderTensorNode(tensorNode, x, y, canvas);
-        } else if (node instanceof Graph.OperationGraphNode) {
-            return renderOperationNode((Graph.OperationGraphNode) node, x, y, canvas);
+        if (node instanceof GraphRenderPlan.IGraphNode.DataNode dataNode) {
+            return renderDataNode(dataNode, x, y, canvas);
+        } else if (node instanceof GraphRenderPlan.IGraphNode.Interconnect interconnect) {
+            return renderInterconnect(interconnect, x, y, canvas);
         } else {
             throw new IllegalArgumentException("Unknown node type: " + node.getClass().getName());
         }
     }
 
-    private static int renderTensorNode(@NotNull Graph.TensorDeclarationGraphNode node, int x, int y, Canvas canvas) {
-        ITensor value = node.getValue();
-        Map<String, String> attributes = new LinkedHashMap<>();
-        attributes.put("dataType", value.getDataType().toString());
-        attributes.put("shape", ShapeUtils.toString(value.getShape()));
-        attributes.put("isScalar", Boolean.toString(value.isScalar()));
-        return renderNode(node.getName() + " (Tensor)", attributes, x, y, canvas);
+    private static int renderDataNode(@NotNull GraphRenderPlan.IGraphNode.DataNode node, int x, int y, Canvas canvas) {
+        return renderNode(node.name(), node.attributes(), x, y, canvas);
     }
 
     private static int renderNode(@NotNull String title, @NotNull Map<String, String> attributes, int x, int y, Canvas canvas) {
@@ -245,31 +235,31 @@ public class GraphVisualizer {
                 RRect rect = RRect.makeLTRB(
                         x + COLUMN_PADDING + NODE_PADDING + NODE_BORDER_WIDTH / 2f,
                         y + COLUMN_PADDING + NODE_PADDING + NODE_BORDER_WIDTH / 2f,
-                        x + TENSOR_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
-                        y + TENSOR_NODE_HEAD_HEIGHT - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
+                        x + DATA_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
+                        y + DATA_NODE_HEAD_HEIGHT - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
                         NODE_BACKGROUND_BORDER_RADIUS
                 );
-                canvas.drawRRect(rect, TENSOR_NODE_BACKGROUND_COLOR);
+                canvas.drawRRect(rect, DATA_NODE_BACKGROUND_COLOR);
 
                 // render top bar
                 rect = RRect.makeLTRB(
                         x + COLUMN_PADDING + NODE_PADDING,
                         y + COLUMN_PADDING + NODE_PADDING,
-                        x + TENSOR_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING,
+                        x + DATA_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING,
                         y + COLUMN_PADDING + NODE_PADDING + NODE_HEADING_TEXT_PADDING + (headingFont.getMetrics().getBottom() - headingFont.getMetrics().getTop()) + NODE_HEADING_TEXT_PADDING,
                         NODE_BACKGROUND_BORDER_RADIUS, NODE_BACKGROUND_BORDER_RADIUS, 0, 0
                 );
-                canvas.drawRRect(rect, TENSOR_NODE_COLOR);
+                canvas.drawRRect(rect, DATA_NODE_COLOR);
 
                 // render border
                 rect = RRect.makeLTRB(
                         x + COLUMN_PADDING + NODE_PADDING + NODE_BORDER_WIDTH / 2f,
                         y + COLUMN_PADDING + NODE_PADDING + NODE_BORDER_WIDTH / 2f,
-                        x + TENSOR_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
-                        y + TENSOR_NODE_HEAD_HEIGHT - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
+                        x + DATA_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
+                        y + DATA_NODE_HEAD_HEIGHT - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
                         NODE_BACKGROUND_BORDER_RADIUS - 10f
                 );
-                canvas.drawRRect(rect, TENSOR_NODE_COLOR_STROKE);
+                canvas.drawRRect(rect, DATA_NODE_COLOR_STROKE);
             }
 
             // render heading
@@ -299,21 +289,21 @@ public class GraphVisualizer {
         return x + WIDTH_PER_NODE;
     }
 
-    public static int renderOperationNode(@NotNull Graph.OperationGraphNode node, int x, int y, Canvas canvas) {
+    public static int renderInterconnect(@NotNull GraphRenderPlan.IGraphNode.Interconnect node, int x, int y, Canvas canvas) {
         // render background
         canvas.drawCircle(
                 x + WIDTH_PER_NODE / 2f,
-                y + TENSOR_NODE_HEAD_WIDTH / 2f,
-                OPERATION_NODE_RADIUS / 2f - COLUMN_PADDING - NODE_PADDING,
+                y + DATA_NODE_HEAD_WIDTH / 2f,
+                INTERCONNECT_NODE_RADIUS / 2f - COLUMN_PADDING - NODE_PADDING,
                 OPERATION_NODE_COLOR
         );
 
         // render text
         try (Font font = new Font(HEADING_TYPEFACE, NODE_HEADING_FONT_SIZE)) {
             canvas.drawString(
-                    node.getName(),
-                    x + WIDTH_PER_NODE / 2f - font.measureTextWidth(node.getName()) / 2f,
-                    y + TENSOR_NODE_HEAD_WIDTH / 2f + font.getMetrics().getBottom(),
+                    node.name(),
+                    x + WIDTH_PER_NODE / 2f - font.measureTextWidth(node.name()) / 2f,
+                    y + DATA_NODE_HEAD_WIDTH / 2f + font.getMetrics().getBottom(),
                     font,
                     HEADING_TEXT_COLOR
             );

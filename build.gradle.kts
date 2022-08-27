@@ -36,22 +36,10 @@ val lwjglNatives = Pair(
     }
 }
 
-val skiaArtifact = "skija-" + System.getProperty("os.name")!!.let {
-    when {
-        it.startsWith("Linux") -> "linux"
-        it.startsWith("Mac OS X") || it.startsWith("Darwin") -> "macos-" + System.getProperty("os.arch")!!.let { arch ->
-            when {
-                arch.startsWith("aarch64") -> "arm64"
-                else -> "x64"
-            }
-        }
-        it.startsWith("Windows") -> "windows"
-        else -> throw Error("Unrecognized or unsupported platform. Please set \"skiaArtifact\" manually")
-    }
-}
-
 dependencies {
     implementation("org.jetbrains:annotations:23.0.0")
+
+    implementation(project(":matplotlib"))
 
     // LWJGL
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
@@ -59,14 +47,13 @@ dependencies {
     implementation("org.lwjgl", "lwjgl-cuda")
     implementation("org.lwjgl", "lwjgl-jemalloc")
 
-    implementation("org.jetbrains.skija:$skiaArtifact:0.93.6")
-
     runtimeOnly("org.lwjgl", "lwjgl", classifier = lwjglNatives)
     runtimeOnly("org.lwjgl", "lwjgl-jemalloc", classifier = lwjglNatives)
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+
     testImplementation("me.tongfei:progressbar:0.9.3")
 }
 
