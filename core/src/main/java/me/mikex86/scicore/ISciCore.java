@@ -117,6 +117,13 @@ public interface ISciCore {
             public ISciCoreBackend newInstance() {
                 return new JvmBackend();
             }
+        },
+
+        CUDA {
+            @Override
+            public @NotNull ISciCoreBackend newInstance() {
+                throw new UnsupportedOperationException("CUDA backend is not yet implemented");
+            }
         };
 
         @NotNull

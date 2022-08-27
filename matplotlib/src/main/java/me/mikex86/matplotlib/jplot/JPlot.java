@@ -11,6 +11,7 @@ import org.jetbrains.skija.Paint;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -54,6 +55,10 @@ public class JPlot {
 
     public void setName(@NotNull String name) {
         this.name = name;
+    }
+
+    public void clear() {
+        this.series.clear();
     }
 
     private record Series(float @NotNull [] data, int color, boolean fill) {
@@ -187,8 +192,11 @@ public class JPlot {
     @Nullable
     private JFrame jFrame = null;
 
+    @Nullable
+    private BufferedImage currentImage = null;
+
     public void show(boolean wait) {
-        BufferedImage image = render();
+        this.currentImage = render();
         if (jFrame == null) {
             jFrame = new JFrame();
             if (name != null) {
@@ -197,16 +205,17 @@ public class JPlot {
             jFrame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
             jFrame.setSize(width / SCALE_FACTOR, height / SCALE_FACTOR);
             jFrame.setLocationRelativeTo(null);
+            jFrame.setContentPane(new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    g.drawImage(currentImage, 0, 0, jFrame.getWidth(), jFrame.getHeight(), null);
+                }
+            });
         }
-        jFrame.setContentPane(new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                g.drawImage(image, 0, 0, jFrame.getWidth(), jFrame.getHeight(), null);
-            }
-        });
-        jFrame.setVisible(true);
         jFrame.repaint();
+        jFrame.setVisible(true);
+        jFrame.toFront();
         if (wait) {
             while (jFrame.isVisible()) {
                 try {

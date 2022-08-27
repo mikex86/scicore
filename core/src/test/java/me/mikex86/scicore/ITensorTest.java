@@ -1,6 +1,7 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.utils.ShapeUtils;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -28,9 +29,9 @@ class ITensorTest {
     void getView() {
         ITensor matrix = sciCore.matrix(new float[][]{{12.4f, 16.3f}, {1.2f, 9.1f}, {7.3f, 3.4f}});
 
-        assertDoesNotThrow(() -> matrix.getView(0));
-        assertDoesNotThrow(() -> matrix.getView(1));
-        assertDoesNotThrow(() -> matrix.getView(2));
+        Assertions.assertDoesNotThrow(() -> matrix.getView(0));
+        Assertions.assertDoesNotThrow(() -> matrix.getView(1));
+        Assertions.assertDoesNotThrow(() -> matrix.getView(2));
         assertThrows(IndexOutOfBoundsException.class, () -> matrix.getView(3));
 
         ITensor view1 = matrix.getView(0);
