@@ -1,5 +1,7 @@
 package me.mikex86.scicore.backend.impl.cuda;
 
+import jcuda.Pointer;
+import jcuda.driver.CUdeviceptr;
 import me.mikex86.scicore.AbstractTensor;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
@@ -7,15 +9,11 @@ import me.mikex86.scicore.ITensorIterator;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.*;
-import java.util.Objects;
 
+import static jcuda.driver.JCudaDriver.*;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
-import static org.lwjgl.cuda.CU.*;
 
 public class CudaTensor extends AbstractTensor {
 
@@ -222,17 +220,17 @@ public class CudaTensor extends AbstractTensor {
 
     private static class CudaDataContainer {
 
-        private final long cuMemPtr;
+        @NotNull
+        private final CUdeviceptr cuMemPtr;
 
         private final long size;
 
         public CudaDataContainer(long size) {
             this.size = size;
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                PointerBuffer dptrBuf = stack.mallocPointer(1);
-                cuCheck(cuMemAlloc(dptrBuf, size));
-                cuMemPtr = dptrBuf.get(0);
-            }
+
+            CUdeviceptr dptrBuf = new CUdeviceptr();
+            cuCheck(cuMemAlloc(dptrBuf, size));
+            cuMemPtr = dptrBuf;
         }
 
         public CudaDataContainer(long @NotNull [] shape, @NotNull DataType dataType) {
@@ -244,99 +242,81 @@ public class CudaTensor extends AbstractTensor {
         }
 
         public byte getByteFlat(long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                ByteBuffer hostBuffer = stack.malloc(1);
-                cuCheck(cuMemcpyDtoH(hostBuffer, cuMemPtr + flatIndex));
-                return hostBuffer.get(0);
-            }
+            byte[] hostBuffer = new byte[1];
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyDtoH(hostPtr, cuMemPtr.withByteOffset(flatIndex), 1));
+            return hostBuffer[0];
         }
 
         public void setByteFlat(byte value, long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                ByteBuffer hostBuffer = stack.malloc(1);
-                hostBuffer.put(0, value);
-                cuCheck(cuMemcpyHtoD(cuMemPtr + flatIndex, hostBuffer));
-            }
+            byte[] hostBuffer = new byte[]{value};
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr.withByteOffset(flatIndex), hostPtr, 1));
         }
 
         public short getShortFlat(long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                ShortBuffer hostBuffer = stack.mallocShort(1);
-                cuCheck(cuMemcpyDtoH(hostBuffer, cuMemPtr + flatIndex * Short.BYTES));
-                return hostBuffer.get(0);
-            }
+            short[] hostBuffer = new short[1];
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyDtoH(hostPtr, cuMemPtr.withByteOffset(flatIndex * Short.BYTES), Short.BYTES));
+            return hostBuffer[0];
         }
 
         public void setShortFlat(short value, long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                ShortBuffer hostBuffer = stack.mallocShort(1);
-                hostBuffer.put(0, value);
-                cuCheck(cuMemcpyHtoD(cuMemPtr + flatIndex * Short.BYTES, hostBuffer));
-            }
+            short[] hostBuffer = new short[]{value};
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr.withByteOffset(flatIndex * Short.BYTES), hostPtr, Short.BYTES));
         }
 
         public int getIntFlat(long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                IntBuffer hostBuffer = stack.mallocInt(1);
-                cuCheck(cuMemcpyDtoH(hostBuffer, cuMemPtr + flatIndex * Integer.BYTES));
-                return hostBuffer.get(0);
-            }
+            int[] hostBuffer = new int[1];
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyDtoH(hostPtr, cuMemPtr.withByteOffset(flatIndex * Integer.BYTES), Integer.BYTES));
+            return hostBuffer[0];
         }
 
         public void setIntFlat(int value, long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                IntBuffer hostBuffer = stack.mallocInt(1);
-                hostBuffer.put(0, value);
-                cuCheck(cuMemcpyHtoD(cuMemPtr + flatIndex * Integer.BYTES, hostBuffer));
-            }
+            int[] hostBuffer = new int[]{value};
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr.withByteOffset(flatIndex * Integer.BYTES), hostPtr, Integer.BYTES));
         }
 
         public long getLongFlat(long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                LongBuffer hostBuffer = stack.mallocLong(1);
-                cuCheck(cuMemcpyDtoH(hostBuffer, cuMemPtr + flatIndex * Long.BYTES));
-                return hostBuffer.get(0);
-            }
+            long[] hostBuffer = new long[1];
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyDtoH(hostPtr, cuMemPtr.withByteOffset(flatIndex * Long.BYTES), Long.BYTES));
+            return hostBuffer[0];
         }
 
         public void setLongFlat(long value, long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                LongBuffer hostBuffer = stack.mallocLong(1);
-                hostBuffer.put(0, value);
-                cuCheck(cuMemcpyHtoD(cuMemPtr + flatIndex * Long.BYTES, hostBuffer));
-            }
+            long[] hostBuffer = new long[]{value};
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr.withByteOffset(flatIndex * Long.BYTES), hostPtr, Long.BYTES));
         }
 
         public float getFloatFlat(long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                FloatBuffer hostBuffer = stack.mallocFloat(1);
-                cuCheck(cuMemcpyDtoH(hostBuffer, cuMemPtr + flatIndex * Float.BYTES));
-                return hostBuffer.get(0);
-            }
+            float[] hostBuffer = new float[1];
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyDtoH(hostPtr, cuMemPtr.withByteOffset(flatIndex * Float.BYTES), Float.BYTES));
+            return hostBuffer[0];
         }
 
         public void setFloatFlat(float value, long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                FloatBuffer hostBuffer = stack.mallocFloat(1);
-                hostBuffer.put(0, value);
-                cuCheck(cuMemcpyHtoD(cuMemPtr + flatIndex * Float.BYTES, hostBuffer));
-            }
+            float[] hostBuffer = new float[]{value};
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr.withByteOffset(flatIndex * Float.BYTES), hostPtr, Float.BYTES));
         }
 
         public double getDoubleFlat(long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                DoubleBuffer hostBuffer = stack.mallocDouble(1);
-                cuCheck(cuMemcpyDtoH(hostBuffer, cuMemPtr + flatIndex * Double.BYTES));
-                return hostBuffer.get(0);
-            }
+            double[] hostBuffer = new double[1];
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyDtoH(hostPtr, cuMemPtr.withByteOffset(flatIndex * Double.BYTES), Double.BYTES));
+            return hostBuffer[0];
         }
 
         public void setDoubleFlat(double value, long flatIndex) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                DoubleBuffer hostBuffer = stack.mallocDouble(1);
-                hostBuffer.put(0, value);
-                cuCheck(cuMemcpyHtoD(cuMemPtr + flatIndex * Double.BYTES, hostBuffer));
-            }
+            double[] hostBuffer = new double[]{value};
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr.withByteOffset(flatIndex * Double.BYTES), hostPtr, Double.BYTES));
         }
 
         public void setBooleanFlat(boolean value, long flatIndex) {
@@ -362,19 +342,18 @@ public class CudaTensor extends AbstractTensor {
             if (buffer.remaining() > size) {
                 throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
             }
+            int size = buffer.remaining();
             if (!buffer.isDirect()) {
                 // to direct buffer
-                long size = buffer.remaining();
-                ByteBuffer directBuffer = JEmalloc.je_malloc(size);
-                if (directBuffer == null) {
-                    throw new OutOfMemoryError("Could not allocate direct buffer of size " + size);
-                }
+                ByteBuffer directBuffer = ByteBuffer
+                        .allocateDirect(size)
+                        .order(ByteOrder.nativeOrder());
                 directBuffer.put(buffer);
                 directBuffer.flip();
                 buffer = directBuffer;
             }
-            cuCheck(cuMemcpyHtoD(cuMemPtr, buffer));
-            JEmalloc.je_free(buffer);
+            Pointer hostPtr = Pointer.to(buffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(@NotNull ShortBuffer buffer) {
@@ -382,138 +361,122 @@ public class CudaTensor extends AbstractTensor {
                 throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
             }
 
+            int size = buffer.remaining() * Short.BYTES;
             if (!buffer.isDirect()) {
                 // to direct buffer
-                long size = buffer.remaining() * (long) Short.BYTES;
-                ShortBuffer directBuffer;
-                {
-                    ByteBuffer byteBuffer = JEmalloc.je_malloc(size);
-                    if (byteBuffer == null) {
-                        throw new OutOfMemoryError("Could not allocate direct buffer of size " + size);
-                    }
-                    directBuffer = byteBuffer.asShortBuffer();
-                }
+                ShortBuffer directBuffer = ByteBuffer
+                        .allocateDirect(size)
+                        .order(ByteOrder.nativeOrder())
+                        .asShortBuffer();
                 directBuffer.put(buffer);
                 directBuffer.flip();
                 buffer = directBuffer;
             }
-            cuCheck(cuMemcpyHtoD(cuMemPtr, buffer));
-            JEmalloc.je_free(buffer);
+            Pointer hostPtr = Pointer.to(buffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(@NotNull IntBuffer buffer) {
             if (buffer.remaining() > size / Integer.BYTES) {
                 throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
             }
+
+            int size = buffer.remaining() * Integer.BYTES;
             if (!buffer.isDirect()) {
                 // to direct buffer
-                long size = buffer.remaining() * (long) Integer.BYTES;
-                IntBuffer directBuffer;
-                {
-                    ByteBuffer byteBuffer = JEmalloc.je_malloc(size);
-                    if (byteBuffer == null) {
-                        throw new OutOfMemoryError("Could not allocate direct buffer of size " + size);
-                    }
-                    directBuffer = byteBuffer.asIntBuffer();
-                }
+                IntBuffer directBuffer = ByteBuffer
+                        .allocateDirect(size)
+                        .order(ByteOrder.nativeOrder())
+                        .asIntBuffer();
                 directBuffer.put(buffer);
                 directBuffer.flip();
                 buffer = directBuffer;
             }
-            cuCheck(cuMemcpyHtoD(cuMemPtr, buffer));
-            JEmalloc.je_free(buffer);
+            Pointer hostPtr = Pointer.to(buffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(@NotNull LongBuffer buffer) {
             if (buffer.remaining() > size / Long.BYTES) {
                 throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
             }
+
+            int size = buffer.remaining() * Long.BYTES;
             if (!buffer.isDirect()) {
                 // to direct buffer
-                long size = buffer.remaining() * (long) Long.BYTES;
-                LongBuffer directBuffer;
-                {
-                    ByteBuffer byteBuffer = JEmalloc.je_malloc(size);
-                    if (byteBuffer == null) {
-                        throw new OutOfMemoryError("Could not allocate direct buffer of size " + size);
-                    }
-                    directBuffer = byteBuffer.asLongBuffer();
-                }
+                LongBuffer directBuffer = ByteBuffer
+                        .allocateDirect(size)
+                        .order(ByteOrder.nativeOrder())
+                        .asLongBuffer();
                 directBuffer.put(buffer);
                 directBuffer.flip();
                 buffer = directBuffer;
             }
-            cuCheck(cuMemcpyHtoD(cuMemPtr, buffer));
-            JEmalloc.je_free(buffer);
+            Pointer hostPtr = Pointer.to(buffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(@NotNull FloatBuffer buffer) {
             if (buffer.remaining() > size / Float.BYTES) {
                 throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
             }
+
+            int size = buffer.remaining() * Float.BYTES;
             if (!buffer.isDirect()) {
                 // to direct buffer
-                long size = buffer.remaining() * (long) Float.BYTES;
-                FloatBuffer directBuffer;
-                {
-                    ByteBuffer byteBuffer = JEmalloc.je_malloc(size);
-                    if (byteBuffer == null) {
-                        throw new OutOfMemoryError("Could not allocate direct buffer of size " + size);
-                    }
-                    directBuffer = byteBuffer.asFloatBuffer();
-                }
+                FloatBuffer directBuffer = ByteBuffer
+                        .allocateDirect(size)
+                        .order(ByteOrder.nativeOrder())
+                        .asFloatBuffer();
                 directBuffer.put(buffer);
                 directBuffer.flip();
                 buffer = directBuffer;
             }
-            cuCheck(cuMemcpyHtoD(cuMemPtr, buffer));
-            JEmalloc.je_free(buffer);
+            Pointer hostPtr = Pointer.to(buffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(@NotNull DoubleBuffer buffer) {
             if (buffer.remaining() > size / Double.BYTES) {
                 throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
             }
+
+            int size = buffer.remaining() * Double.BYTES;
             if (!buffer.isDirect()) {
                 // to direct buffer
-                long size = buffer.remaining() * (long) Double.BYTES;
-                DoubleBuffer directBuffer;
-                {
-                    ByteBuffer byteBuffer = JEmalloc.je_malloc(size);
-                    if (byteBuffer == null) {
-                        throw new OutOfMemoryError("Could not allocate direct buffer of size " + size);
-                    }
-                    directBuffer = byteBuffer.asDoubleBuffer();
-                }
+                DoubleBuffer directBuffer = ByteBuffer
+                        .allocateDirect(size)
+                        .order(ByteOrder.nativeOrder())
+                        .asDoubleBuffer();
                 directBuffer.put(buffer);
                 directBuffer.flip();
                 buffer = directBuffer;
             }
-            cuCheck(cuMemcpyHtoD(cuMemPtr, buffer));
-            JEmalloc.je_free(buffer);
+            Pointer hostPtr = Pointer.to(buffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(boolean @NotNull [] data) {
             if (data.length > size * 8) {
                 throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
             }
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                PointerBuffer hostMemoryPtrBuf = stack.mallocPointer(1);
-                long byteSize = (data.length + 7) / 8; // round up to next byte to have enough space for n bits
-                cuCheck(cuMemAllocHost(hostMemoryPtrBuf, byteSize));
-                ByteBuffer byteBuffer = hostMemoryPtrBuf.getByteBuffer(0, Math.toIntExact(byteSize));
-                for (int i = 0; i < data.length; i++) {
-                    long byteIndex = i / 8;
-                    int bitIndex = i % 8;
-                    byte byteValue = byteBuffer.get((int) byteIndex);
-                    byteValue = (byte) (byteValue & ~(1 << bitIndex));
-                    if (data[i]) {
-                        byteValue = (byte) (byteValue | (1 << bitIndex));
-                    }
-                    byteBuffer.put((int) byteIndex, byteValue);
+            int size = (data.length + 7) / 8; // round up to next byte
+            ByteBuffer buffer = ByteBuffer
+                    .allocateDirect(size)
+                    .order(ByteOrder.nativeOrder());
+            for (int i = 0; i < data.length; i++) {
+                int byteIndex = i / 8;
+                int bitIndex = i % 8;
+                byte byteValue = buffer.get(byteIndex);
+                byteValue = (byte) (byteValue & ~(1 << bitIndex));
+                if (data[i]) {
+                    byteValue = (byte) (byteValue | (1 << bitIndex));
                 }
-                cuCheck(cuMemcpyHtoD(cuMemPtr, byteBuffer));
+                buffer.put(byteIndex, byteValue);
             }
+            buffer.flip();
+            Pointer hostPtr = Pointer.to(buffer);
+            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         @NotNull
@@ -521,12 +484,10 @@ public class CudaTensor extends AbstractTensor {
             if (size > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Contents larger than 2^31-1 bytes cannot be copied to the host");
             }
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                PointerBuffer hostMemoryPtrBuf = stack.mallocPointer(1);
-                cuCheck(cuMemAllocHost(hostMemoryPtrBuf, size));
-                cuCheck(cuMemcpyDtoH(hostMemoryPtrBuf, cuMemPtr));
-                return hostMemoryPtrBuf.getByteBuffer(0, Math.toIntExact(size));
-            }
+            ByteBuffer buffer = ByteBuffer.allocateDirect((int) size);
+            Pointer hostPtr = Pointer.to(buffer);
+            cuCheck(cuMemcpyDtoH(hostPtr, cuMemPtr, size));
+            return buffer;
         }
     }
 }

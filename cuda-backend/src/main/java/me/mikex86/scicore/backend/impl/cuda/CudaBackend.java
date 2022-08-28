@@ -1,5 +1,7 @@
 package me.mikex86.scicore.backend.impl.cuda;
 
+import jcuda.driver.CUcontext;
+import jcuda.driver.CUdevice;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
@@ -8,17 +10,16 @@ import me.mikex86.scicore.op.OperationType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.PointerBuffer;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR;
+import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR;
+import static jcuda.driver.JCudaDriver.*;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
-import static org.lwjgl.cuda.CU.*;
 
 public class CudaBackend extends AbstractSciCoreBackend {
 
@@ -31,58 +32,64 @@ public class CudaBackend extends AbstractSciCoreBackend {
     /**
      * Device handle for the main CUDA device used.
      */
-    private static final int mainDevice;
+    @NotNull
+    private static final CUdevice mainDevice;
 
     /**
      * Context handle for the main CUDA context used.
      */
-    private static final long ctxHandle;
+    @NotNull
+    private static final CUcontext ctxHandle;
 
     static {
         cuInit(0);
 
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            int deviceCount;
-            {
-                IntBuffer deviceCountBuf = stack.mallocInt(1);
-                cuCheck(cuDeviceGetCount(deviceCountBuf));
-                deviceCount = deviceCountBuf.get(0);
-            }
-            LOGGER.debug("Num available devices: " + deviceCount);
-            int maxComputeCapability = 0;
-            int maxComputeCapabilityDevice = 0;
-            for (int device = 0; device < deviceCount; device++) {
-                ByteBuffer nameBuffer = stack.calloc(256);
-                cuCheck(cuDeviceGetName(nameBuffer, device));
-                int stringLength = MemoryUtil.memLengthNT1(nameBuffer);
-                String deviceName = MemoryUtil.memASCII(nameBuffer, stringLength);
-                LOGGER.debug("Device " + device + ": " + deviceName);
-                int computeCapability;
-                {
-                    IntBuffer major = stack.mallocInt(1);
-                    IntBuffer minor = stack.mallocInt(1);
-                    cuCheck(cuDeviceComputeCapability(major, minor, device));
-                    LOGGER.debug("Compute capability: " + major.get(0) + "." + minor.get(0));
-                    computeCapability = major.get(0) * 10 + minor.get(0);
-                }
-                if (computeCapability > maxComputeCapability) {
-                    maxComputeCapability = computeCapability;
-                    maxComputeCapabilityDevice = device;
-                }
-            }
-            LOGGER.debug("Using device " + maxComputeCapabilityDevice);
-            int deviceHandle;
-            {
-                IntBuffer deviceHandleBuf = stack.mallocInt(1);
-                cuCheck(cuDeviceGet(deviceHandleBuf, maxComputeCapabilityDevice));
-                deviceHandle = deviceHandleBuf.get(0);
-            }
-            mainDevice = deviceHandle;
-
-            PointerBuffer ctxHandleBuf = stack.mallocPointer(1);
-            cuCheck(cuCtxCreate(ctxHandleBuf, 0, mainDevice));
-            ctxHandle = ctxHandleBuf.get(0);
+        int deviceCount;
+        {
+            int[] deviceCountBuf = new int[1];
+            cuCheck(cuDeviceGetCount(deviceCountBuf));
+            deviceCount = deviceCountBuf[0];
         }
+        LOGGER.debug("Num available devices: " + deviceCount);
+        int maxComputeCapability = 0;
+        int maxComputeCapabilityDeviceOrdinal = 0;
+        CUdevice maxComputeCapabilityDevice = null;
+        for (int deviceOrdinal = 0; deviceOrdinal < deviceCount; deviceOrdinal++) {
+            byte[] nameBuffer = new byte[256];
+
+            CUdevice device = new CUdevice();
+            cuCheck(cuDeviceGet(device, deviceOrdinal));
+            cuCheck(cuDeviceGetName(nameBuffer, nameBuffer.length, device));
+
+            int strLength = 0;
+            while (nameBuffer[strLength] != 0) {
+                strLength++;
+            }
+            String deviceName = new String(nameBuffer, 0, strLength);
+            LOGGER.debug("Device " + deviceOrdinal + ": " + deviceName);
+            int computeCapability;
+            {
+                int[] majorBuf = new int[1];
+                int[] minorBuf = new int[1];
+                cuCheck(cuDeviceGetAttribute(majorBuf, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device));
+                cuCheck(cuDeviceGetAttribute(minorBuf, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device));
+                computeCapability = majorBuf[0] * 10 + minorBuf[0];
+            }
+            if (computeCapability > maxComputeCapability) {
+                maxComputeCapability = computeCapability;
+                maxComputeCapabilityDevice = device;
+                maxComputeCapabilityDeviceOrdinal = deviceOrdinal;
+            }
+        }
+        if (maxComputeCapabilityDevice == null) {
+            throw new IllegalStateException("No CUDA devices found");
+        }
+        LOGGER.debug("Using device " + maxComputeCapabilityDeviceOrdinal);
+        mainDevice = maxComputeCapabilityDevice;
+
+        CUcontext ctx = new CUcontext();
+        cuCheck(cuCtxCreate(ctx, 0, mainDevice));
+        ctxHandle = ctx;
     }
 
     @Override
