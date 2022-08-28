@@ -45,6 +45,8 @@ public enum DataType {
             return FLOAT32;
         } else if (componentClass == double.class) {
             return FLOAT64;
+        } else if (componentClass == boolean.class) {
+            return BOOLEAN;
         } else {
             throw new IllegalArgumentException("Unsupported component class: " + componentClass);
         }
@@ -87,7 +89,7 @@ public enum DataType {
         return bits;
     }
 
-    public int getSize(){
+    public int getSize() {
         return bits / 8;
     }
 }

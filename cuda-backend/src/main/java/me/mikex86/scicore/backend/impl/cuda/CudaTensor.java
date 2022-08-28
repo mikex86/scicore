@@ -345,9 +345,7 @@ public class CudaTensor extends AbstractTensor {
             int size = buffer.remaining();
             if (!buffer.isDirect()) {
                 // to direct buffer
-                ByteBuffer directBuffer = ByteBuffer
-                        .allocateDirect(size)
-                        .order(ByteOrder.nativeOrder());
+                ByteBuffer directBuffer = ByteBuffer.allocateDirect(size);
                 directBuffer.put(buffer);
                 directBuffer.flip();
                 buffer = directBuffer;
@@ -362,18 +360,20 @@ public class CudaTensor extends AbstractTensor {
             }
 
             int size = buffer.remaining() * Short.BYTES;
-            if (!buffer.isDirect()) {
+            if (buffer.isDirect()) {
+                if (buffer.order() != ByteOrder.nativeOrder()) {
+                    throw new IllegalArgumentException("Direct buffer must be in native order");
+                }
+                Pointer hostPtr = Pointer.to(buffer);
+                cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
+            } else {
                 // to direct buffer
-                ShortBuffer directBuffer = ByteBuffer
-                        .allocateDirect(size)
-                        .order(ByteOrder.nativeOrder())
-                        .asShortBuffer();
-                directBuffer.put(buffer);
+                ByteBuffer directBuffer = ByteBuffer.allocateDirect(size)
+                        .order(ByteOrder.nativeOrder());
+                directBuffer.asShortBuffer().put(buffer);
                 directBuffer.flip();
-                buffer = directBuffer;
+                cuCheck(cuMemcpyHtoD(cuMemPtr, Pointer.to(directBuffer), size));
             }
-            Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(@NotNull IntBuffer buffer) {
@@ -382,18 +382,20 @@ public class CudaTensor extends AbstractTensor {
             }
 
             int size = buffer.remaining() * Integer.BYTES;
-            if (!buffer.isDirect()) {
+            if (buffer.isDirect()) {
+                if (buffer.order() != ByteOrder.nativeOrder()) {
+                    throw new IllegalArgumentException("Direct buffer must be in native order");
+                }
+                Pointer hostPtr = Pointer.to(buffer);
+                cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
+            } else {
                 // to direct buffer
-                IntBuffer directBuffer = ByteBuffer
-                        .allocateDirect(size)
-                        .order(ByteOrder.nativeOrder())
-                        .asIntBuffer();
-                directBuffer.put(buffer);
+                ByteBuffer directBuffer = ByteBuffer.allocateDirect(size)
+                        .order(ByteOrder.nativeOrder());
+                directBuffer.asIntBuffer().put(buffer);
                 directBuffer.flip();
-                buffer = directBuffer;
+                cuCheck(cuMemcpyHtoD(cuMemPtr, Pointer.to(directBuffer), size));
             }
-            Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(@NotNull LongBuffer buffer) {
@@ -402,18 +404,20 @@ public class CudaTensor extends AbstractTensor {
             }
 
             int size = buffer.remaining() * Long.BYTES;
-            if (!buffer.isDirect()) {
+            if (buffer.isDirect()) {
+                if (buffer.order() != ByteOrder.nativeOrder()) {
+                    throw new IllegalArgumentException("Direct buffer must be in native order");
+                }
+                Pointer hostPtr = Pointer.to(buffer);
+                cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
+            } else {
                 // to direct buffer
-                LongBuffer directBuffer = ByteBuffer
-                        .allocateDirect(size)
-                        .order(ByteOrder.nativeOrder())
-                        .asLongBuffer();
-                directBuffer.put(buffer);
+                ByteBuffer directBuffer = ByteBuffer.allocateDirect(size)
+                        .order(ByteOrder.nativeOrder());
+                directBuffer.asLongBuffer().put(buffer);
                 directBuffer.flip();
-                buffer = directBuffer;
+                cuCheck(cuMemcpyHtoD(cuMemPtr, Pointer.to(directBuffer), size));
             }
-            Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(@NotNull FloatBuffer buffer) {
@@ -422,18 +426,20 @@ public class CudaTensor extends AbstractTensor {
             }
 
             int size = buffer.remaining() * Float.BYTES;
-            if (!buffer.isDirect()) {
+            if (buffer.isDirect()) {
+                if (buffer.order() != ByteOrder.nativeOrder()) {
+                    throw new IllegalArgumentException("Direct buffer must be in native order");
+                }
+                Pointer hostPtr = Pointer.to(buffer);
+                cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
+            } else {
                 // to direct buffer
-                FloatBuffer directBuffer = ByteBuffer
-                        .allocateDirect(size)
-                        .order(ByteOrder.nativeOrder())
-                        .asFloatBuffer();
-                directBuffer.put(buffer);
+                ByteBuffer directBuffer = ByteBuffer.allocateDirect(size)
+                        .order(ByteOrder.nativeOrder());
+                directBuffer.asFloatBuffer().put(buffer);
                 directBuffer.flip();
-                buffer = directBuffer;
+                cuCheck(cuMemcpyHtoD(cuMemPtr, Pointer.to(directBuffer), size));
             }
-            Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(@NotNull DoubleBuffer buffer) {
@@ -442,18 +448,20 @@ public class CudaTensor extends AbstractTensor {
             }
 
             int size = buffer.remaining() * Double.BYTES;
-            if (!buffer.isDirect()) {
+            if (buffer.isDirect()) {
+                if (buffer.order() != ByteOrder.nativeOrder()) {
+                    throw new IllegalArgumentException("Direct buffer must be in native order");
+                }
+                Pointer hostPtr = Pointer.to(buffer);
+                cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
+            } else {
                 // to direct buffer
-                DoubleBuffer directBuffer = ByteBuffer
-                        .allocateDirect(size)
-                        .order(ByteOrder.nativeOrder())
-                        .asDoubleBuffer();
-                directBuffer.put(buffer);
+                ByteBuffer directBuffer = ByteBuffer.allocateDirect(size)
+                        .order(ByteOrder.nativeOrder());
+                directBuffer.asDoubleBuffer().put(buffer);
                 directBuffer.flip();
-                buffer = directBuffer;
+                cuCheck(cuMemcpyHtoD(cuMemPtr, Pointer.to(directBuffer), size));
             }
-            Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(cuMemPtr, hostPtr, size));
         }
 
         public void setContents(boolean @NotNull [] data) {

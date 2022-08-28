@@ -78,6 +78,14 @@ public class ArrayUtils {
                     }
                     System.arraycopy(currentArray, 0, (double[]) elements, index, length);
                     index += length;
+                } else if (current instanceof boolean[] currentArray) {
+                    if (elements == null) {
+                        elements = new boolean[(int) nElements];
+                    } else if (!(elements instanceof boolean[])) {
+                        throw new IllegalArgumentException("Mixed data types in array");
+                    }
+                    System.arraycopy(currentArray, 0, (boolean[]) elements, index, length);
+                    index += length;
                 } else {
                     for (int j = 0; j < length; j++) {
                         Object element = Array.get(current, j);

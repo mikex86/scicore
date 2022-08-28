@@ -35,6 +35,7 @@ public class SciCore implements ISciCore {
     @NotNull
     public ITensor uniform(@NotNull DataType dataType, long @NotNull ... shape) {
         // TODO: CREATE FILL_UNIFORM OPERATION THAT CAN BE ACCELERATED
+        // TODO: USE setContents(buffer)
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(dataType, shape);
         long numberOfElements = tensor.getNumberOfElements();
@@ -227,15 +228,14 @@ public class SciCore implements ISciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
+        int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.INT8, shape);
-        long[] index = new long[2];
-        for (int i = 0; i < array.length; i++) {
-            index[0] = i;
-            for (int j = 0; j < array[i].length; j++) {
-                index[1] = j;
-                tensor.setByte(array[i][j], index);
-            }
+        ByteBuffer buffer = ByteBuffer.allocateDirect(nElements);
+        for (byte[] row : array) {
+            buffer.put(row);
         }
+        buffer.flip();
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -249,15 +249,17 @@ public class SciCore implements ISciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
+        int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.INT16, shape);
-        long[] index = new long[2];
-        for (int i = 0; i < array.length; i++) {
-            index[0] = i;
-            for (int j = 0; j < array[i].length; j++) {
-                index[1] = j;
-                tensor.setShort(array[i][j], index);
-            }
+        ShortBuffer buffer = ByteBuffer
+                .allocateDirect(nElements * Short.BYTES)
+                .order(ByteOrder.nativeOrder())
+                .asShortBuffer();
+        for (short[] row : array) {
+            buffer.put(row);
         }
+        buffer.flip();
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -271,15 +273,17 @@ public class SciCore implements ISciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
+        int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.INT32, shape);
-        long[] index = new long[2];
-        for (int i = 0; i < array.length; i++) {
-            index[0] = i;
-            for (int j = 0; j < array[i].length; j++) {
-                index[1] = j;
-                tensor.setInt(array[i][j], index);
-            }
+        IntBuffer buffer = ByteBuffer
+                .allocateDirect(nElements * Integer.BYTES)
+                .order(ByteOrder.nativeOrder())
+                .asIntBuffer();
+        for (int[] row : array) {
+            buffer.put(row);
         }
+        buffer.flip();
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -293,15 +297,17 @@ public class SciCore implements ISciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
+        int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.INT64, shape);
-        long[] index = new long[2];
-        for (int i = 0; i < array.length; i++) {
-            index[0] = i;
-            for (int j = 0; j < array[i].length; j++) {
-                index[1] = j;
-                tensor.setLong(array[i][j], index);
-            }
+        LongBuffer buffer = ByteBuffer
+                .allocateDirect(nElements * Long.BYTES)
+                .order(ByteOrder.nativeOrder())
+                .asLongBuffer();
+        for (long[] row : array) {
+            buffer.put(row);
         }
+        buffer.flip();
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -315,15 +321,17 @@ public class SciCore implements ISciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
+        int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.FLOAT32, shape);
-        long[] index = new long[2];
-        for (int i = 0; i < array.length; i++) {
-            index[0] = i;
-            for (int j = 0; j < array[i].length; j++) {
-                index[1] = j;
-                tensor.setFloat(array[i][j], index);
-            }
+        FloatBuffer buffer = ByteBuffer
+                .allocateDirect(nElements * Float.BYTES)
+                .order(ByteOrder.nativeOrder())
+                .asFloatBuffer();
+        for (float[] row : array) {
+            buffer.put(row);
         }
+        buffer.flip();
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -337,15 +345,17 @@ public class SciCore implements ISciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
+        int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.FLOAT64, shape);
-        long[] index = new long[2];
-        for (int i = 0; i < array.length; i++) {
-            index[0] = i;
-            for (int j = 0; j < array[i].length; j++) {
-                index[1] = j;
-                tensor.setDouble(array[i][j], index);
-            }
+        DoubleBuffer buffer = ByteBuffer
+                .allocateDirect(nElements * Double.BYTES)
+                .order(ByteOrder.nativeOrder())
+                .asDoubleBuffer();
+        for (double[] row : array) {
+            buffer.put(row);
         }
+        buffer.flip();
+        tensor.setContents(buffer);
         return tensor;
     }
 
@@ -358,15 +368,15 @@ public class SciCore implements ISciCore {
             }
         }
         long[] shape = new long[]{array.length, array[0].length};
+        int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.BOOLEAN, shape);
-        long[] index = new long[2];
-        for (int i = 0; i < array.length; i++) {
-            index[0] = i;
-            for (int j = 0; j < array[i].length; j++) {
-                index[1] = j;
-                tensor.setBoolean(array[i][j], index);
-            }
+        boolean[] data = new boolean[nElements];
+        int i = 0;
+        for (boolean[] row : array) {
+            System.arraycopy(row, 0, data, i, row.length);
+            i += row.length;
         }
+        tensor.setContents(data);
         return tensor;
     }
 
@@ -405,6 +415,10 @@ public class SciCore implements ISciCore {
         } else if (elements instanceof double[] doubleArray) {
             for (int i = 0; i < nElements; i++) {
                 tensor.setDoubleFlat((doubleArray[i]), i);
+            }
+        } else if (elements instanceof boolean[] booleanArray) {
+            for (int i = 0; i < nElements; i++) {
+                tensor.setBooleanFlat((booleanArray[i]), i);
             }
         } else {
             throw new IllegalArgumentException("Unsupported array type: " + arrayClass.getName());
