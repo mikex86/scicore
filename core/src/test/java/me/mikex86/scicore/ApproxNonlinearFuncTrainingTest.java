@@ -123,6 +123,7 @@ public class ApproxNonlinearFuncTrainingTest {
             realY[i] = y;
         }
         plot.clear();
+        plot.setBackgroundColor(new Color(36, 36, 36));
         plot.plot(modelPredictionY, new Color(26, 188, 156), true);
         plot.plot(realY, new Color(46, 204, 113), false);
         plot.setXLabel("X");

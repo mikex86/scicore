@@ -1,20 +1,33 @@
 package me.mikex86.scicore.backend.impl.cuda.op;
 
+import jcuda.Pointer;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.View;
 import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
-import me.mikex86.scicore.backend.impl.cuda.memory.MemoryHandle;
+import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryHandle;
+import me.mikex86.scicore.backend.impl.cuda.memory.IMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.Validator;
 import me.mikex86.scicore.utils.ViewUtils;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.system.jemalloc.JEmalloc;
 
-import static jcuda.jcublas.JCublas.cublasSgemm;
+import java.nio.ByteBuffer;
+
+import static jcuda.cudaDataType.CUDA_R_32F;
+import static jcuda.cudaDataType.CUDA_R_64F;
+import static jcuda.jcublas.JCublas2.cublasGemmEx;
+import static jcuda.jcublas.JCublas2.cublasGemmEx_new;
+import static jcuda.jcublas.cublasComputeType.*;
+import static jcuda.jcublas.cublasGemmAlgo.CUBLAS_GEMM_DEFAULT;
+import static jcuda.jcublas.cublasGemmAlgo.CUBLAS_GEMM_DFALT_TENSOR_OP;
+import static jcuda.jcublas.cublasOperation.CUBLAS_OP_N;
+import static me.mikex86.scicore.backend.impl.cuda.Validator.cublasCheck;
 
 public class CudaMatmulOp implements IDifferentiableBinaryOperation {
 
@@ -40,7 +53,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
 
         CudaTensor result = new CudaTensor(this.backend, resultDataType, resultShape);
-        MemoryHandle resultMemoryHandle = result.getDataContainer().getDeviceMemoryHandle();
+        CudaMemoryHandle resultMemoryHandle = result.getDataContainer().getDeviceMemoryHandle();
 
         {
             // Swap A and B because cublasSgemm expects column-major matrices, and we have row-major.
@@ -54,9 +67,9 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         int k = (int) shape[1]; // columns of A and rows of B
         int n = (int) otherShape[1]; // columns of B
 
+        // TODO: HANDLE OTHER DATA TYPES
 
-        MemoryHandle aDevicePtr, bDevicePtr;
-        boolean aNeedsFree = false, bNeedsFree = false;
+        IMemoryHandle aDevicePtr, bDevicePtr;
         {
             if (a instanceof CudaTensor aCudaTensor) {
                 aDevicePtr = aCudaTensor.getDataContainer().getDeviceMemoryHandle();
@@ -65,7 +78,6 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                 aDevicePtr = aCudaTensor.getDataContainer().getDeviceMemoryHandle().offset(offset);
             } else {
                 aDevicePtr = backend.getMemoryManager().copyToDevice(a);
-                aNeedsFree = true;
             }
 
             if (b instanceof CudaTensor bCudaTensor) {
@@ -75,28 +87,120 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                 bDevicePtr = bCudaTensor.getDataContainer().getDeviceMemoryHandle().offset(offset);
             } else {
                 bDevicePtr = backend.getMemoryManager().copyToDevice(b);
-                bNeedsFree = true;
             }
         }
 
-        cublasSgemm(
-                'n', 'n',
-                m, n, k,
-                1f,
-                aDevicePtr.getDevicePtr(),
-                m,
-                bDevicePtr.getDevicePtr(),
-                k,
-                0f,
-                resultMemoryHandle.getDevicePtr(),
-                m
-        );
+        if (a.getDataType() == DataType.FLOAT32 && b.getDataType() == DataType.FLOAT32) {
+            // float32 by float32 multiplication
+            ByteBuffer factor = JEmalloc.je_malloc(4);
+            if (factor == null)
+                throw new RuntimeException("Could not allocate memory for alpha");
+            factor.putFloat(1.0f);
+            cublasCheck(cublasGemmEx_new(
+                    CudaBackend.getCublasHandle(),
+                    CUBLAS_OP_N, CUBLAS_OP_N,
+                    m, n, k,
+                    Pointer.to(factor),
+                    aDevicePtr.getPointer(),
+                    CUDA_R_32F,
+                    m,
+                    bDevicePtr.getPointer(),
+                    CUDA_R_32F,
+                    k,
+                    Pointer.to(factor),
+                    resultMemoryHandle.getPointer(),
+                    CUDA_R_32F,
+                    m,
+                    CUBLAS_COMPUTE_32F,
+                    CUBLAS_GEMM_DFALT_TENSOR_OP
+            ));
+            JEmalloc.je_free(factor);
+        } else if (a.getDataType() == DataType.FLOAT64 && b.getDataType() == DataType.FLOAT64) {
+            // float64 by float64 multiplication
+            ByteBuffer factor = JEmalloc.je_malloc(8);
+            if (factor == null)
+                throw new RuntimeException("Could not allocate memory for alpha");
+            factor.putDouble(1.0);
+            cublasCheck(cublasGemmEx_new(
+                    CudaBackend.getCublasHandle(),
+                    CUBLAS_OP_N, CUBLAS_OP_N,
+                    m, n, k,
+                    Pointer.to(factor),
+                    aDevicePtr.getPointer(),
+                    CUDA_R_64F,
+                    m,
+                    bDevicePtr.getPointer(),
+                    CUDA_R_64F,
+                    k,
+                    Pointer.to(factor),
+                    resultMemoryHandle.getPointer(),
+                    CUDA_R_64F,
+                    m,
+                    CUBLAS_COMPUTE_64F,
+                    CUBLAS_GEMM_DFALT_TENSOR_OP
+            ));
+            JEmalloc.je_free(factor);
+        } else if (a.getDataType() == DataType.FLOAT32 && b.getDataType() == DataType.FLOAT64) {
+            // float32 by float64 multiplication
+            // TODO
+            ByteBuffer factor = JEmalloc.je_malloc(8);
+            if (factor == null)
+                throw new RuntimeException("Could not allocate memory for alpha");
+            factor.putDouble(1.0);
+            cublasCheck(cublasGemmEx_new(
+                    CudaBackend.getCublasHandle(),
+                    CUBLAS_OP_N, CUBLAS_OP_N,
+                    m, n, k,
+                    Pointer.to(factor),
+                    aDevicePtr.getPointer(),
+                    CUDA_R_32F,
+                    m,
+                    bDevicePtr.getPointer(),
+                    CUDA_R_64F,
+                    k,
+                    Pointer.to(factor),
+                    resultMemoryHandle.getPointer(),
+                    CUDA_R_64F,
+                    m,
+                    CUBLAS_COMPUTE_64F,
+                    CUBLAS_GEMM_DFALT_TENSOR_OP
+            ));
+            JEmalloc.je_free(factor);
+        } else if (a.getDataType() == DataType.FLOAT64 && b.getDataType() == DataType.FLOAT32) {
+            // float64 by float32 multiplication
+            // TODO
+            ByteBuffer factor = JEmalloc.je_malloc(8);
+            if (factor == null)
+                throw new RuntimeException("Could not allocate memory for alpha");
+            factor.putDouble(1.0);
+            cublasCheck(cublasGemmEx_new(
+                    CudaBackend.getCublasHandle(),
+                    CUBLAS_OP_N, CUBLAS_OP_N,
+                    m, n, k,
+                    Pointer.to(factor),
+                    aDevicePtr.getPointer(),
+                    CUDA_R_64F,
+                    m,
+                    bDevicePtr.getPointer(),
+                    CUDA_R_32F,
+                    k,
+                    Pointer.to(factor),
+                    resultMemoryHandle.getPointer(),
+                    CUDA_R_64F,
+                    m,
+                    CUBLAS_COMPUTE_64F,
+                    CUBLAS_GEMM_DFALT_TENSOR_OP
+            ));
+            JEmalloc.je_free(factor);
+        } else {
+            throw new RuntimeException("Unsupported data type combination");
+        }
 
-        if (aNeedsFree) {
+        if (aDevicePtr.canFree()) {
             aDevicePtr.free();
         }
 
-        if (bNeedsFree) {
+        if (bDevicePtr.canFree()) {
             bDevicePtr.free();
         }
 

@@ -10,10 +10,10 @@ import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 /**
  * Garbage collected cuda device memory handle
  */
-public class MemoryHandle {
+public class CudaMemoryHandle implements IMemoryHandle {
 
     @Nullable
-    private final MemoryHandle parent;
+    private final CudaMemoryHandle parent;
 
     @NotNull
     private final CUdeviceptr devicePtr;
@@ -22,13 +22,13 @@ public class MemoryHandle {
 
     private boolean freed = false;
 
-    public MemoryHandle(@NotNull CUdeviceptr devicePtr, long size) {
+    public CudaMemoryHandle(@NotNull CUdeviceptr devicePtr, long size) {
         this.parent = null;
         this.devicePtr = devicePtr;
         this.size = size;
     }
 
-    private MemoryHandle(@NotNull MemoryHandle parent, long offset) {
+    private CudaMemoryHandle(@NotNull CudaMemoryHandle parent, long offset) {
         this.parent = parent;
         this.devicePtr = parent.devicePtr.withByteOffset(offset);
         this.size = parent.size - offset;
@@ -40,6 +40,7 @@ public class MemoryHandle {
         free();
     }
 
+    @Override
     public void free() {
         if (freed) {
             return;
@@ -52,16 +53,31 @@ public class MemoryHandle {
     }
 
     @NotNull
-    public CUdeviceptr getDevicePtr() {
+    @Override
+    public CUdeviceptr getPointer() {
         return devicePtr;
     }
 
+    @Override
     public long getSize() {
         return size;
     }
 
     @NotNull
-    public MemoryHandle offset(long offset) {
-        return new MemoryHandle(this, offset);
+    public CudaMemoryHandle offset(long offset) {
+        if (offset < 0) {
+            throw new IllegalArgumentException("offset must be >= 0");
+        }
+        return new CudaMemoryHandle(this, offset);
+    }
+
+    @Override
+    public @NotNull CudaMemoryHandle createReference() {
+        return new CudaMemoryHandle(this, 0);
+    }
+
+    @Override
+    public boolean canFree() {
+        return parent == null;
     }
 }

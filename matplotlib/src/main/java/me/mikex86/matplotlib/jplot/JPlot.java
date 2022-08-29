@@ -53,12 +53,19 @@ public class JPlot {
     @Nullable
     private String name = null;
 
+    @NotNull
+    private Color backgroundColor = new Color(0, 0, 0, 0);
+
     public void setName(@NotNull String name) {
         this.name = name;
     }
 
     public void clear() {
         this.series.clear();
+    }
+
+    public void setBackgroundColor(@NotNull Color color) {
+        this.backgroundColor = color;
     }
 
     private record Series(float @NotNull [] data, int color, boolean fill) {
@@ -99,6 +106,8 @@ public class JPlot {
     public BufferedImage render() {
         try (Surface surface = Surface.makeRasterN32Premul(width, height)) {
             Canvas canvas = surface.getCanvas();
+
+            canvas.clear(backgroundColor.getRGB());
 
             float beginX = calculateBeginX();
             float endX = calculateEndX();

@@ -3,7 +3,7 @@ package me.mikex86.scicore.backend.impl.cuda;
 import jcuda.Pointer;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryManager;
-import me.mikex86.scicore.backend.impl.cuda.memory.MemoryHandle;
+import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryHandle;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.jemalloc.JEmalloc;
 
@@ -15,7 +15,7 @@ import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 public class CudaDataContainer {
 
     @NotNull
-    private final MemoryHandle deviceMemoryHandle;
+    private final CudaMemoryHandle deviceMemoryHandle;
 
     @NotNull
     private final DataType dataType;
@@ -28,79 +28,79 @@ public class CudaDataContainer {
     public byte getByteFlat(long flatIndex) {
         byte[] hostBuffer = new byte[1];
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex), 1));
+        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getPointer().withByteOffset(flatIndex), 1));
         return hostBuffer[0];
     }
 
     public void setByteFlat(byte value, long flatIndex) {
         byte[] hostBuffer = new byte[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex), hostPtr, 1));
+        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer().withByteOffset(flatIndex), hostPtr, 1));
     }
 
     public short getShortFlat(long flatIndex) {
         short[] hostBuffer = new short[1];
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex * Short.BYTES), Short.BYTES));
+        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getPointer().withByteOffset(flatIndex * Short.BYTES), Short.BYTES));
         return hostBuffer[0];
     }
 
     public void setShortFlat(short value, long flatIndex) {
         short[] hostBuffer = new short[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex * Short.BYTES), hostPtr, Short.BYTES));
+        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer().withByteOffset(flatIndex * Short.BYTES), hostPtr, Short.BYTES));
     }
 
     public int getIntFlat(long flatIndex) {
         int[] hostBuffer = new int[1];
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex * Integer.BYTES), Integer.BYTES));
+        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getPointer().withByteOffset(flatIndex * Integer.BYTES), Integer.BYTES));
         return hostBuffer[0];
     }
 
     public void setIntFlat(int value, long flatIndex) {
         int[] hostBuffer = new int[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex * Integer.BYTES), hostPtr, Integer.BYTES));
+        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer().withByteOffset(flatIndex * Integer.BYTES), hostPtr, Integer.BYTES));
     }
 
     public long getLongFlat(long flatIndex) {
         long[] hostBuffer = new long[1];
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex * Long.BYTES), Long.BYTES));
+        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getPointer().withByteOffset(flatIndex * Long.BYTES), Long.BYTES));
         return hostBuffer[0];
     }
 
     public void setLongFlat(long value, long flatIndex) {
         long[] hostBuffer = new long[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex * Long.BYTES), hostPtr, Long.BYTES));
+        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer().withByteOffset(flatIndex * Long.BYTES), hostPtr, Long.BYTES));
     }
 
     public float getFloatFlat(long flatIndex) {
         float[] hostBuffer = new float[1];
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex * Float.BYTES), Float.BYTES));
+        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getPointer().withByteOffset(flatIndex * Float.BYTES), Float.BYTES));
         return hostBuffer[0];
     }
 
     public void setFloatFlat(float value, long flatIndex) {
         float[] hostBuffer = new float[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex * Float.BYTES), hostPtr, Float.BYTES));
+        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer().withByteOffset(flatIndex * Float.BYTES), hostPtr, Float.BYTES));
     }
 
     public double getDoubleFlat(long flatIndex) {
         double[] hostBuffer = new double[1];
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex * Double.BYTES), Double.BYTES));
+        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getPointer().withByteOffset(flatIndex * Double.BYTES), Double.BYTES));
         return hostBuffer[0];
     }
 
     public void setDoubleFlat(double value, long flatIndex) {
         double[] hostBuffer = new double[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
-        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr().withByteOffset(flatIndex * Double.BYTES), hostPtr, Double.BYTES));
+        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer().withByteOffset(flatIndex * Double.BYTES), hostPtr, Double.BYTES));
     }
 
     public void setBooleanFlat(boolean value, long flatIndex) {
@@ -129,7 +129,7 @@ public class CudaDataContainer {
         int size = buffer.remaining();
         if (buffer.isDirect()) {
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
             ByteBuffer directBuffer = JEmalloc.je_malloc(size);
@@ -140,7 +140,7 @@ public class CudaDataContainer {
             directBuffer.flip();
 
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
 
             JEmalloc.je_free(directBuffer);
         }
@@ -157,7 +157,7 @@ public class CudaDataContainer {
                 throw new IllegalArgumentException("Direct buffer must be in native order");
             }
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
             ByteBuffer directBuffer = JEmalloc.je_malloc(size);
@@ -167,7 +167,7 @@ public class CudaDataContainer {
             directBuffer.order(ByteOrder.nativeOrder());
             directBuffer.asShortBuffer().put(buffer);
             directBuffer.flip();
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), Pointer.to(directBuffer), size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), Pointer.to(directBuffer), size));
             JEmalloc.je_free(directBuffer);
         }
     }
@@ -183,7 +183,7 @@ public class CudaDataContainer {
                 throw new IllegalArgumentException("Direct buffer must be in native order");
             }
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
             ByteBuffer directBuffer = JEmalloc.je_malloc(size);
@@ -193,7 +193,7 @@ public class CudaDataContainer {
             directBuffer.order(ByteOrder.nativeOrder());
             directBuffer.asIntBuffer().put(buffer);
             directBuffer.flip();
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), Pointer.to(directBuffer), size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), Pointer.to(directBuffer), size));
             JEmalloc.je_free(directBuffer);
         }
     }
@@ -209,7 +209,7 @@ public class CudaDataContainer {
                 throw new IllegalArgumentException("Direct buffer must be in native order");
             }
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
             ByteBuffer directBuffer = JEmalloc.je_malloc(size);
@@ -219,7 +219,7 @@ public class CudaDataContainer {
             directBuffer.order(ByteOrder.nativeOrder());
             directBuffer.asLongBuffer().put(buffer);
             directBuffer.flip();
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), Pointer.to(directBuffer), size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), Pointer.to(directBuffer), size));
             JEmalloc.je_free(directBuffer);
         }
     }
@@ -235,7 +235,7 @@ public class CudaDataContainer {
                 throw new IllegalArgumentException("Direct buffer must be in native order");
             }
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
             ByteBuffer directBuffer = JEmalloc.je_malloc(size);
@@ -245,7 +245,7 @@ public class CudaDataContainer {
             directBuffer.order(ByteOrder.nativeOrder());
             directBuffer.asFloatBuffer().put(buffer);
             directBuffer.flip();
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), Pointer.to(directBuffer), size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), Pointer.to(directBuffer), size));
             JEmalloc.je_free(directBuffer);
         }
     }
@@ -261,7 +261,7 @@ public class CudaDataContainer {
                 throw new IllegalArgumentException("Direct buffer must be in native order");
             }
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
             ByteBuffer directBuffer = JEmalloc.je_malloc(size);
@@ -271,7 +271,7 @@ public class CudaDataContainer {
             directBuffer.order(ByteOrder.nativeOrder());
             directBuffer.asDoubleBuffer().put(buffer);
             directBuffer.flip();
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), Pointer.to(directBuffer), size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), Pointer.to(directBuffer), size));
             JEmalloc.je_free(directBuffer);
         }
     }
@@ -298,7 +298,7 @@ public class CudaDataContainer {
         }
         buffer.flip();
         Pointer hostPtr = Pointer.to(buffer);
-        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePtr(), hostPtr, size));
+        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         JEmalloc.je_free(buffer);
     }
 
@@ -324,13 +324,13 @@ public class CudaDataContainer {
             throw new OutOfMemoryError("Could not allocate direct buffer (" + deviceMemoryHandle.getSize() + " bytes)");
         }
         Pointer hostPtr = Pointer.to(buffer);
-        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getDevicePtr().withByteOffset(dataType.getSizeOf(startFlatIndex)), (nElements * dataType.getBits() + 7) / 8));
+        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getPointer().withByteOffset(dataType.getSizeOf(startFlatIndex)), (nElements * dataType.getBits() + 7) / 8));
         buffer.flip();
         return buffer;
     }
 
     @NotNull
-    public MemoryHandle getDeviceMemoryHandle() {
+    public CudaMemoryHandle getDeviceMemoryHandle() {
         return deviceMemoryHandle;
     }
 }

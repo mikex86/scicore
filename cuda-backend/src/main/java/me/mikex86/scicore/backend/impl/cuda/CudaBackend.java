@@ -2,6 +2,7 @@ package me.mikex86.scicore.backend.impl.cuda;
 
 import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;
+import jcuda.jcublas.cublasHandle;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
@@ -20,6 +21,7 @@ import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABI
 import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR;
 import static jcuda.driver.JCudaDriver.*;
 import static jcuda.jcublas.JCublas.cublasInit;
+import static jcuda.jcublas.JCublas2.cublasCreate;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 
 public class CudaBackend extends AbstractSciCoreBackend {
@@ -48,6 +50,9 @@ public class CudaBackend extends AbstractSciCoreBackend {
      */
     @NotNull
     private static final CUcontext ctxHandle;
+
+    @NotNull
+    private static final cublasHandle cublasHandle;
 
     static {
         cuInit(0);
@@ -105,6 +110,11 @@ public class CudaBackend extends AbstractSciCoreBackend {
         {
             // Init cuBLAS
             cuCheck(cublasInit());
+
+            // Init cuBLAS2
+            cublasHandle handle = new cublasHandle();
+            cuCheck(cublasCreate(handle));
+            cublasHandle = handle;
         }
     }
 
@@ -126,5 +136,10 @@ public class CudaBackend extends AbstractSciCoreBackend {
     @NotNull
     public CudaMemoryManager getMemoryManager() {
         return memoryManager;
+    }
+
+    @NotNull
+    public static cublasHandle getCublasHandle() {
+        return cublasHandle;
     }
 }
