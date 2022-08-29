@@ -9,7 +9,12 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 
+import static me.mikex86.scicore.utils.StringUtils.formatFloat;
+
 public abstract class AbstractTensor implements ITensor {
+
+    // All implementations must set this variable!
+    protected long numElements;
 
     @Override
     @NotNull
@@ -25,6 +30,10 @@ public abstract class AbstractTensor implements ITensor {
         return new View(this, sliceShape, offset, sliceStrides);
     }
 
+    @Override
+    public long getNumberOfElements() {
+        return this.numElements;
+    }
 
     @Override
     public byte getByte(long @NotNull ... indices) {
@@ -555,7 +564,7 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
-    public ITensor relu() {
+    public @NotNull ITensor relu() {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         return operationRecorder.recordOperation(OperationType.RELU, this);
@@ -623,5 +632,84 @@ public abstract class AbstractTensor implements ITensor {
             }
         }
         return true;
+    }
+
+    @Override
+    public String toString() {
+        long[] shape = getShape();
+        StringBuilder sb = new StringBuilder(getClass().getSimpleName() + "(dtype=")
+                .append(getDataType())
+                .append(", ");
+        long nElements = getNumberOfElements();
+        boolean isNewLine = false;
+        if (isScalar()) {
+            sb.append("shape=")
+                    .append(Arrays.toString(shape))
+                    .append(", isScalar=true, data=");
+            switch (getDataType()) {
+                case INT8 -> sb.append(elementAsByte());
+                case INT16 -> sb.append(elementAsShort());
+                case INT32 -> sb.append(elementAsInt());
+                case INT64 -> sb.append(elementAsLong());
+                case FLOAT32 -> sb.append(formatFloat(elementAsFloat()));
+                case FLOAT64 -> sb.append(formatFloat(elementAsDouble()));
+                case BOOLEAN -> sb.append(elementAsBoolean());
+            }
+            sb.append(')');
+            return sb.toString();
+        } else {
+            sb.append("shape=")
+                    .append(Arrays.toString(shape))
+                    .append(", data=");
+            if (nElements >= 15) {
+                sb.append('\n');
+                isNewLine = true;
+            }
+        }
+        ITensorIterator iterator = iterator();
+        int nElementsInLine = 0;
+        while (iterator.hasNext()) {
+            long nStartingDimensions = iterator.getNumStartingDimensions();
+            long nEndingDimensions = iterator.getNumEndingDimensions();
+            if (isNewLine) {
+                sb.append("\t");
+            }
+            if (isNewLine) {
+                for (int i = 0; i < shape.length - nStartingDimensions; i++) {
+                    sb.append(" ");
+                }
+            }
+            for (long i = 0; i < nStartingDimensions; i++) {
+                sb.append("[");
+            }
+            switch (iterator.getDataType()) {
+                case INT8 -> sb.append(iterator.getByte());
+                case INT16 -> sb.append(iterator.getShort());
+                case INT32 -> sb.append(iterator.getInt());
+                case INT64 -> sb.append(iterator.getLong());
+                case FLOAT32 -> sb.append(formatFloat(iterator.getFloat()));
+                case FLOAT64 -> sb.append(formatFloat(iterator.getDouble()));
+                case BOOLEAN -> sb.append(iterator.getBoolean());
+            }
+            for (long i = 0; i < nEndingDimensions; i++) {
+                sb.append("]");
+            }
+            nElementsInLine++;
+            iterator.moveNext();
+            if (!iterator.hasNext()) {
+                continue;
+            }
+            sb.append(",");
+            if (nEndingDimensions > 0 && nElementsInLine >= 15) {
+                sb.append("\n");
+                isNewLine = true;
+                nElementsInLine = 0;
+            } else {
+                sb.append(" ");
+                isNewLine = false;
+            }
+        }
+        sb.append(")");
+        return sb.toString();
     }
 }

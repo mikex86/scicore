@@ -1,6 +1,7 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -488,9 +489,7 @@ public interface ITensor extends IValue {
 
     void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView);
 
-    default long getNumberOfElements() {
-        return ShapeUtils.getNumElements(getShape());
-    }
+    long getNumberOfElements();
 
     @NotNull ITensor matmul(@NotNull ITensor other);
 
@@ -588,7 +587,7 @@ public interface ITensor extends IValue {
     /**
      * Multiplies this tensor by the other tensor either:
      * Element-wise multiplication if the tensors have the same shape,
-     * or dimension-wise multiplication if the tensors have different shapes that are broadcastable.
+     * or dimension-wise multiplication if the tensors have different shapes that are broad-castable.
      *
      * @param other the other tensor.
      * @return the result of the multiplication.
@@ -610,5 +609,18 @@ public interface ITensor extends IValue {
     @NotNull ITensor relu();
 
     @NotNull ITensor sigmoid();
+
+    /**
+     * @return a direct byte buffer containing the tensor's data and a boolean indicating whether the buffer needs to be freed via JEmalloc.je_free(buffer).
+     */
+    @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer();
+
+    /**
+     * @param startFlatIndex the flat index of the first element to retrieve
+     * @param endFlatIndex the flat index of the last element to retrieve (exclusive)
+     *
+     * @return a direct byte buffer containing the tensor's data in the specified interval and a boolean indicating whether the buffer needs to be freed via JEmalloc.je_free(buffer).
+     */
+    @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex);
 
 }

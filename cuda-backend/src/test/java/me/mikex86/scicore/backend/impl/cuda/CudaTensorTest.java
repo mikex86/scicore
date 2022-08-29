@@ -7,8 +7,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
@@ -833,4 +833,64 @@ public class CudaTensorTest {
             }
         }
     }
+
+    @Test
+    void matmul_test_2x2by2x2() {
+        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+        ITensor matrixB = sciCore.matrix(new float[][]{{5, 6}, {7, 8}});
+        ITensor result = matrixA.matmul(matrixB);
+        assertEquals(sciCore.matrix(new float[][]{{19, 22}, {43, 50}}), result);
+    }
+
+    @Test
+    void matmul_test_2x3by2x3_failure() {
+        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
+        ITensor matrixB = sciCore.matrix(new float[][]{{7, 8, 9}, {10, 11, 12}});
+        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
+    }
+
+    @Test
+    void matmul_test_3d_failure() {
+        ITensor matrixA = sciCore.ndarray(new float[3][4][5]);
+        ITensor matrixB = sciCore.ndarray(new float[8][9][10]);
+        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
+    }
+
+    @Test
+    void matmul_test_2x3by3x2() {
+        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
+        ITensor matrixB = sciCore.matrix(new float[][]{{7, 8}, {9, 10}, {11, 12}});
+        ITensor result = matrixA.matmul(matrixB);
+        assertEquals(sciCore.matrix(new float[][]{{58, 64}, {139, 154}}), result);
+    }
+
+    @Test
+    void matmul_test_withDimView() {
+        ITensor bigNdArrayA = sciCore.ndarray(new float[][][]{
+                {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
+                {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}
+        });
+        ITensor matrixA = bigNdArrayA.getView(0);
+        ITensor matrixB = bigNdArrayA.getView(1);
+
+        assertEquals(sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}), matrixA);
+        assertEquals(sciCore.matrix(new float[][]{{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}), matrixB);
+
+        ITensor result = matrixA.matmul(matrixB);
+        assertEquals(sciCore.matrix(new float[][]{{84, 90, 96}, {201, 216, 231}, {318, 342, 366}}), result);
+    }
+
+    @Test
+    void matmul_test_withJvmTensor() {
+        SciCore jvmSciCore = new SciCore();
+        jvmSciCore.setBackend(ISciCore.BackendType.JVM);
+
+        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+        ITensor matrixB = jvmSciCore.matrix(new float[][]{{5, 6}, {7, 8}});
+        ITensor result = matrixA.matmul(matrixB);
+        assertEquals(sciCore.matrix(new float[][]{{19, 22}, {43, 50}}), result);
+    }
+
+    // TODO: OPTIMIZE JvmTensor @ CudaTensor
+
 }

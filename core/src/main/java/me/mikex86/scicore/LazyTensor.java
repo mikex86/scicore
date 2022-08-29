@@ -2,6 +2,8 @@ package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.op.IDerivedTensor;
+import me.mikex86.scicore.utils.Pair;
+import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,6 +31,7 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     private final ISciCoreBackend sciCoreBackend;
 
     public LazyTensor(@NotNull ISciCoreBackend backend, long @NotNull [] resultShape, @NotNull DataType resultDataType, @NotNull Supplier<ITensor> resultSupplier) {
+        this.numElements = ShapeUtils.getNumElements(resultShape);
         this.resultShape = resultShape;
         this.resultDataType = resultDataType;
         this.resultSupplier = resultSupplier;
@@ -238,6 +241,16 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     @Override
     public @NotNull ISciCoreBackend getSciCoreBackend() {
         return this.sciCoreBackend;
+    }
+
+    @Override
+    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer() {
+        return result().getAsDirectBuffer();
+    }
+
+    @Override
+    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
+        return result().getAsDirectBuffer(startFlatIndex, endFlatIndex);
     }
 
     @Override

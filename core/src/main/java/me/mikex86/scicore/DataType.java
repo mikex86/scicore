@@ -92,4 +92,8 @@ public enum DataType {
     public int getSize() {
         return bits / 8;
     }
+
+    public long getSizeOf(long nElements) {
+        return (nElements * bits + 7) / 8;
+    }
 }

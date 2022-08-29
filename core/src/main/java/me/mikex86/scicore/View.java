@@ -1,13 +1,14 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.*;
 import java.util.Arrays;
 
-class View extends AbstractTensor {
+public class View extends AbstractTensor {
 
     private final @NotNull ITensor viewed;
     private final long @NotNull [] shape;
@@ -15,10 +16,20 @@ class View extends AbstractTensor {
     private final long[] localStrides;
 
     View(@NotNull ITensor viewed, long @NotNull [] shape, long offset, long[] localStrides) {
+        this.numElements = ShapeUtils.getNumElements(shape);
         this.viewed = viewed;
         this.shape = shape;
         this.offset = offset;
         this.localStrides = localStrides;
+    }
+
+    public long getOffset() {
+        return offset;
+    }
+
+    @NotNull
+    public ITensor getViewed() {
+        return viewed;
     }
 
     @Override
@@ -297,7 +308,7 @@ class View extends AbstractTensor {
         if (!ShapeUtils.equals(shape, other.getShape())) {
             return false;
         }
-        long nElements = ShapeUtils.getNumElements(shape);
+        long nElements = getNumberOfElements();
         boolean oneIsFloatingPoint = getDataType().isFloatingPoint() || other.getDataType().isFloatingPoint();
         if (oneIsFloatingPoint) {
             for (long i = 0; i < nElements; i++) {
@@ -374,5 +385,19 @@ class View extends AbstractTensor {
     @Override
     public @NotNull ISciCoreBackend getSciCoreBackend() {
         return this.viewed.getSciCoreBackend();
+    }
+
+    @Override
+    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer() {
+        long nElements = getNumberOfElements();
+        return this.viewed.getAsDirectBuffer(this.offset, this.offset + nElements);
+    }
+
+    @Override
+    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
+        if (startFlatIndex < 0 || endFlatIndex > getNumberOfElements()) {
+            throw new IllegalArgumentException("Invalid flat indices");
+        }
+        return this.viewed.getAsDirectBuffer(this.offset + startFlatIndex, this.offset + endFlatIndex);
     }
 }

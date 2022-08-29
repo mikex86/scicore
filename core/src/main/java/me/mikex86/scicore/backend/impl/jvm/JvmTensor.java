@@ -2,9 +2,11 @@ package me.mikex86.scicore.backend.impl.jvm;
 
 import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.*;
 import java.util.Arrays;
@@ -25,12 +27,14 @@ public class JvmTensor extends AbstractTensor implements ITensor {
 
 
     public JvmTensor(@NotNull ISciCoreBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
+        this.numElements = ShapeUtils.getNumElements(shape);
         this.dataContainer = new JvmTensorDataContainer(dataType, shape);
         this.strides = ShapeUtils.makeStrides(shape);
         this.backend = backend;
     }
 
     JvmTensor(@NotNull ISciCoreBackend backend, @NotNull JvmTensorDataContainer dataContainer, long @NotNull [] shape) {
+        this.numElements = ShapeUtils.getNumElements(shape);
         this.backend = backend;
         this.dataContainer = dataContainer;
         this.strides = ShapeUtils.makeStrides(shape);
@@ -844,90 +848,133 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                 }
             }
         }
-    }
 
-    @Override
-    public String toString() {
-        long[] shape = getShape();
-        StringBuilder sb = new StringBuilder("JvmTensor(dtype=")
-                .append(getDataType())
-                .append(", ");
-        long nElements = getNumberOfElements();
-        boolean isNewLine = false;
-        if (isScalar()) {
-            sb.append("shape=")
-                    .append(Arrays.toString(shape))
-                    .append(", isScalar=true, data=");
-            switch (getDataType()) {
-                case INT8 -> sb.append(elementAsByte());
-                case INT16 -> sb.append(elementAsShort());
-                case INT32 -> sb.append(elementAsInt());
-                case INT64 -> sb.append(elementAsLong());
-                case FLOAT32 -> sb.append(formatFloat(elementAsFloat()));
-                case FLOAT64 -> sb.append(formatFloat(elementAsDouble()));
-                case BOOLEAN -> sb.append(elementAsBoolean());
-            }
-            sb.append(')');
-            return sb.toString();
-        } else {
-            sb.append("shape=")
-                    .append(Arrays.toString(shape))
-                    .append(", data=");
-            if (nElements >= 15) {
-                sb.append('\n');
-                isNewLine = true;
-            }
-        }
-        ITensorIterator iterator = iterator();
-        int nElementsInLine = 0;
-        while (iterator.hasNext()) {
-            long nStartingDimensions = iterator.getNumStartingDimensions();
-            long nEndingDimensions = iterator.getNumEndingDimensions();
-            if (isNewLine) {
-                sb.append("\t");
-            }
-            if (isNewLine) {
-                for (int i = 0; i < shape.length - nStartingDimensions; i++) {
-                    sb.append(" ");
+        /**
+         * Returns the contents in the specified index interval of the tensor as a direct buffer. The buffer must be freed by the caller via JEmalloc.je_free().
+         *
+         * @param startFlatIndex The start index of the interval.
+         * @param endFlatIndex   The end index of the interval. (exclusive)
+         * @return the direct buffer with tensor contents
+         */
+        @NotNull
+        public ByteBuffer getAsDirectBuffer(int startFlatIndex, int endFlatIndex) {
+            ByteBuffer buffer;
+            switch (dataType) {
+                case INT8 -> {
+                    byte[] data = getByteData();
+                    if (startFlatIndex < 0 || endFlatIndex > data.length) {
+                        throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
+                    }
+                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Byte.BYTES);
+                    if (buffer == null) {
+                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
+                    }
+                    buffer.put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
+                case INT16 -> {
+                    short[] data = getShortData();
+                    if (startFlatIndex < 0 || endFlatIndex > data.length) {
+                        throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
+                    }
+                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Short.BYTES);
+                    if (buffer == null) {
+                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
+                    }
+                    buffer.asShortBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                }
+                case INT32 -> {
+                    int[] data = getIntData();
+                    if (startFlatIndex < 0 || endFlatIndex > data.length) {
+                        throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
+                    }
+                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Integer.BYTES);
+                    if (buffer == null) {
+                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
+                    }
+                    buffer.asIntBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                }
+                case INT64 -> {
+                    long[] data = getLongData();
+                    if (startFlatIndex < 0 || endFlatIndex > data.length) {
+                        throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
+                    }
+                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Long.BYTES);
+                    if (buffer == null) {
+                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
+                    }
+                    buffer.asLongBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                }
+                case FLOAT32 -> {
+                    float[] data = getFloatData();
+                    if (startFlatIndex < 0 || endFlatIndex > data.length) {
+                        throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
+                    }
+                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Float.BYTES);
+                    if (buffer == null) {
+                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
+                    }
+                    buffer.asFloatBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                }
+                case FLOAT64 -> {
+                    double[] data = getDoubleData();
+                    if (startFlatIndex < 0 || endFlatIndex > data.length) {
+                        throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
+                    }
+                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Double.BYTES);
+                    if (buffer == null) {
+                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
+                    }
+                    buffer.asDoubleBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                }
+                case BOOLEAN -> {
+                    BitSet data = getBooleanData();
+                    int nBytes = (nBits + 7) / 8;
+                    buffer = JEmalloc.je_malloc(nBytes);
+                    if (buffer == null) {
+                        throw new OutOfMemoryError("Could not allocate " + nBytes + " bytes");
+                    }
+                    for (int i = 0; i < nBits; i++) {
+                        int byteIndex = i / 8;
+                        int bitIndex = i % 8;
+                        if (data.get(i)) {
+                            buffer.put(byteIndex, (byte) (buffer.get(byteIndex) | (1 << bitIndex)));
+                        }
+                    }
+                }
+                default -> throw new UnsupportedOperationException("Unsupported data type " + dataType);
             }
-            for (long i = 0; i < nStartingDimensions; i++) {
-                sb.append("[");
-            }
-            switch (iterator.getDataType()) {
-                case INT8 -> sb.append(iterator.getByte());
-                case INT16 -> sb.append(iterator.getShort());
-                case INT32 -> sb.append(iterator.getInt());
-                case INT64 -> sb.append(iterator.getLong());
-                case FLOAT32 -> sb.append(formatFloat(iterator.getFloat()));
-                case FLOAT64 -> sb.append(formatFloat(iterator.getDouble()));
-                case BOOLEAN -> sb.append(iterator.getBoolean());
-            }
-            for (long i = 0; i < nEndingDimensions; i++) {
-                sb.append("]");
-            }
-            nElementsInLine++;
-            iterator.moveNext();
-            if (!iterator.hasNext()) {
-                continue;
-            }
-            sb.append(",");
-            if (nEndingDimensions > 0 && nElementsInLine >= 15) {
-                sb.append("\n");
-                isNewLine = true;
-                nElementsInLine = 0;
-            } else {
-                sb.append(" ");
-                isNewLine = false;
-            }
+            buffer.flip();
+            return buffer;
         }
-        sb.append(")");
-        return sb.toString();
     }
 
     @Override
-    public @NotNull
-    ITensorIterator iterator() {
+    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer() {
+        long nElements = getNumberOfElements();
+        if (nElements > Integer.MAX_VALUE) {
+            throw new UnsupportedOperationException("JvmTensors cannot have more than Integer.MAX_VALUE elements");
+        }
+        return Pair.of(this.dataContainer.getAsDirectBuffer(0, Math.toIntExact(nElements)), true);
+    }
+
+
+    @Override
+    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
+        long nElements = getNumberOfElements();
+        if (startFlatIndex < 0 || endFlatIndex > nElements) {
+            throw new IndexOutOfBoundsException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (data container length " + nElements + ")");
+        }
+        if (startFlatIndex >= endFlatIndex) {
+            throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
+        }
+        if (startFlatIndex > Integer.MAX_VALUE || endFlatIndex > Integer.MAX_VALUE) {
+            throw new UnsupportedOperationException("JvmTensors cannot have more than Integer.MAX_VALUE elements");
+        }
+        return Pair.of(this.dataContainer.getAsDirectBuffer(Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex)), true);
+    }
+
+    @Override
+    public @NotNull ITensorIterator iterator() {
         return new DefaultTensorIterator(this);
     }
 

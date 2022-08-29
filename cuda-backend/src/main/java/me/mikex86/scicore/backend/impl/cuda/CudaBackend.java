@@ -5,20 +5,21 @@ import jcuda.driver.CUdevice;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
+import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryManager;
+import me.mikex86.scicore.backend.impl.cuda.op.CudaMatmulOp;
 import me.mikex86.scicore.op.IOperation;
 import me.mikex86.scicore.op.OperationType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
 import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR;
 import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR;
 import static jcuda.driver.JCudaDriver.*;
+import static jcuda.jcublas.JCublas.cublasInit;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 
 public class CudaBackend extends AbstractSciCoreBackend {
@@ -28,6 +29,13 @@ public class CudaBackend extends AbstractSciCoreBackend {
 
     @NotNull
     private final Map<OperationType, IOperation> operationTable = new HashMap<>();
+
+    {
+        operationTable.put(OperationType.MATMUL, new CudaMatmulOp(this));
+    }
+
+    @NotNull
+    private final CudaMemoryManager memoryManager = new CudaMemoryManager();
 
     /**
      * Device handle for the main CUDA device used.
@@ -87,9 +95,17 @@ public class CudaBackend extends AbstractSciCoreBackend {
         LOGGER.debug("Using device " + maxComputeCapabilityDeviceOrdinal);
         mainDevice = maxComputeCapabilityDevice;
 
-        CUcontext ctx = new CUcontext();
-        cuCheck(cuCtxCreate(ctx, 0, mainDevice));
-        ctxHandle = ctx;
+        // Create context
+        {
+            CUcontext ctx = new CUcontext();
+            cuCheck(cuCtxCreate(ctx, 0, mainDevice));
+            ctxHandle = ctx;
+        }
+
+        {
+            // Init cuBLAS
+            cuCheck(cublasInit());
+        }
     }
 
     @Override
@@ -100,5 +116,15 @@ public class CudaBackend extends AbstractSciCoreBackend {
     @Override
     protected @NotNull Map<OperationType, IOperation> getOperationTable() {
         return this.operationTable;
+    }
+
+    @NotNull
+    public CUcontext getCtxHandle() {
+        return ctxHandle;
+    }
+
+    @NotNull
+    public CudaMemoryManager getMemoryManager() {
+        return memoryManager;
     }
 }
