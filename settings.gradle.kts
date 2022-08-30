@@ -1,4 +1,9 @@
+@file:Suppress("INACCESSIBLE_TYPE")
+import org.gradle.internal.os.OperatingSystem;
+
 rootProject.name = "scicore"
 include("matplotlib")
-include("cuda-backend")
+if (OperatingSystem.current() != OperatingSystem.MAC_OS) {
+    include("cuda-backend")
+}
 include("core")

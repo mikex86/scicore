@@ -67,7 +67,7 @@ public class Linear implements IModule {
         return weights;
     }
 
-    @NotNull
+    @Nullable
     public ITensor getBias() {
         return bias;
     }
