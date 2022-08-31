@@ -124,11 +124,11 @@ public class ShapeUtils {
     /**
      * Increments an n-dimensional index constrained by a specific shape.
      *
-     * @param shape the shape to constrain the index to
      * @param index the index to increment (will be modified in place)
+     * @param shape the shape to constrain the index to
      * @return the true if the index was incremented, false if the index was already at the last element of the shape
      */
-    public static boolean incrementIndex(long @NotNull [] shape, long @NotNull [] index) {
+    public static boolean incrementIndex(long @NotNull [] index, long @NotNull [] shape) {
         for (int dim = index.length - 1; dim >= 0; dim--) {
             if (index[dim] < shape[dim] - 1) {
                 index[dim]++;
@@ -303,4 +303,61 @@ public class ShapeUtils {
         }
         return 0;
     }
+
+
+
+    /**
+     * Reduces the shape of the tensor by removing the dimension specified by the specified dimension index,
+     * or reducing it to a single scalar at this dimension if keepDimensions is true.
+     * @param srcShape the shape to reduce
+     * @param dimension the dimension index that should be reduced in the output shape. If -1, all dimensions are reduced.
+     * @param keepDimensions whether to keep a single scalar at the reduced dimension
+     * @return the reduced shape
+     */
+    public static long[] getReducedShape(long[] srcShape, int dimension, boolean keepDimensions) {
+        long[] outputShape;
+        if (dimension == -1) {
+            if (keepDimensions) {
+                outputShape = new long[srcShape.length];
+            } else {
+                outputShape = new long[0];
+            }
+            Arrays.fill(outputShape, 1);
+        } else {
+            if (dimension < 0 || dimension >= srcShape.length) {
+                throw new IllegalArgumentException("Dimension out of bounds: " + dimension);
+            }
+            outputShape = new long[srcShape.length - (keepDimensions ? 0 : 1)];
+            reduceShape(srcShape, outputShape, dimension, keepDimensions);
+        }
+        return outputShape;
+    }
+
+
+    /**
+     * Reduces the shape and writes the result to the output shape, which must be of the correct size according to shape.length and keepDimensions.
+     * If keepDimensions is true, the length of the output shape must be shape.length, otherwise it must be shape.length - 1.
+     * @param shape the shape to reduce
+     * @param outputShape the output shape
+     * @param dimension the dimension index that should be reduced in the output shape
+     * @param keepDimensions whether to keep a single scalar at the reduced dimension
+     */
+    public static void reduceShape(long[] shape, long[] outputShape, int dimension, boolean keepDimensions) {
+        for (int i = 0; i < shape.length; i++) {
+            long dimSize = shape[i];
+            if (keepDimensions) {
+                if (i == dimension) {
+                    dimSize = 1;
+                }
+                outputShape[i] = dimSize;
+            } else {
+                if (i < dimension) {
+                    outputShape[i] = dimSize;
+                } else if (i > dimension) {
+                    outputShape[i - 1] = dimSize;
+                }
+            }
+        }
+    }
+
 }

@@ -12,8 +12,6 @@ import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-
 public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Integer, Boolean> {
 
     @NotNull
@@ -37,7 +35,7 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
         DataType dataType = tensor.getDataType();
         long[] shape = tensor.getShape();
         if (dimension == -1) {
-            long[] outputShape = getOutputShape(shape, dimension, keepDimensions);
+            long[] outputShape = ShapeUtils.getReducedShape(shape, dimension, keepDimensions);
 
             ITensor result = backend.createTensor(dataType, outputShape);
             long numElements = ShapeUtils.getNumElements(shape);
@@ -60,7 +58,7 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
             throw new IllegalArgumentException("Dimension out of bounds: " + dimension);
         }
         long[] reducedShape = new long[shape.length - (keepDimensions ? 0 : 1)];
-        reduceShape(shape, reducedShape, dimension, keepDimensions);
+        ShapeUtils.reduceShape(shape, reducedShape, dimension, keepDimensions);
 
         ITensor result = backend.createTensor(dataType, reducedShape);
 
@@ -74,7 +72,6 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
                     completeIndex[dimension] = i;
                     sum += tensor.getAsDouble(completeIndex);
                 }
-
                 result.setByDouble(sum, reducedIndex);
             } else {
                 long sum = 0;
@@ -86,10 +83,10 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
 
                 result.setLong(sum, reducedIndex);
             }
-            if (!ShapeUtils.incrementIndex(reducedShape, reducedIndex)) {
+            if (!ShapeUtils.incrementIndex(reducedIndex, reducedShape)) {
                 break;
             }
-            if (!ShapeUtils.incrementIndex(shape, completeIndex)) {
+            if (!ShapeUtils.incrementIndex(completeIndex, shape)) {
                 break;
             }
         }
@@ -103,7 +100,7 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
         Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
         DataType dataType = tensor.getDataType();
         long[] shape = tensor.getShape();
-        long[] outputShape = getOutputShape(shape, dimension, keepDimensions);
+        long[] outputShape = ShapeUtils.getReducedShape(shape, dimension, keepDimensions);
         return new LazyTensor(backend, outputShape, dataType, () -> perform(ctx, tensor, dimension, keepDimensions));
     }
 
@@ -119,44 +116,6 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
 
             node.accumulateGradient(gradients);
         }
-    }
-
-    private static void reduceShape(long[] shape, long[] outputShape, Integer dimension, Boolean keepDimensions) {
-        for (int i = 0; i < shape.length; i++) {
-            long dimSize = shape[i];
-            if (keepDimensions) {
-                if (i == dimension) {
-                    dimSize = 1;
-                }
-                outputShape[i] = dimSize;
-            } else {
-                if (i < dimension) {
-                    outputShape[i] = dimSize;
-                } else if (i > dimension) {
-                    outputShape[i - 1] = dimSize;
-                }
-            }
-        }
-    }
-
-
-    private static long[] getOutputShape(long[] srcShape, int dimension, boolean keepDimensions) {
-        long[] outputShape;
-        if (dimension == -1) {
-            if (keepDimensions) {
-                outputShape = new long[srcShape.length];
-            } else {
-                outputShape = new long[0];
-            }
-            Arrays.fill(outputShape, 1);
-        } else {
-            if (dimension < 0 || dimension >= srcShape.length) {
-                throw new IllegalArgumentException("Dimension out of bounds: " + dimension);
-            }
-            outputShape = new long[srcShape.length - (keepDimensions ? 0 : 1)];
-            reduceShape(srcShape, outputShape, dimension, keepDimensions);
-        }
-        return outputShape;
     }
 
     @Override

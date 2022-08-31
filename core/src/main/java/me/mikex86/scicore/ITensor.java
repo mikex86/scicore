@@ -610,6 +610,8 @@ public interface ITensor extends IValue {
 
     @NotNull ITensor sigmoid();
 
+    @NotNull ITensor argmax(int dimension);
+
     /**
      * @return a direct byte buffer containing the tensor's data and a boolean indicating whether the buffer needs to be freed via JEmalloc.je_free(buffer).
      */

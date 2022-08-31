@@ -4,16 +4,18 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 public class DefaultTensorIterator implements ITensorIterator {
-
+    @NotNull
     private final ITensor tensor;
     private long flatIndex = 0;
     private final long @NotNull [] shape;
+    private final long @NotNull [] strides;
     private final long nElements;
 
     public DefaultTensorIterator(ITensor tensor) {
         this.tensor = tensor;
         this.shape = tensor.getShape();
         this.nElements = ShapeUtils.getNumElements(shape);
+        this.strides = ShapeUtils.makeStrides(shape);
     }
 
     @Override

@@ -72,13 +72,13 @@ public class ApproxNonlinearFuncTrainingTest {
 
     @Test
     void testNonLinearFunc() {
-        int nSteps = 2000;
+        int nSteps = 2_000;
         float[] losses = new float[nSteps];
         BobNet bobNet = new BobNet();
         int batchSize = 32;
 
         DatasetIterator dataIt = getData(batchSize);
-        IOptimizer optimizer = new Sgd(sciCore, 0.5f, bobNet.parameters(), true, 0.999999999f);
+        IOptimizer optimizer = new Sgd(sciCore, 0.5f, bobNet.parameters(), true, 1e-6f);
         for (int step = 0; step < nSteps; step++) {
             sciCore.getBackend().getOperationRecorder().resetRecording();
             Pair<ITensor, ITensor> next = dataIt.next();

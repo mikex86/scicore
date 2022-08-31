@@ -139,7 +139,7 @@ class ShapeUtilsTest {
     @MethodSource("incrementIndexData")
     void incrementIndex(long[] shape, long[] prevIndex, long[] expectedNextIndex) {
         long[] index = Arrays.copyOf(prevIndex, prevIndex.length);
-        ShapeUtils.incrementIndex(shape, index);
+        ShapeUtils.incrementIndex(index, shape);
         assertArrayEquals(expectedNextIndex, index);
     }
 

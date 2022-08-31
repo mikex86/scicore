@@ -23,7 +23,7 @@ public class Sgd implements IOptimizer {
     private final float learningRateDecayFactor;
 
     public Sgd(@NotNull ISciCore sciCore, float learningRate, @NotNull List<ITensor> parameter) {
-        this(sciCore, learningRate, parameter, true, 0.0f);
+        this(sciCore, learningRate, parameter, false, 0.0f);
     }
 
     public Sgd(@NotNull ISciCore sciCore, float learningRate, @NotNull List<ITensor> parameters, boolean adaptiveLearningRate, float learningRateDecayFactor) {
@@ -43,7 +43,7 @@ public class Sgd implements IOptimizer {
             ITensor gradient = graph.getGradient(parameter).orElseThrow(() -> new IllegalStateException("No gradient for parameter " + parameter));
             float learningRate = this.learningRate;
             if (adaptiveLearningRate) {
-                learningRate *= (Math.pow(learningRateDecayFactor, nSteps));
+                learningRate *= (Math.pow(1f - learningRateDecayFactor, nSteps));
             }
             ITensor newParameter = parameter.minus(gradient.multiply(learningRate)); // TODO: in-place operation
             parameter.setContents(newParameter);

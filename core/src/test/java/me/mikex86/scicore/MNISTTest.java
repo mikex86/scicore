@@ -3,6 +3,7 @@ package me.mikex86.scicore;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
+import me.mikex86.scicore.nn.layers.ReLU;
 import me.mikex86.scicore.nn.layers.Sigmoid;
 import me.mikex86.scicore.nn.layers.Softmax;
 import me.mikex86.scicore.nn.optim.IOptimizer;
@@ -24,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -68,12 +70,12 @@ public class MNISTTest {
         }
     }
 
-    private static final int BATCH_SIZE = 32;
+    private static final int BATCH_SIZE = 128;
 
     private static class MnistNet implements IModule {
 
         @NotNull
-        private final Sigmoid act;
+        private final ReLU act;
 
         @NotNull
         private final Linear f1, f2;
@@ -82,7 +84,7 @@ public class MNISTTest {
         private final Softmax f3;
 
         public MnistNet(@NotNull ISciCore sciCore) {
-            this.act = new Sigmoid();
+            this.act = new ReLU();
             this.f1 = new Linear(sciCore, DataType.FLOAT32, 28 * 28, 128, true);
             this.f2 = new Linear(sciCore, DataType.FLOAT32, 128, 10, true);
             this.f3 = new Softmax(sciCore, 1);
@@ -90,11 +92,11 @@ public class MNISTTest {
 
         @Override
         public @NotNull ITensor forward(@NotNull ITensor input) {
-            ITensor h1 = f1.forward(input);
-            ITensor h2 = act.forward(h1);
-            ITensor h3 = f2.forward(h2);
-            ITensor h4 = act.forward(h3);
-            return f3.forward(h4);
+            ITensor h = f1.forward(input);
+            h = act.forward(h);
+            h = f2.forward(h);
+            h = act.forward(h);
+            return f3.forward(h);
         }
 
         @Override
@@ -105,20 +107,21 @@ public class MNISTTest {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        // TODO: THIS DOESN'T LEARN... YIKES
         downloadMnist();
 
         ISciCore sciCore = new SciCore();
         sciCore.setBackend(ISciCore.BackendType.JVM);
+        sciCore.seed(123);
 
         DatasetIterator trainIt = new DatasetIterator(BATCH_SIZE, new MnistDataSupplier(sciCore, true));
-        DatasetIterator testIt = new DatasetIterator(BATCH_SIZE, new MnistDataSupplier(sciCore, false));
+        DatasetIterator testIt = new DatasetIterator(1, new MnistDataSupplier(sciCore, false));
 
         MnistNet bobNet = new MnistNet(sciCore);
 
-        long nSteps = 1000;
+        long nSteps = 33_000_000;
+        int nTestSteps = 100;
 
-        float learningRate = 0.1f;
+        float learningRate = 0.0001f;
 
         IOptimizer optimizer = new Sgd(sciCore, learningRate, bobNet.parameters());
 
@@ -137,7 +140,27 @@ public class MNISTTest {
                 optimizer.step(graph);
 
                 progressBar.step();
-                progressBar.setExtraMessage(String.format("Loss: %.3f", loss.elementAsFloat()));
+                if (step % 100 == 0) {
+                    long nCorrect = 0;
+                    for (int i = 0; i < nTestSteps; i++) {
+                        Pair<ITensor, ITensor> testBatch = testIt.next();
+                        ITensor testX = testBatch.getFirst();
+                        ITensor testY = testBatch.getSecond();
+                        ITensor testY_pred = bobNet.forward(testX);
+                        ITensor pred_argMax = testY_pred.argmax(1);
+                        ITensor testY_argMax = testY.argmax(1);
+                        boolean correct = pred_argMax.equals(testY_argMax);
+                        if (correct) {
+                            nCorrect++;
+                        }
+                    }
+                    double accuracy = 0.0;
+                    if (nCorrect > 0) {
+                        accuracy = nCorrect / (double) nTestSteps;
+                    }
+                    System.out.println("\nStep: " + step + " Loss: " + loss.elementAsFloat() + " Accuracy: " + accuracy);
+                }
+                progressBar.setExtraMessage(String.format(Locale.US, "loss: %.5f", loss.elementAsFloat()));
             }
         }
         System.out.println("Done training");

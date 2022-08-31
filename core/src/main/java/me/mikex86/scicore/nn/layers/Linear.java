@@ -28,9 +28,9 @@ public class Linear implements IModule {
         this.sciCore = sciCore;
         this.inputSize = inputSize;
         float k = (float) (1.0 / Math.sqrt(inputSize));
-        this.weights = sciCore.uniform(dataType, outputSize, inputSize).multiply(k).minus(-k);
+        this.weights = sciCore.uniform(dataType, outputSize, inputSize).multiply(2 * k).minus(k);
         if (useBias) {
-            this.bias = sciCore.uniform(dataType, outputSize).multiply(k).minus(-k);
+            this.bias = sciCore.uniform(dataType, outputSize).multiply(2 * k).minus(k);
         } else {
             this.bias = null;
         }

@@ -577,6 +577,18 @@ public abstract class AbstractTensor implements ITensor {
         return operationRecorder.recordOperation(OperationType.SIGMOID, this);
     }
 
+    @Override
+    public @NotNull ITensor argmax(int dimension) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor dimensionScalar;
+        {
+            dimensionScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            dimensionScalar.setIntFlat(dimension, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.ARGMAX, this, dimensionScalar);
+    }
+
     protected void validateDataType(@NotNull DataType requestedDataType) {
         DataType ownDataType = getDataType();
         if (requestedDataType != ownDataType) {
@@ -625,7 +637,7 @@ public abstract class AbstractTensor implements ITensor {
         } else {
             for (long i = 0; i < nElements; i++) {
                 long a = getAsLongFlat(i);
-                long b = getAsLongFlat(i);
+                long b = other.getAsLongFlat(i);
                 if (a != b) {
                     return false;
                 }

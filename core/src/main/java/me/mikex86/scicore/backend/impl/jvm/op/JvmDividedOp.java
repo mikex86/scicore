@@ -66,7 +66,7 @@ public class JvmDividedOp implements IDifferentiableBinaryOperation {
                 long aDivB = aV / bV;
                 result.setByLongFlat(aDivB, outputIndexFlat);
             }
-        } while (ShapeUtils.incrementIndex(finalShape, outputIndex));
+        } while (ShapeUtils.incrementIndex(outputIndex, finalShape));
         return result;
     }
 
