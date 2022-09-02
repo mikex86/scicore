@@ -1,10 +1,10 @@
 package me.mikex86.scicore;
 
+import com.google.gson.*;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
 import me.mikex86.scicore.nn.layers.ReLU;
-import me.mikex86.scicore.nn.layers.Sigmoid;
 import me.mikex86.scicore.nn.layers.Softmax;
 import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
@@ -14,19 +14,20 @@ import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import me.tongfei.progressbar.ProgressBarStyle;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.FloatBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Random;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -70,7 +71,7 @@ public class MNISTTest {
         }
     }
 
-    private static final int BATCH_SIZE = 128;
+    private static final int BATCH_SIZE = 64;
 
     private static class MnistNet implements IModule {
 
@@ -95,7 +96,6 @@ public class MNISTTest {
             ITensor h = f1.forward(input);
             h = act.forward(h);
             h = f2.forward(h);
-            h = act.forward(h);
             return f3.forward(h);
         }
 
@@ -113,17 +113,17 @@ public class MNISTTest {
         sciCore.setBackend(ISciCore.BackendType.JVM);
         sciCore.seed(123);
 
-        DatasetIterator trainIt = new DatasetIterator(BATCH_SIZE, new MnistDataSupplier(sciCore, true));
-        DatasetIterator testIt = new DatasetIterator(1, new MnistDataSupplier(sciCore, false));
+        DatasetIterator trainIt = new DatasetIterator(BATCH_SIZE, new MnistDataSupplier(sciCore, true, false));
+        DatasetIterator testIt = new DatasetIterator(1, new MnistDataSupplier(sciCore, false, false));
 
-        MnistNet bobNet = new MnistNet(sciCore);
+        MnistNet net = new MnistNet(sciCore);
 
-        long nSteps = 33_000_000;
-        int nTestSteps = 100;
+        long nSteps = 33_000;
+        int nTestSteps = 10000;
 
-        float learningRate = 0.0001f;
+        float learningRate = 0.01f;
 
-        IOptimizer optimizer = new Sgd(sciCore, learningRate, bobNet.parameters());
+        IOptimizer optimizer = new Sgd(sciCore, learningRate, net.parameters());
 
         try (ProgressBar progressBar = new ProgressBar("Training", nSteps)) {
             for (long step = 0; step < nSteps; step++) {
@@ -132,21 +132,22 @@ public class MNISTTest {
                 ITensor X = batch.getFirst();
                 ITensor Y = batch.getSecond();
 
-                ITensor Y_pred = bobNet.forward(X);
+                ITensor Y_pred = net.forward(X);
                 // TODO: INVESTIGATE WHY THIS IS NOT WORKING WHEN USING reduceSum(1)
-                ITensor loss = (Y_pred.minus(Y)).pow(2).reduceSum(0).reduceSum(0).divided(X.getShape()[0]);
+                ITensor loss = (Y_pred.minus(Y)).pow(2).reduceSum(-1).divided(Y_pred.getNumberOfElements());
 
                 IGraph graph = sciCore.getGraphUpTo(loss);
                 optimizer.step(graph);
 
                 progressBar.step();
-                if (step % 100 == 0) {
+                if (step % 2000 == 0) {
                     long nCorrect = 0;
                     for (int i = 0; i < nTestSteps; i++) {
+                        sciCore.getBackend().getOperationRecorder().resetRecording();
                         Pair<ITensor, ITensor> testBatch = testIt.next();
                         ITensor testX = testBatch.getFirst();
                         ITensor testY = testBatch.getSecond();
-                        ITensor testY_pred = bobNet.forward(testX);
+                        ITensor testY_pred = net.forward(testX);
                         ITensor pred_argMax = testY_pred.argmax(1);
                         ITensor testY_argMax = testY.argmax(1);
                         boolean correct = pred_argMax.equals(testY_argMax);
@@ -181,10 +182,15 @@ public class MNISTTest {
         @NotNull
         private final List<Pair<ITensor, ITensor>> samples;
 
+        @Nullable
         private final Random random;
 
-        private MnistDataSupplier(@NotNull ISciCore sciCore, boolean train) {
-            this.random = new Random();
+        private MnistDataSupplier(@NotNull ISciCore sciCore, boolean train, boolean shuffle) {
+            if (shuffle) {
+                this.random = new Random(123);
+            } else {
+                this.random = null;
+            }
 
             Path imagesPath = MNIST_DIR.resolve(train ? "train-images-idx3-ubyte" : "t10k-images-idx3-ubyte");
             Path labelsPath = MNIST_DIR.resolve(train ? "train-labels-idx1-ubyte" : "t10k-labels-idx1-ubyte");
@@ -230,9 +236,16 @@ public class MNISTTest {
 
         }
 
+        private int idx = 0;
+
         @NotNull
         public Pair<ITensor, ITensor> get() {
-            return samples.get(random.nextInt(samples.size()));
+            Random random = this.random;
+            if (random != null) {
+                return samples.get(random.nextInt(samples.size()));
+            } else {
+                return samples.get(idx++ % samples.size());
+            }
         }
     }
 }

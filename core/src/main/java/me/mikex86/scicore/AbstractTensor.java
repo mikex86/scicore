@@ -678,6 +678,7 @@ public abstract class AbstractTensor implements ITensor {
                 isNewLine = true;
             }
         }
+        sb.ensureCapacity(sb.length() + (int) nElements * 10);
         ITensorIterator iterator = iterator();
         int nElementsInLine = 0;
         while (iterator.hasNext()) {

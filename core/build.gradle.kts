@@ -46,6 +46,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testImplementation("me.tongfei:progressbar:0.9.3")
+    testImplementation("com.google.code.gson:gson:2.9.1")
 
     // LWJGL
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
