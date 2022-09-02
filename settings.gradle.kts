@@ -7,3 +7,4 @@ if (OperatingSystem.current() != OperatingSystem.MAC_OS) {
     include("cuda-backend")
 }
 include("core")
+include("genericcpu-backend")

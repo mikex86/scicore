@@ -45,6 +45,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+
     testImplementation("me.tongfei:progressbar:0.9.3")
     testImplementation("com.google.code.gson:gson:2.9.1")
 

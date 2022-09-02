@@ -122,6 +122,25 @@ public interface ISciCore {
             }
         },
 
+        GENERIC_CPU {
+            @NotNull
+            @Override
+            public ISciCoreBackend newInstance() {
+                Class<?> cudaBackendClass;
+                try {
+                    cudaBackendClass = Class.forName("me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend");
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException("Generic-CPU backend not found. Make sure you have the Generic-CPU backend dependency in your classpath.");
+                }
+                try {
+                    return (ISciCoreBackend) cudaBackendClass.getConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException |
+                         NoSuchMethodException | InvocationTargetException e) {
+                    throw new RuntimeException("Could not instantiate generic-cpu backend.", e);
+                }
+            }
+        },
+
         CUDA {
             @Override
             public @NotNull ISciCoreBackend newInstance() {

@@ -1,3 +1,5 @@
+import org.gradle.internal.os.OperatingSystem
+
 plugins {
     id("java")
 }
@@ -36,35 +38,6 @@ val lwjglNatives = Pair(
     }
 }
 
-val jcudaVersion = "11.7.0"
-
-val jcudaoOsString =
-    if (System.getProperty("java.vendor") == "The Android Project") "android" else System.getProperty("os.name")
-        .toLowerCase().let {
-        when {
-            it.startsWith("windows") -> "windows"
-            it.startsWith("mac os") -> "apple"
-            it.startsWith("linux") -> "linux"
-            it.startsWith("sun") -> "sun"
-            else -> "unknown"
-        }
-    }
-val jcudaArchString = System.getProperty("os.arch").toLowerCase().let {
-    when {
-        it == "i386" || it == "x86" || it == "i686" -> "x86"
-        it.startsWith("amd64") || it.startsWith("x86_64") -> "x86_64"
-        it.startsWith("arm64") -> "arm64"
-        it.startsWith("arm") -> "arm"
-        it == "ppc" || it == "powerpc" -> "ppc"
-        it.startsWith("ppc") -> "ppc_64"
-        it.startsWith("sparc") -> "sparc"
-        it.startsWith("mips64") -> "mips64"
-        it.startsWith("mips") -> "mips"
-        it.contains("risc") -> "risc"
-        else -> "unknown"
-    }
-}
-
 dependencies {
     implementation("org.jetbrains:annotations:23.0.0")
 
@@ -73,25 +46,7 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 
     implementation("org.apache.logging.log4j:log4j-core:2.18.0")
-
     implementation(project(":core"))
-
-    // CUDA
-    implementation(group = "org.jcuda", name = "jcuda", version = jcudaVersion) {
-        isTransitive = false
-    }
-    implementation(group = "org.jcuda", name = "jcublas", version = jcudaVersion) {
-        isTransitive = false
-    }
-    implementation(group = "org.jcuda", name = "jcudnn", version = jcudaVersion) {
-        isTransitive = false
-    }
-
-    // CUDA natives
-    val classifier = "$jcudaoOsString-$jcudaArchString"
-    implementation(group = "org.jcuda", name = "jcuda-natives", classifier = classifier, version = jcudaVersion)
-    implementation(group = "org.jcuda", name = "jcublas-natives", classifier = classifier, version = jcudaVersion)
-    implementation(group = "org.jcuda", name = "jcudnn-natives", classifier = classifier, version = jcudaVersion)
 
     // LWJGL
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
@@ -105,4 +60,46 @@ dependencies {
 
 tasks.getByName<Test>("test") {
     useJUnitPlatform()
+}
+
+tasks.create("buildNativeLib") {
+    // Builds generic-cpu native library
+    // builds the cmake project in ./cmake
+    // and copies the resulting .so/.dll/.dylib to ./src/main/resources
+    // so that it can be loaded by the JVM
+    doLast {
+        // build cmake in ./cmake/build
+        val cmakeBuildDir = File("./cmake/build")
+        cmakeBuildDir.mkdirs()
+
+        // run cmake
+        exec {
+            commandLine = listOf("cmake", "..", "-DCMAKE_BUILD_TYPE=Release")
+            workingDir = cmakeBuildDir
+        }
+
+        // build library with all threads
+        exec {
+            commandLine = listOf("cmake", "--build", ".", "--config", "Release", "--", "-j", "3")
+            workingDir = cmakeBuildDir
+        }
+
+        // copy libscicore_genericcpu.dll/.so/.dylib to resources
+        copy {
+            @Suppress("INACCESSIBLE_TYPE")
+            val libName = when (OperatingSystem.current()) {
+                OperatingSystem.WINDOWS -> "scicore_genericcpu.dll"
+                OperatingSystem.MAC_OS -> "libscicore_genericcpu.dylib"
+                OperatingSystem.LINUX -> "libscicore_genericcpu.so"
+                else -> throw Error("Unsupported platform")
+            }
+            from(cmakeBuildDir.resolve(libName))
+            into("src/main/resources")
+        }
+    }
+}
+
+// java build depends on native build
+tasks.getByName<JavaCompile>("compileJava") {
+    dependsOn("buildNativeLib")
 }
