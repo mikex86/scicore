@@ -2,25 +2,28 @@ package me.mikex86.scicore.op;
 
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.backend.OperationRegistry;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
 public class GraphRecorder implements IGraphRecorder {
 
+
     @NotNull
-    private final ISciCoreBackend sciCoreBackend;
+    private final OperationRegistry operationRegistry;
 
     @NotNull
     private final WeakHashMap<Object, Graph.IGraphNode> valueToNodeMap = new WeakHashMap<>(); // We don't compare based on tensor contents. That's stupid
 
-    public GraphRecorder(@NotNull ISciCoreBackend sciCoreBackend) {
-        this.sciCoreBackend = sciCoreBackend;
+    public GraphRecorder(@NotNull OperationRegistry operationRegistry) {
+        this.operationRegistry = operationRegistry;
     }
 
     @Override
     public @NotNull ITensor recordOperation(@NotNull OperationType operationType, @NotNull ITensor... inputs) {
-        IOperation operation = sciCoreBackend.getOperation(operationType);
+        IOperation operation = operationRegistry.getOperation(operationType);
+
         List<Graph.IGraphNode> inputNodes = new ArrayList<>();
         for (ITensor input : inputs) {
             Graph.IGraphNode node = valueToNodeMap.get(input);
@@ -34,7 +37,7 @@ public class GraphRecorder implements IGraphRecorder {
             inputNodes.add(node);
         }
         Graph.IOperationContext ctx = new Graph.OperationContext();
-        Graph.OperationGraphNode operationGraphNode = new Graph.OperationGraphNode(operationType, inputNodes, ctx);
+        Graph.OperationGraphNode operationGraphNode = new Graph.OperationGraphNode(operationType, inputNodes, ctx, operationRegistry);
         ITensor lazyResult = operation.performLazily(ctx, List.of(inputs));
         operationGraphNode.setOutput(lazyResult);
         valueToNodeMap.put(lazyResult, operationGraphNode);
@@ -42,12 +45,12 @@ public class GraphRecorder implements IGraphRecorder {
     }
 
     @Override
-    public @NotNull Graph getGraphFor(@NotNull ITensor rootTensor) {
+    public @NotNull Graph getGraphFor(@NotNull ISciCoreBackend backend, @NotNull ITensor rootTensor) {
         Graph.IGraphNode rootNode = valueToNodeMap.get(rootTensor);
         if (rootNode == null) {
             throw new IllegalStateException("Tensor was not recorded as an output computed by this graph: " + rootTensor);
         }
-        return new Graph(rootNode.deepCopy(), sciCoreBackend);
+        return new Graph(rootNode.deepCopy(), backend, operationRegistry);
     }
 
     @Override

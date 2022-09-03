@@ -68,11 +68,10 @@ tasks.create("buildNativeLib") {
     // and copies the resulting .so/.dll/.dylib to ./src/main/resources
     // so that it can be loaded by the JVM
     doLast {
-        // build cmake in ./cmake/build
-        val cmakeBuildDir = File("./cmake/build")
-        cmakeBuildDir.mkdirs()
+        val cmakeBuildDir = file("./cmake/build")
+        mkdir(cmakeBuildDir)
 
-        // run cmake
+        // run cmake with ninja as generator
         exec {
             commandLine = listOf("cmake", "..", "-DCMAKE_BUILD_TYPE=Release")
             workingDir = cmakeBuildDir
@@ -80,7 +79,7 @@ tasks.create("buildNativeLib") {
 
         // build library with all threads
         exec {
-            commandLine = listOf("cmake", "--build", ".", "--config", "Release", "--", "-j", "3")
+            commandLine = listOf("cmake", "--build", ".", "--config", "Release")
             workingDir = cmakeBuildDir
         }
 
@@ -88,12 +87,19 @@ tasks.create("buildNativeLib") {
         copy {
             @Suppress("INACCESSIBLE_TYPE")
             val libName = when (OperatingSystem.current()) {
-                OperatingSystem.WINDOWS -> "scicore_genericcpu.dll"
-                OperatingSystem.MAC_OS -> "libscicore_genericcpu.dylib"
-                OperatingSystem.LINUX -> "libscicore_genericcpu.so"
+                OperatingSystem.WINDOWS -> "**/scicore_genericcpu.dll"
+                OperatingSystem.MAC_OS -> "**/libscicore_genericcpu.dylib"
+                OperatingSystem.LINUX -> "**/libscicore_genericcpu.so"
                 else -> throw Error("Unsupported platform")
             }
-            from(cmakeBuildDir.resolve(libName))
+            // resolve recursively to find the file
+            val libFile = fileTree(cmakeBuildDir).matching {
+                include(libName)
+            }.singleFile
+
+            from(libFile)
+
+            mkdir("src/main/resources")
             into("src/main/resources")
         }
     }

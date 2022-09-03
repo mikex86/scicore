@@ -6,7 +6,6 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.*;
-import java.util.Arrays;
 
 public class View extends AbstractTensor {
 

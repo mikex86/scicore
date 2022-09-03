@@ -2,6 +2,7 @@ package me.mikex86.scicore.backend.impl.jvm;
 
 import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.op.IGraphRecorder;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -9,11 +10,8 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.*;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Objects;
-
-import static me.mikex86.scicore.utils.StringUtils.formatFloat;
 
 public class JvmTensor extends AbstractTensor implements ITensor {
 
@@ -33,7 +31,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
         this.backend = backend;
     }
 
-    JvmTensor(@NotNull ISciCoreBackend backend, @NotNull JvmTensorDataContainer dataContainer, long @NotNull [] shape) {
+    JvmTensor(@NotNull ISciCoreBackend backend,@NotNull JvmTensorDataContainer dataContainer, long @NotNull [] shape) {
         this.numElements = ShapeUtils.getNumElements(shape);
         this.backend = backend;
         this.dataContainer = dataContainer;

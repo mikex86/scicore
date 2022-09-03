@@ -1,9 +1,10 @@
 #include "matmul.h"
 
-// if macOS, use Accelerate framework
 #ifdef __APPLE__
+// if macOS, use Accelerate framework
 #include <Accelerate/Accelerate.h>
 #else
+#include <cblas.h>
 #endif
 
 #define OP_NONE 0
@@ -16,7 +17,7 @@
 #define DATA_TYPE_FLOAT32 5
 #define DATA_TYPE_FLOAT64 6
 
-void
+JNIEXPORT void JNICALL
 Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_matmul(JNIEnv *, jclass, jint transa, jint transb,
                                                                      jint m, jint n, jint k,
                                                                      jlong alphaPtr,

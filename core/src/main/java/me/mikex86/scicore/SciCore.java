@@ -1,7 +1,12 @@
 package me.mikex86.scicore;
 
+import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.backend.OperationRegistry;
+import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
+import me.mikex86.scicore.op.GraphRecorder;
 import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.op.IGraphRecorder;
 import me.mikex86.scicore.utils.ArrayUtils;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -13,8 +18,20 @@ import java.util.Random;
 
 public class SciCore implements ISciCore {
 
+
     @Nullable
     private ISciCoreBackend sciCoreBackend = null;
+
+    @NotNull
+    private final OperationRegistry operationRegistry = new OperationRegistry();
+
+
+    @NotNull
+    private final IGraphRecorder operationRecorder = new GraphRecorder(operationRegistry);
+
+    {
+        operationRegistry.pushLayer(new JvmBackend()); // JVM backend is always there as a fallback, if operations are not implemented in higher layers
+    }
 
     @NotNull
     private final Random random = new Random();
@@ -80,7 +97,15 @@ public class SciCore implements ISciCore {
         if (sciCoreBackend != null) {
             throw new IllegalStateException("SciCore backend already initialized!");
         }
+        if (backendType == BackendType.JVM) {
+            return; // we already have the base JVM layer in #jvmBackend
+        }
         sciCoreBackend = backendType.newInstance();
+        if (!(sciCoreBackend instanceof AbstractSciCoreBackend abstractSciCoreBackend)) {
+            throw new IllegalArgumentException("Backend does not implement AbstractSciCoreBackend: " + sciCoreBackend.getClass().getName());
+        }
+        abstractSciCoreBackend.setOperationRecorder(operationRecorder);
+        operationRegistry.pushLayer(sciCoreBackend);
     }
 
     @Override
@@ -440,7 +465,7 @@ public class SciCore implements ISciCore {
     @Override
     @NotNull
     public IGraph getGraphUpTo(@NotNull ITensor tensor) {
-        return getBackend().getOperationRecorder().getGraphFor(tensor);
+        return operationRecorder.getGraphFor(getBackend(), tensor);
     }
 
     @Override

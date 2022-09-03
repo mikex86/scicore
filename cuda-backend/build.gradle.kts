@@ -71,9 +71,12 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testImplementation("me.tongfei:progressbar:0.9.3")
 
+    // Log4j
     implementation("org.apache.logging.log4j:log4j-core:2.18.0")
 
+    // Core module
     implementation(project(":core"))
 
     // CUDA

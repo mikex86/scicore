@@ -120,11 +120,12 @@ public class CudaTensor extends AbstractTensor {
 
     @Override
     public @NotNull ITensor copy() {
-        return null;
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
     public void setContents(@NotNull ITensor tensor) {
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
@@ -164,42 +165,42 @@ public class CudaTensor extends AbstractTensor {
 
     @Override
     public void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView) {
-
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
     public void fill(byte value) {
-
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
     public void fill(short value) {
-
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
     public void fill(int value) {
-
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
     public void fill(long value) {
-
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
     public void fill(float value) {
-
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
     public void fill(double value) {
-
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
     public void fill(boolean value) {
-
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override

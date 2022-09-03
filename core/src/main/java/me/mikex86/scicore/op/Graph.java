@@ -2,6 +2,7 @@ package me.mikex86.scicore.op;
 
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.backend.OperationRegistry;
 import me.mikex86.scicore.utils.OptionalUtils;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
@@ -18,9 +19,13 @@ public class Graph implements IGraph {
     @NotNull
     private final ISciCoreBackend backend;
 
-    public Graph(@NotNull IGraphNode outputNode, @NotNull ISciCoreBackend backend) {
+    @NotNull
+    private final OperationRegistry operationRegistry;
+
+    public Graph(@NotNull IGraphNode outputNode, @NotNull ISciCoreBackend backend, @NotNull OperationRegistry operationRegistry) {
         this.outputNode = outputNode;
         this.backend = backend;
+        this.operationRegistry = operationRegistry;
     }
 
     @Override
@@ -261,10 +266,14 @@ public class Graph implements IGraph {
         @NotNull
         private final IOperationContext operationContext;
 
-        public OperationGraphNode(@NotNull OperationType operationType, @NotNull List<@NotNull IGraphNode> inputs, @NotNull IOperationContext operationContext) {
+        @NotNull
+        private final OperationRegistry operationRegistry;
+
+        public OperationGraphNode(@NotNull OperationType operationType, @NotNull List<@NotNull IGraphNode> inputs, @NotNull IOperationContext operationContext, @NotNull OperationRegistry operationRegistry) {
             this.operationType = operationType;
             this.inputs = inputs;
             this.operationContext = operationContext;
+            this.operationRegistry = operationRegistry;
 
             for (IGraphNode input : inputs) {
                 input.addDownstreamNode(this); // indicate usage of input node by this node
@@ -300,9 +309,8 @@ public class Graph implements IGraph {
 
         @Override
         public void computeGradients() {
-            ISciCoreBackend backend = getValue().getSciCoreBackend();
             OperationType operationType = getOperationType();
-            IOperation operation = backend.getOperation(operationType);
+            IOperation operation = operationRegistry.getOperation(operationType);
             if (!(operation instanceof IDifferentiableOperation differentiableOperation)) {
                 throw new IllegalStateException("Operation is not differentiable: " + operationType);
             }
@@ -323,7 +331,7 @@ public class Graph implements IGraph {
 
             // Using this constructor correctly adds this node as a downstream of each of the input nodes,
             // thus ensuring the references remain inside the scope of the deep copy.
-            OperationGraphNode node = new OperationGraphNode(operationType, inputs, operationContext);
+            OperationGraphNode node = new OperationGraphNode(operationType, inputs, operationContext, operationRegistry);
             node.setOutput(getOutput());
             return node;
         }

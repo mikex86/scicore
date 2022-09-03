@@ -49,6 +49,8 @@ dependencies {
     testImplementation("me.tongfei:progressbar:0.9.3")
     testImplementation("com.google.code.gson:gson:2.9.1")
 
+    implementation("org.apache.logging.log4j:log4j-core:2.18.0")
+
     // LWJGL
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
     implementation("org.lwjgl", "lwjgl")

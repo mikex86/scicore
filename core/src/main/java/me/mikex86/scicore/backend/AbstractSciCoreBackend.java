@@ -1,31 +1,34 @@
 package me.mikex86.scicore.backend;
 
-import me.mikex86.scicore.op.GraphRecorder;
 import me.mikex86.scicore.op.IGraphRecorder;
 import me.mikex86.scicore.op.IOperation;
 import me.mikex86.scicore.op.OperationType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 public abstract class AbstractSciCoreBackend implements ISciCoreBackend {
 
-    @NotNull
-    private final IGraphRecorder operationRecorder = new GraphRecorder(this);
+    @Nullable
+    private IGraphRecorder operationRecorder;
 
-    @Override
-    public @NotNull IGraphRecorder getOperationRecorder() {
-        return this.operationRecorder;
-    }
-
-    public @NotNull IOperation getOperation(@NotNull OperationType operationType) {
+    public @NotNull Optional<IOperation> getOperation(@NotNull OperationType operationType) {
         IOperation operation = getOperationTable().get(operationType);
-        if (operation == null) {
-            throw new IllegalArgumentException("Operation not implemented for JVMBackend: " + operationType);
-        }
-        return operation;
+        return Optional.ofNullable(operation);
     }
 
     @NotNull
     protected abstract Map<OperationType, IOperation> getOperationTable();
+
+    @Override
+    public @NotNull IGraphRecorder getOperationRecorder() {
+        return Objects.requireNonNull(operationRecorder, "Operation recorder not set");
+    }
+
+    public void setOperationRecorder(@Nullable IGraphRecorder operationRecorder) {
+        this.operationRecorder = operationRecorder;
+    }
 }

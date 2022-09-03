@@ -21,10 +21,8 @@ import java.nio.ByteBuffer;
 
 import static jcuda.cudaDataType.CUDA_R_32F;
 import static jcuda.cudaDataType.CUDA_R_64F;
-import static jcuda.jcublas.JCublas2.cublasGemmEx;
 import static jcuda.jcublas.JCublas2.cublasGemmEx_new;
 import static jcuda.jcublas.cublasComputeType.*;
-import static jcuda.jcublas.cublasGemmAlgo.CUBLAS_GEMM_DEFAULT;
 import static jcuda.jcublas.cublasGemmAlgo.CUBLAS_GEMM_DFALT_TENSOR_OP;
 import static jcuda.jcublas.cublasOperation.CUBLAS_OP_N;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cublasCheck;

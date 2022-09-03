@@ -1,6 +1,9 @@
-package me.mikex86.scicore;
+package me.mikex86.scicore.backend.impl.cuda;
 
-import com.google.gson.*;
+import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.ISciCore;
+import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
@@ -17,14 +20,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.FloatBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -110,7 +110,7 @@ public class MNISTTest {
         downloadMnist();
 
         ISciCore sciCore = new SciCore();
-        sciCore.setBackend(ISciCore.BackendType.JVM);
+        sciCore.setBackend(ISciCore.BackendType.CUDA);
         sciCore.seed(123);
 
         DatasetIterator trainIt = new DatasetIterator(BATCH_SIZE, new MnistDataSupplier(sciCore, true, false));

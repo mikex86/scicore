@@ -9,7 +9,6 @@ import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
-import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
 public class JvmMinusOp implements IDifferentiableBinaryOperation {

@@ -20,17 +20,6 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
 
     {
         operationTable.put(OperationType.MATMUL, new GenCPUMatMulOp(this));
-        operationTable.put(OperationType.DIVIDED, new GenCPUDividedOp(this));
-        operationTable.put(OperationType.PLUS, new GenCPUPlusOp(this));
-        operationTable.put(OperationType.MINUS, new GenCPUMinusOp(this));
-        operationTable.put(OperationType.REDUCE_SUM, new GenCPUReduceSumOp(this));
-        operationTable.put(OperationType.EXP, new GenCPUExpOp(this));
-        operationTable.put(OperationType.TRANSPOSE, new GenCPUTransposeOp(this));
-        operationTable.put(OperationType.POW, new GenCPUPowerOp(this));
-        operationTable.put(OperationType.MULTIPLY, new GenCPUMultiplyOp(this));
-        operationTable.put(OperationType.RELU, new GenCPUReluOp(this));
-        operationTable.put(OperationType.SIGMOID, new GenCPUSigmoidOp(this));
-        operationTable.put(OperationType.ARGMAX, new GenCPUArgmaxOp(this));
     }
 
     static {
