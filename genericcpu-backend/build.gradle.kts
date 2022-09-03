@@ -72,16 +72,16 @@ tasks.create("buildNativeLib") {
         mkdir(cmakeBuildDir)
 
         // run cmake with ninja as generator
-        exec {
-            commandLine = listOf("cmake", "..", "-DCMAKE_BUILD_TYPE=Release")
-            workingDir = cmakeBuildDir
-        }
-
-        // build library with all threads
-        exec {
-            commandLine = listOf("cmake", "--build", ".", "--config", "Release")
-            workingDir = cmakeBuildDir
-        }
+//        exec {
+//            commandLine = listOf("cmake", "..", "-DCMAKE_BUILD_TYPE=Release")
+//            workingDir = cmakeBuildDir
+//        }
+//
+//        // build library with all threads
+//        exec {
+//            commandLine = listOf("cmake", "--build", ".", "--config", "Release")
+//            workingDir = cmakeBuildDir
+//        }
 
         // copy libscicore_genericcpu.dll/.so/.dylib to resources
         copy {

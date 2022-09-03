@@ -5,6 +5,7 @@ import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.*;
 
@@ -165,42 +166,56 @@ public class CudaTensor extends AbstractTensor {
 
     @Override
     public void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView) {
-        throw new UnsupportedOperationException("TODO: implement");
+        // TODO: IMPLEMENT USE VIEW
+        long flatIndex = ShapeUtils.getFlatIndex(index, this.strides);
+        if (tensor instanceof CudaTensor cudaTensor) {
+            // device to device copy
+            this.dataContainer.setContents(cudaTensor.dataContainer.getDeviceMemoryHandle(), flatIndex);
+        } else {
+            // general copy
+            Pair<ByteBuffer, Boolean> directBuffer = tensor.getAsDirectBuffer();
+            ByteBuffer hostBuffer = directBuffer.getFirst();
+            boolean shouldFree = directBuffer.getSecond();
+            this.dataContainer.setContents(hostBuffer, flatIndex);
+            if (shouldFree) {
+                JEmalloc.je_free(hostBuffer);
+            }
+        }
     }
 
     @Override
     public void fill(byte value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        this.dataContainer.fill(value);
     }
 
     @Override
     public void fill(short value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        this.dataContainer.fill(value);
     }
 
     @Override
     public void fill(int value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        this.dataContainer.fill(value);
     }
 
     @Override
     public void fill(long value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        this.dataContainer.fill(value);
     }
 
     @Override
     public void fill(float value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        this.dataContainer.fill(value);
     }
 
     @Override
     public void fill(double value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        this.dataContainer.fill(value);
     }
 
     @Override
     public void fill(boolean value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        this.dataContainer.fill(value);
     }
 
     @Override

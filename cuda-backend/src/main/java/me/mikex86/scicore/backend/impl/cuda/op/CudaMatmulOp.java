@@ -12,6 +12,7 @@ import me.mikex86.scicore.backend.impl.cuda.memory.IMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import me.mikex86.scicore.utils.ViewUtils;
 import org.jetbrains.annotations.NotNull;
@@ -25,6 +26,7 @@ import static jcuda.jcublas.JCublas2.cublasGemmEx_new;
 import static jcuda.jcublas.cublasComputeType.*;
 import static jcuda.jcublas.cublasGemmAlgo.CUBLAS_GEMM_DFALT_TENSOR_OP;
 import static jcuda.jcublas.cublasOperation.CUBLAS_OP_N;
+import static jcuda.jcublas.cublasOperation.CUBLAS_OP_T;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cublasCheck;
 
 public class CudaMatmulOp implements IDifferentiableBinaryOperation {
@@ -45,7 +47,8 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         Validator.assertTrue(shape[1] == otherShape[0], "Shape mismatch. A.shape[1] != B.shape[0]");
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
-        long[] resultShape = new long[]{shape[0], otherShape[1]};
+
+        long[] resultShape = ShapeUtils.matrixMultiplyShape(shape, otherShape);
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
@@ -68,6 +71,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         // TODO: HANDLE OTHER DATA TYPES
 
         IMemoryHandle aDevicePtr, bDevicePtr;
+        boolean aIsCopy = false, bIsCopy = false;
         {
             if (a instanceof CudaTensor aCudaTensor) {
                 aDevicePtr = aCudaTensor.getDataContainer().getDeviceMemoryHandle();
@@ -76,6 +80,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                 aDevicePtr = aCudaTensor.getDataContainer().getDeviceMemoryHandle().offset(offset);
             } else {
                 aDevicePtr = backend.getMemoryManager().copyToDevice(a);
+                aIsCopy = true;
             }
 
             if (b instanceof CudaTensor bCudaTensor) {
@@ -85,6 +90,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                 bDevicePtr = bCudaTensor.getDataContainer().getDeviceMemoryHandle().offset(offset);
             } else {
                 bDevicePtr = backend.getMemoryManager().copyToDevice(b);
+                bIsCopy = true;
             }
         }
 
@@ -194,13 +200,11 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
             throw new RuntimeException("Unsupported data type combination");
         }
 
-        if (aDevicePtr.canFree()) {
+        if (aIsCopy)
             aDevicePtr.free();
-        }
 
-        if (bDevicePtr.canFree()) {
+        if (bIsCopy)
             bDevicePtr.free();
-        }
 
         return result;
     }
@@ -214,7 +218,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         Validator.assertTrue(shape[1] == otherShape[0], "Shape mismatch. A.shape[1] != B.shape[0]");
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
-        long[] resultShape = new long[]{shape[0], otherShape[1]};
+        long[] resultShape = ShapeUtils.matrixMultiplyShape(shape, otherShape);
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
@@ -223,7 +227,175 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
 
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
+        // See: https://cs231n.github.io/optimization-2/#mat (Stanford University CS231n: Deep Learning for Computer Vision)
+        // Notation: WX = D
 
+        // W = a, X = b, D = result
+        // L = loss function (or more generally, the root of the graph that we derive in respect to)
+        // G = upstream gradient = dL/dD
+
+        // .T = transpose
+        // @ = matrix multiplication
+
+        // Gradients:
+        // dL/dW = G @ X.T
+        // dL/dX = W.T @ G
+
+        if (a.requiresGradients()) {
+            ITensor dLdW;
+            if (upstreamGradient instanceof CudaTensor upstreamTensor && b.getValue() instanceof CudaTensor bCudaTensor) {
+                /*
+                 This is equivalent to:
+                  dLdW = upstreamGradient.matmul(b.getValue().transpose());
+                 */
+
+                CudaMemoryHandle upstreamDevPtr = upstreamTensor.getDataContainer().getDeviceMemoryHandle();
+                CudaMemoryHandle bDevPtr = bCudaTensor.getDataContainer().getDeviceMemoryHandle();
+                DataType resultDataType = DataType.getLarger(upstreamGradient.getDataType(), bCudaTensor.getDataType());
+                long[] resultShape = ShapeUtils.matrixMultiplyShape(upstreamGradient.getShape(), bCudaTensor.getShape());
+                dLdW = this.backend.createTensor(resultDataType, resultShape);
+                CudaMemoryHandle dLdWDevPtr = ((CudaTensor) dLdW).getDataContainer().getDeviceMemoryHandle();
+                int m = Math.toIntExact(resultShape[0]);
+                int n = Math.toIntExact(resultShape[1]);
+                int k = Math.toIntExact(upstreamGradient.getShape()[1]);
+
+                // Swap upstreamGradient and b because cublasSgemm expects column-major matrices, and we have row-major.
+                if (upstreamGradient.getDataType() == DataType.FLOAT32 && bCudaTensor.getDataType() == DataType.FLOAT32) {
+                    // float32 by float32 multiplication
+                    ByteBuffer factor = JEmalloc.je_malloc(4);
+                    if (factor == null)
+                        throw new RuntimeException("Could not allocate memory for alpha");
+                    factor.putFloat(1.0f);
+                    cublasCheck(cublasGemmEx_new(
+                            CudaBackend.getCublasHandle(),
+                            CUBLAS_OP_T, CUBLAS_OP_N,
+                            n, m, k,
+                            Pointer.to(factor),
+                            bDevPtr.getPointer(),
+                            CUDA_R_32F,
+                            k,
+                            upstreamDevPtr.getPointer(),
+                            CUDA_R_32F,
+                            m,
+                            Pointer.to(factor),
+                            dLdWDevPtr.getPointer(),
+                            CUDA_R_32F,
+                            n,
+                            CUBLAS_COMPUTE_32F,
+                            CUBLAS_GEMM_DFALT_TENSOR_OP
+                    ));
+                    JEmalloc.je_free(factor);
+                } else if (upstreamGradient.getDataType() == DataType.FLOAT64 && bCudaTensor.getDataType() == DataType.FLOAT64) {
+                    // float64 by float64 multiplication
+                    ByteBuffer factor = JEmalloc.je_malloc(8);
+                    if (factor == null)
+                        throw new RuntimeException("Could not allocate memory for alpha");
+                    factor.putDouble(1.0);
+                    cublasCheck(cublasGemmEx_new(
+                            CudaBackend.getCublasHandle(),
+                            CUBLAS_OP_T, CUBLAS_OP_N,
+                            n, m, k,
+                            Pointer.to(factor),
+                            bDevPtr.getPointer(),
+                            CUDA_R_64F,
+                            k,
+                            upstreamDevPtr.getPointer(),
+                            CUDA_R_64F,
+                            m,
+                            Pointer.to(factor),
+                            dLdWDevPtr.getPointer(),
+                            CUDA_R_64F,
+                            n,
+                            CUBLAS_COMPUTE_64F,
+                            CUBLAS_GEMM_DFALT_TENSOR_OP
+                    ));
+                    JEmalloc.je_free(factor);
+                } else {
+                    throw new UnsupportedOperationException("TODO: Unsupported data type combination");
+                }
+            } else {
+                dLdW = upstreamGradient.matmul(b.getValue().transpose());
+            }
+            a.accumulateGradient(dLdW);
+        }
+
+        if (b.requiresGradients()) {
+            ITensor dLdX;
+            if (upstreamGradient instanceof CudaTensor upstreamTensor && a.getValue() instanceof CudaTensor aCudaTensor) {
+                /*
+                 This is equivalent to:
+                  dLdX = a.getValue().transpose().matmul(upstreamGradient);
+                 */
+                CudaMemoryHandle upstreamDevPtr = upstreamTensor.getDataContainer().getDeviceMemoryHandle();
+                CudaMemoryHandle aDevPtr = aCudaTensor.getDataContainer().getDeviceMemoryHandle();
+                DataType resultDataType = DataType.getLarger(upstreamGradient.getDataType(), aCudaTensor.getDataType());
+                long[] resultShape = ShapeUtils.matrixMultiplyShape(aCudaTensor.getShape(), upstreamGradient.getShape());
+
+                dLdX = this.backend.createTensor(resultDataType, resultShape);
+                CudaMemoryHandle dLdXDevPtr = ((CudaTensor) dLdX).getDataContainer().getDeviceMemoryHandle();
+                int m = Math.toIntExact(resultShape[0]);
+                int n = Math.toIntExact(resultShape[1]);
+                int k = Math.toIntExact(aCudaTensor.getShape()[1]);
+
+                // Swap upstreamGradient and a because cublasSgemm expects column-major matrices, and we have row-major.
+                if (upstreamGradient.getDataType() == DataType.FLOAT32 && aCudaTensor.getDataType() == DataType.FLOAT32) {
+                    // float32 by float32 multiplication
+                    ByteBuffer factor = JEmalloc.je_malloc(4);
+                    if (factor == null)
+                        throw new RuntimeException("Could not allocate memory for alpha");
+                    factor.putFloat(1.0f);
+                    cublasCheck(cublasGemmEx_new(
+                            CudaBackend.getCublasHandle(),
+                            CUBLAS_OP_N, CUBLAS_OP_T,
+                            n, m, k,
+                            Pointer.to(factor),
+                            upstreamDevPtr.getPointer(),
+                            CUDA_R_32F,
+                            k,
+                            aDevPtr.getPointer(),
+                            CUDA_R_32F,
+                            m,
+                            Pointer.to(factor),
+                            dLdXDevPtr.getPointer(),
+                            CUDA_R_32F,
+                            n,
+                            CUBLAS_COMPUTE_32F,
+                            CUBLAS_GEMM_DFALT_TENSOR_OP
+                    ));
+                    JEmalloc.je_free(factor);
+                } else if (upstreamGradient.getDataType() == DataType.FLOAT64 && aCudaTensor.getDataType() == DataType.FLOAT64) {
+                    // float64 by float64 multiplication
+                    ByteBuffer factor = JEmalloc.je_malloc(8);
+                    if (factor == null)
+                        throw new RuntimeException("Could not allocate memory for alpha");
+                    factor.putDouble(1.0);
+                    cublasCheck(cublasGemmEx_new(
+                            CudaBackend.getCublasHandle(),
+                            CUBLAS_OP_N, CUBLAS_OP_T,
+                            n, m, k,
+                            Pointer.to(factor),
+                            upstreamDevPtr.getPointer(),
+                            CUDA_R_64F,
+                            k,
+                            aDevPtr.getPointer(),
+                            CUDA_R_64F,
+                            m,
+                            Pointer.to(factor),
+                            dLdXDevPtr.getPointer(),
+                            CUDA_R_64F,
+                            n,
+                            CUBLAS_COMPUTE_64F,
+                            CUBLAS_GEMM_DFALT_TENSOR_OP
+                    ));
+                    JEmalloc.je_free(factor);
+                } else {
+                    throw new UnsupportedOperationException("TODO: Unsupported data type combination");
+                }
+            } else {
+                dLdX = a.getValue().transpose().matmul(upstreamGradient);
+            }
+            b.accumulateGradient(dLdX);
+        }
     }
 
 }

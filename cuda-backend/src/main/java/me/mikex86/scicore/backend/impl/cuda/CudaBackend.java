@@ -8,6 +8,7 @@ import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryManager;
 import me.mikex86.scicore.backend.impl.cuda.op.CudaMatmulOp;
+import me.mikex86.scicore.backend.impl.cuda.op.CudaMultiplyOp;
 import me.mikex86.scicore.op.IOperation;
 import me.mikex86.scicore.op.OperationType;
 import org.apache.logging.log4j.LogManager;
@@ -34,6 +35,7 @@ public class CudaBackend extends AbstractSciCoreBackend {
 
     {
         operationTable.put(OperationType.MATMUL, new CudaMatmulOp(this));
+        operationTable.put(OperationType.MULTIPLY, new CudaMultiplyOp(this));
     }
 
     @NotNull

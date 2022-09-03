@@ -360,4 +360,13 @@ public class ShapeUtils {
         }
     }
 
+    public static long[] matrixMultiplyShape(long[] shapeA, long[] shapeB) {
+        if (shapeA.length != 2 || shapeB.length != 2) {
+            throw new IllegalArgumentException("Matrix multiply only works on 2D matrices");
+        }
+        if (shapeA[1] != shapeB[0]) {
+            throw new IllegalArgumentException("Matrix multiply only works on matrices where the number of columns of the first matrix equals the number of rows of the second matrix");
+        }
+        return new long[]{shapeA[0], shapeB[1]};
+    }
 }

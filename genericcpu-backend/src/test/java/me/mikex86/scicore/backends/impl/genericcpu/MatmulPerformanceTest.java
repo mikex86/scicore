@@ -36,10 +36,12 @@ public class MatmulPerformanceTest {
                     MemoryUtil.memAddress(c), DATA_TYPE_FLOAT32, size);
             long end = System.nanoTime();
             long nFlops = 2L * size * size * size;
-            System.out.println("Time: " + (end - start) / 1e9 + " s, " + nFlops / (end - start) + " GFLOPS");
+            double tflops = (nFlops / ((end - start) / 1e9)) / 1e12;
+            System.out.println("cuSgemm: " + tflops + " TFLOPS");
             JEmalloc.je_free(a);
             JEmalloc.je_free(b);
             JEmalloc.je_free(c);
         }
+        JEmalloc.nje_free(alphaPtr);
     }
 }

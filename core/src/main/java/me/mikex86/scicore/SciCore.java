@@ -18,9 +18,11 @@ import java.util.Random;
 
 public class SciCore implements ISciCore {
 
+    @NotNull
+    private final JvmBackend jvmBackend = new JvmBackend();
 
-    @Nullable
-    private ISciCoreBackend sciCoreBackend = null;
+    @NotNull
+    private ISciCoreBackend sciCoreBackend = jvmBackend;
 
     @NotNull
     private final OperationRegistry operationRegistry = new OperationRegistry();
@@ -30,7 +32,8 @@ public class SciCore implements ISciCore {
     private final IGraphRecorder operationRecorder = new GraphRecorder(operationRegistry);
 
     {
-        operationRegistry.pushLayer(new JvmBackend()); // JVM backend is always there as a fallback, if operations are not implemented in higher layers
+        jvmBackend.setOperationRecorder(operationRecorder);
+        operationRegistry.pushLayer(jvmBackend); // JVM backend is always there as a fallback, if operations are not implemented in higher layers
     }
 
     @NotNull
@@ -94,7 +97,7 @@ public class SciCore implements ISciCore {
 
     @Override
     public void setBackend(@NotNull BackendType backendType) {
-        if (sciCoreBackend != null) {
+        if (!(sciCoreBackend instanceof JvmBackend)) {
             throw new IllegalStateException("SciCore backend already initialized!");
         }
         if (backendType == BackendType.JVM) {
@@ -111,7 +114,7 @@ public class SciCore implements ISciCore {
     @Override
     @NotNull
     public ISciCoreBackend getBackend() {
-        return Objects.requireNonNull(sciCoreBackend, "Backend has not yet been configured");
+        return sciCoreBackend;
     }
 
     @Override

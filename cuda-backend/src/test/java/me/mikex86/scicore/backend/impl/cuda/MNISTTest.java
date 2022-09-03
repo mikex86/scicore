@@ -142,27 +142,27 @@ public class MNISTTest {
                 optimizer.step(graph);
 
                 progressBar.step();
-                if (step % 2000 == 0) {
-                    long nCorrect = 0;
-                    for (int i = 0; i < nTestSteps; i++) {
-                        sciCore.getBackend().getOperationRecorder().resetRecording();
-                        Pair<ITensor, ITensor> testBatch = testIt.next();
-                        ITensor testX = testBatch.getFirst();
-                        ITensor testY = testBatch.getSecond();
-                        ITensor testY_pred = net.forward(testX);
-                        ITensor pred_argMax = testY_pred.argmax(1);
-                        ITensor testY_argMax = testY.argmax(1);
-                        boolean correct = pred_argMax.equals(testY_argMax);
-                        if (correct) {
-                            nCorrect++;
-                        }
-                    }
-                    double accuracy = 0.0;
-                    if (nCorrect > 0) {
-                        accuracy = nCorrect / (double) nTestSteps;
-                    }
-                    System.out.println("\nStep: " + step + " Loss: " + loss.elementAsFloat() + " Accuracy: " + accuracy);
-                }
+//                if (step % 2000 == 0) {
+//                    long nCorrect = 0;
+//                    for (int i = 0; i < nTestSteps; i++) {
+//                        sciCore.getBackend().getOperationRecorder().resetRecording();
+//                        Pair<ITensor, ITensor> testBatch = testIt.next();
+//                        ITensor testX = testBatch.getFirst();
+//                        ITensor testY = testBatch.getSecond();
+//                        ITensor testY_pred = net.forward(testX);
+//                        ITensor pred_argMax = testY_pred.argmax(1);
+//                        ITensor testY_argMax = testY.argmax(1);
+//                        boolean correct = pred_argMax.equals(testY_argMax);
+//                        if (correct) {
+//                            nCorrect++;
+//                        }
+//                    }
+//                    double accuracy = 0.0;
+//                    if (nCorrect > 0) {
+//                        accuracy = nCorrect / (double) nTestSteps;
+//                    }
+//                    System.out.println("\nStep: " + step + " Loss: " + loss.elementAsFloat() + " Accuracy: " + accuracy);
+//                }
                 progressBar.setExtraMessage(String.format(Locale.US, "loss: %.5f", loss.elementAsFloat()));
             }
         }

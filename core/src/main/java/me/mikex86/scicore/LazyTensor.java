@@ -274,4 +274,9 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
         }
         return result().equals(obj);
     }
+
+    @Override
+    public <T extends ITensor> @Nullable T getIfIsType(@NotNull Class<T> typeClass) {
+        return result().getIfIsType(typeClass);
+    }
 }

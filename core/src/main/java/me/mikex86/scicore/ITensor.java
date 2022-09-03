@@ -5,6 +5,7 @@ import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.*;
 
@@ -619,10 +620,13 @@ public interface ITensor extends IValue {
 
     /**
      * @param startFlatIndex the flat index of the first element to retrieve
-     * @param endFlatIndex the flat index of the last element to retrieve (exclusive)
-     *
+     * @param endFlatIndex   the flat index of the last element to retrieve (exclusive)
      * @return a direct byte buffer containing the tensor's data in the specified interval and a boolean indicating whether the buffer needs to be freed via JEmalloc.je_free(buffer).
      */
     @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex);
+
+    default <T extends ITensor> @Nullable T getIfIsType(@NotNull Class<T> typeClass) {
+        return typeClass.isInstance(this) ? typeClass.cast(this) : null;
+    }
 
 }

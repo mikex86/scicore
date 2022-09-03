@@ -8,6 +8,7 @@ import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,7 +30,7 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         Validator.assertTrue(shape[1] == otherShape[0], "Shape mismatch. A.shape[1] != B.shape[0]");
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
-        long[] resultShape = new long[]{shape[0], otherShape[1]};
+        long[] resultShape = ShapeUtils.matrixMultiplyShape(shape, otherShape);
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
@@ -86,7 +87,7 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         Validator.assertTrue(shape[1] == otherShape[0], "Shape mismatch. A.shape[1] != B.shape[0]");
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
-        long[] resultShape = new long[]{shape[0], otherShape[1]};
+        long[] resultShape = ShapeUtils.matrixMultiplyShape(shape, otherShape);
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);

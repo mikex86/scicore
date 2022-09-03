@@ -146,6 +146,40 @@ public class CudaDataContainer {
         }
     }
 
+    public void setContents(@NotNull ByteBuffer hostBuffer, long flatStartIndex) {
+        if (hostBuffer.remaining() > deviceMemoryHandle.getSize() - flatStartIndex) {
+            throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
+        }
+        if (flatStartIndex < 0 || flatStartIndex >= deviceMemoryHandle.getSize()) {
+            throw new IllegalArgumentException("Cannot set contents of buffer, flatStartIndex is out of bounds");
+        }
+        int size = hostBuffer.remaining();
+        if (hostBuffer.isDirect()) {
+            Pointer hostPtr = Pointer.to(hostBuffer);
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer().withByteOffset(flatStartIndex), hostPtr, size));
+        } else {
+            // to direct buffer
+            ByteBuffer directBuffer = JEmalloc.je_malloc(size);
+            if (directBuffer == null) {
+                throw new OutOfMemoryError("Could not allocate direct buffer (" + size + " bytes)");
+            }
+            directBuffer.put(hostBuffer);
+            directBuffer.flip();
+
+            Pointer hostPtr = Pointer.to(directBuffer);
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer().withByteOffset(flatStartIndex), hostPtr, size));
+
+            JEmalloc.je_free(directBuffer);
+        }
+    }
+
+    public void setContents(@NotNull CudaMemoryHandle srcDevicePtr, long startFlatIndex) {
+        if (startFlatIndex < 0 || startFlatIndex >= deviceMemoryHandle.getSize()) {
+            throw new IllegalArgumentException("Cannot set contents of buffer, startFlatIndex is out of bounds");
+        }
+        cuCheck(cuMemcpyDtoD(deviceMemoryHandle.getPointer().withByteOffset(startFlatIndex), srcDevicePtr.getPointer(), srcDevicePtr.getSize()));
+    }
+
     public void setContents(@NotNull ShortBuffer buffer) {
         if (buffer.remaining() > deviceMemoryHandle.getSize() / Short.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
@@ -333,4 +367,33 @@ public class CudaDataContainer {
     public CudaMemoryHandle getDeviceMemoryHandle() {
         return deviceMemoryHandle;
     }
+
+    public void fill(byte value) {
+        cuCheck(cuMemsetD8(deviceMemoryHandle.getPointer(), value, deviceMemoryHandle.getSize()));
+    }
+
+    public void fill(short value) {
+        cuCheck(cuMemsetD16(deviceMemoryHandle.getPointer(), value, deviceMemoryHandle.getSize() / Short.BYTES));
+    }
+
+    public void fill(int value) {
+        cuCheck(cuMemsetD32(deviceMemoryHandle.getPointer(), value, deviceMemoryHandle.getSize() / Integer.BYTES));
+    }
+
+    public void fill(long value) {
+        throw new UnsupportedOperationException("TODO: implement");
+    }
+
+    public void fill(float value) {
+        cuCheck(cuMemsetD32(deviceMemoryHandle.getPointer(), Float.floatToRawIntBits(value), deviceMemoryHandle.getSize() / Float.BYTES));
+    }
+
+    public void fill(double value) {
+        throw new UnsupportedOperationException("TODO: implement");
+    }
+
+    public void fill(boolean value) {
+        cuCheck(cuMemsetD8(deviceMemoryHandle.getPointer(), (byte) (value ? 0xFF : 0x00), deviceMemoryHandle.getSize()));
+    }
+
 }
