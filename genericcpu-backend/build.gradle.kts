@@ -72,40 +72,31 @@ tasks.create("buildNativeLib") {
         mkdir(cmakeBuildDir)
 
         // run cmake with ninja as generator
-//        exec {
-//            commandLine = listOf("cmake", "..", "-DCMAKE_BUILD_TYPE=Release")
-//            workingDir = cmakeBuildDir
-//        }
-//
-//        // build library with all threads
-//        exec {
-//            commandLine = listOf("cmake", "--build", ".", "--config", "Release")
-//            workingDir = cmakeBuildDir
-//        }
+        exec {
+            commandLine = listOf("cmake", "..", "-DCMAKE_BUILD_TYPE=Release")
+            workingDir = cmakeBuildDir
+        }
 
-        // copy libscicore_genericcpu.dll/.so/.dylib to resources
-        copy {
-            @Suppress("INACCESSIBLE_TYPE")
-            val libName = when (OperatingSystem.current()) {
-                OperatingSystem.WINDOWS -> "**/scicore_genericcpu.dll"
-                OperatingSystem.MAC_OS -> "**/libscicore_genericcpu.dylib"
-                OperatingSystem.LINUX -> "**/libscicore_genericcpu.so"
-                else -> throw Error("Unsupported platform")
-            }
-            // resolve recursively to find the file
-            val libFile = fileTree(cmakeBuildDir).matching {
-                include(libName)
-            }.singleFile
-
-            from(libFile)
-
-            mkdir("src/main/resources")
-            into("src/main/resources")
+        // build library with all threads
+        exec {
+            commandLine = listOf("cmake", "--build", ".", "--config", "Release")
+            workingDir = cmakeBuildDir
         }
     }
 }
 
-// java build depends on native build
-tasks.getByName<JavaCompile>("compileJava") {
+tasks.processResources {
     dependsOn("buildNativeLib")
+
+    // copy libscicore_genericcpu.dll/.so/.dylib to resources
+    @Suppress("INACCESSIBLE_TYPE")
+    val libName = when (OperatingSystem.current()) {
+        OperatingSystem.WINDOWS -> "**/scicore_genericcpu.dll"
+        OperatingSystem.MAC_OS -> "**/libscicore_genericcpu.dylib"
+        OperatingSystem.LINUX -> "**/libscicore_genericcpu.so"
+        else -> throw Error("Unsupported platform")
+    }
+    from(fileTree("cmake/build").include(libName)) {
+        into(".")
+    }
 }
