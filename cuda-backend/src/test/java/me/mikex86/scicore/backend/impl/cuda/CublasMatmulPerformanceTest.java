@@ -99,7 +99,7 @@ public class CublasMatmulPerformanceTest {
             ));
             long end = System.nanoTime();
             double tflops = ((2 * m * n * k) / ((end - start) / 1e9)) / 1e12;
-            System.out.println("cuSgemm took: " + (end - start) / 1e6 + "ms, " + tflops + "TFLOPS");
+            System.out.println("cuSgemm took: " + (end - start) / 1e6 + "ms, " + tflops + " TFLOPS");
 
             cuMemFree(aDevPtr);
             cuMemFree(bDevPtr);
