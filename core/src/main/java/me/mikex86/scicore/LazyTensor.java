@@ -1,6 +1,7 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.IDerivedTensor;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
@@ -244,13 +245,13 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     }
 
     @Override
-    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer() {
-        return result().getAsDirectBuffer();
+    public @NotNull DirectMemoryHandle getContentsAsDirectMemory() {
+        return result().getContentsAsDirectMemory();
     }
 
     @Override
-    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
-        return result().getAsDirectBuffer(startFlatIndex, endFlatIndex);
+    public @NotNull DirectMemoryHandle getContentsAsDirectMemory(long startFlatIndex, long endFlatIndex) {
+        return result().getContentsAsDirectMemory(startFlatIndex, endFlatIndex);
     }
 
     @Override

@@ -5,11 +5,10 @@ import me.mikex86.scicore.backend.impl.genericcpu.GenCPUTensor;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
-import me.mikex86.scicore.backend.impl.genericcpu.jni.MatmulJNI;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
-import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -46,6 +45,8 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         GenCPUTensor result = new GenCPUTensor(this.backend, resultDataType, resultShape);
 
         long m = shape[0], n = otherShape[1], k = shape[1];
+
+        // TODO: THIS IS AWFUL CODE
 
         try (MemoryStack stack = MemoryStack.stackPush()) {
             Buffer factor;
@@ -96,53 +97,29 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                     throw new IllegalArgumentException("Unsupported data type: " + ownDataType);
             }
 
-            long aPtr, bPtr;
-            boolean isACopy = false, isBCopy = false;
-            {
-                GenCPUTensor aTensor = a.getIfIsType(GenCPUTensor.class);
-                GenCPUTensor bTensor = b.getIfIsType(GenCPUTensor.class);
-                // handle a tensor
-                {
-                    if (aTensor != null) {
-                        aPtr = aTensor.getDataContainer().getDataPtr();
-                    } else {
-                        Pair<ByteBuffer, Boolean> pair = a.getAsDirectBuffer();
-                        aPtr = MemoryUtil.memAddress(pair.getFirst());
-                        isACopy = pair.getSecond();
-                    }
-                }
-                // handle b tensor
-                {
-                    if (bTensor != null) {
-                        bPtr = bTensor.getDataContainer().getDataPtr();
-                    } else {
-                        Pair<ByteBuffer, Boolean> pair = b.getAsDirectBuffer();
-                        bPtr = MemoryUtil.memAddress(pair.getFirst());
-                        isBCopy = pair.getSecond();
-                    }
-                }
-            }
+            DirectMemoryHandle aPtr = backend.getDirectMemoryManager().ensureDirect(a);
+            DirectMemoryHandle bPtr = backend.getDirectMemoryManager().ensureDirect(b);
 
             matmul(OP_NONE, OP_NONE,
                     m, n, k,
                     MemoryUtil.memAddress(factor),
-                    aPtr,
+                    aPtr.getNativePtr(),
                     getMatmulDataType(ownDataType),
                     m,
                     MemoryUtil.memAddress(factor),
-                    bPtr,
+                    bPtr.getNativePtr(),
                     getMatmulDataType(otherDataType),
                     k,
-                    result.getDataContainer().getDataPtr(),
+                    result.getDataContainer().getMemoryHandle().getNativePtr(),
                     getMatmulDataType(resultDataType),
                     m
             );
 
-            if (isACopy) {
-                backend.getMemoryManager().free(aPtr);
+            if (aPtr.canFree()) {
+                aPtr.free();
             }
-            if (isBCopy) {
-                backend.getMemoryManager().free(bPtr);
+            if (bPtr.canFree()) {
+                bPtr.free();
             }
         }
         return result;

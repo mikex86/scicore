@@ -1,131 +1,59 @@
 package me.mikex86.scicore.memory;
 
 import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.ITensor;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.jemalloc.JEmalloc;
 
-import java.nio.*;
-
-public class DirectMemoryManager {
+public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
 
     public static final long NULL = 0;
 
-    public long alloc(long nBytes) {
+
+    @NotNull
+    public DirectMemoryHandle alloc(long nBytes) {
         long ptr = JEmalloc.nje_malloc(nBytes);
         if (ptr == NULL) {
             throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
         }
-        return ptr;
+        return new DirectMemoryHandle(this, ptr, nBytes);
     }
 
-    public long calloc(long nBytes) {
+    @NotNull
+    public DirectMemoryHandle calloc(long nBytes) {
         long ptr = JEmalloc.nje_calloc(1, nBytes);
         if (ptr == NULL) {
             throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
         }
-        return ptr;
+        return new DirectMemoryHandle(this, ptr, nBytes);
     }
 
-    public long alloc(long nElements, @NotNull DataType dataType) {
+    @NotNull
+    public DirectMemoryHandle alloc(long nElements, @NotNull DataType dataType) {
         long nBytes = dataType.getSizeOf(nElements);
         return alloc(nBytes);
     }
 
-    public long calloc(long nElements, @NotNull DataType dataType) {
+
+    @NotNull
+    public DirectMemoryHandle calloc(long nElements, @NotNull DataType dataType) {
         long nBytes = dataType.getSizeOf(nElements);
         return calloc(nBytes);
     }
 
-    @NotNull
-    public ByteBuffer allocBuffer(long nBytes) {
-        ByteBuffer buffer = JEmalloc.je_malloc(nBytes);
-        if (buffer == null) {
-            throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
+    public void free(@NotNull DirectMemoryHandle directMemoryHandle) {
+        if (directMemoryHandle.isFreed()) {
+            throw new IllegalArgumentException("Handle already freed: " + directMemoryHandle);
         }
-        return buffer;
-    }
-
-    @NotNull
-    public ByteBuffer allocBuffer(long nElements, @NotNull DataType dataType) {
-        long nBytes = dataType.getSizeOf(nElements);
-        return allocBuffer(nBytes);
-    }
-
-    @NotNull
-    public ShortBuffer allocShortBuffer(long nElements) {
-        long nBytes = nElements * Short.BYTES;
-        ByteBuffer buffer = JEmalloc.je_malloc(nBytes);
-        if (buffer == null) {
-            throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
+        if (!directMemoryHandle.canFree()) {
+            throw new IllegalArgumentException("Cannot free a sub-handle: " + directMemoryHandle);
         }
-        return buffer.asShortBuffer();
+        JEmalloc.nje_free(directMemoryHandle.getNativePtr());
+        directMemoryHandle.freed = true;
     }
 
     @NotNull
-    public IntBuffer allocIntBuffer(long nElements) {
-        long nBytes = nElements * Integer.BYTES;
-        ByteBuffer buffer = JEmalloc.je_malloc(nBytes);
-        if (buffer == null) {
-            throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
-        }
-        return buffer.asIntBuffer();
-    }
-
-    @NotNull
-    public LongBuffer allocLongBuffer(long nElements) {
-        long nBytes = nElements * Long.BYTES;
-        ByteBuffer buffer = JEmalloc.je_malloc(nBytes);
-        if (buffer == null) {
-            throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
-        }
-        return buffer.asLongBuffer();
-    }
-
-    @NotNull
-    public FloatBuffer allocFloatBuffer(long nElements) {
-        long nBytes = nElements * Float.BYTES;
-        ByteBuffer buffer = JEmalloc.je_malloc(nBytes);
-        if (buffer == null) {
-            throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
-        }
-        return buffer.asFloatBuffer();
-    }
-
-    @NotNull
-    public DoubleBuffer allocDoubleBuffer(long nElements) {
-        long nBytes = nElements * Double.BYTES;
-        ByteBuffer buffer = JEmalloc.je_malloc(nBytes);
-        if (buffer == null) {
-            throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
-        }
-        return buffer.asDoubleBuffer();
-    }
-
-    public void free(long ptr) {
-        JEmalloc.nje_free(ptr);
-    }
-
-    public void free(@NotNull ByteBuffer buffer) {
-        JEmalloc.je_free(buffer);
-    }
-
-    public void free(@NotNull ShortBuffer buffer) {
-        JEmalloc.je_free(buffer);
-    }
-
-    public void free(@NotNull IntBuffer buffer) {
-        JEmalloc.je_free(buffer);
-    }
-
-    public void free(@NotNull LongBuffer buffer) {
-        JEmalloc.je_free(buffer);
-    }
-
-    public void free(@NotNull FloatBuffer buffer) {
-        JEmalloc.je_free(buffer);
-    }
-
-    public void free(@NotNull DoubleBuffer buffer) {
-        JEmalloc.je_free(buffer);
+    public DirectMemoryHandle ensureDirect(@NotNull ITensor tensor) {
+        return tensor.getContentsAsDirectMemory();
     }
 }

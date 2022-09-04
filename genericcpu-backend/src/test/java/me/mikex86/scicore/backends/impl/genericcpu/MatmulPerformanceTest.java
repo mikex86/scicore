@@ -15,8 +15,7 @@ public class MatmulPerformanceTest {
         LibraryLoader.loadLibrary("scicore_genericcpu");
     }
 
-    @Test
-    public void testMatmulPerformance() {
+    public static void main(String[] args) {
         long alphaPtr = JEmalloc.nje_malloc(4);
         MemoryUtil.memPutFloat(alphaPtr, 1.0f);
         int size = 1024;

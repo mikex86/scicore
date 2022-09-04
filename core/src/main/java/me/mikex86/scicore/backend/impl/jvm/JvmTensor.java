@@ -2,11 +2,10 @@ package me.mikex86.scicore.backend.impl.jvm;
 
 import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.utils.Pair;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.*;
 import java.util.BitSet;
@@ -822,61 +821,54 @@ public class JvmTensor extends AbstractTensor implements ITensor {
          * @return the direct buffer with tensor contents
          */
         @NotNull
-        public ByteBuffer getAsDirectBuffer(int startFlatIndex, int endFlatIndex) {
-            ByteBuffer buffer;
+        public DirectMemoryHandle getAsDirectBuffer(int startFlatIndex, int endFlatIndex) {
+            DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(endFlatIndex - startFlatIndex, dataType);
             switch (dataType) {
                 case INT8 -> {
                     byte[] data = getByteData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Byte.BYTES);
-                    buffer.put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asByteBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case INT16 -> {
                     short[] data = getShortData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Short.BYTES);
-                    buffer.asShortBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asShortBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case INT32 -> {
                     int[] data = getIntData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Integer.BYTES);
-                    buffer.asIntBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asIntBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case INT64 -> {
                     long[] data = getLongData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Long.BYTES);
-                    buffer.asLongBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asLongBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case FLOAT32 -> {
                     float[] data = getFloatData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Float.BYTES);
-                    buffer.asFloatBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asFloatBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case FLOAT64 -> {
                     double[] data = getDoubleData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Double.BYTES);
-                    buffer.asDoubleBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asDoubleBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case BOOLEAN -> {
                     BitSet data = getBooleanData();
-                    int nBytes = (nBits + 7) / 8;
-                    buffer = backend.getDirectMemoryManager().allocBuffer(nBytes);
+                    ByteBuffer buffer = memoryHandle.asByteBuffer();
                     for (int i = 0; i < nBits; i++) {
                         int byteIndex = i / 8;
                         int bitIndex = i % 8;
@@ -887,23 +879,22 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                 }
                 default -> throw new UnsupportedOperationException("Unsupported data type " + dataType);
             }
-            buffer.flip();
-            return buffer;
+            return memoryHandle;
         }
     }
 
     @Override
-    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer() {
+    public @NotNull DirectMemoryHandle getContentsAsDirectMemory() {
         long nElements = getNumberOfElements();
         if (nElements > Integer.MAX_VALUE) {
             throw new UnsupportedOperationException("JvmTensors cannot have more than Integer.MAX_VALUE elements");
         }
-        return Pair.of(this.dataContainer.getAsDirectBuffer(0, Math.toIntExact(nElements)), true);
+        return this.dataContainer.getAsDirectBuffer(0, Math.toIntExact(nElements));
     }
 
 
     @Override
-    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
+    public @NotNull DirectMemoryHandle getContentsAsDirectMemory(long startFlatIndex, long endFlatIndex) {
         long nElements = getNumberOfElements();
         if (startFlatIndex < 0 || endFlatIndex > nElements) {
             throw new IndexOutOfBoundsException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (data container length " + nElements + ")");
@@ -914,7 +905,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
         if (startFlatIndex > Integer.MAX_VALUE || endFlatIndex > Integer.MAX_VALUE) {
             throw new UnsupportedOperationException("JvmTensors cannot have more than Integer.MAX_VALUE elements");
         }
-        return Pair.of(this.dataContainer.getAsDirectBuffer(Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex)), true);
+        return this.dataContainer.getAsDirectBuffer(Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex));
     }
 
     @Override

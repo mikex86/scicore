@@ -1,6 +1,7 @@
 package me.mikex86.scicore.backend.impl.cuda.memory;
 
 import jcuda.driver.CUdeviceptr;
+import me.mikex86.scicore.memory.IMemoryHandle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -10,7 +11,7 @@ import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 /**
  * Garbage collected cuda device memory handle
  */
-public class CudaMemoryHandle implements IMemoryHandle {
+public class CudaMemoryHandle implements IMemoryHandle<CudaMemoryHandle> {
 
     @Nullable
     private final CudaMemoryHandle parent;
@@ -35,7 +36,7 @@ public class CudaMemoryHandle implements IMemoryHandle {
     }
 
     @Override
-    protected void finalize() throws Throwable {
+    public void finalize() throws Throwable {
         super.finalize();
         free();
     }
@@ -53,8 +54,7 @@ public class CudaMemoryHandle implements IMemoryHandle {
     }
 
     @NotNull
-    @Override
-    public CUdeviceptr getPointer() {
+    public CUdeviceptr getDevicePointer() {
         return devicePtr;
     }
 
@@ -63,21 +63,47 @@ public class CudaMemoryHandle implements IMemoryHandle {
         return size;
     }
 
+    /**
+     * Creates a reference handle to a subregion of this handle. The parent handle will be responsible for freeing the
+     * memory.
+     * @param offset the offset of the subregion
+     * @return a reference handle to the subregion
+     */
     @NotNull
     public CudaMemoryHandle offset(long offset) {
         if (offset < 0) {
             throw new IllegalArgumentException("offset must be >= 0");
         }
+        if (offset >= size) {
+            throw new IllegalArgumentException("offset must be < size");
+        }
         return new CudaMemoryHandle(this, offset);
     }
 
     @Override
-    public @NotNull CudaMemoryHandle createReference() {
-        return new CudaMemoryHandle(this, 0);
+    public @NotNull CudaMemoryHandle offset(long offset, long size) {
+        if (offset < 0) {
+            throw new IllegalArgumentException("offset must be >= 0");
+        }
+        if (offset >= this.size) {
+            throw new IllegalArgumentException("offset must be < size");
+        }
+        if (size < 0) {
+            throw new IllegalArgumentException("size must be >= 0");
+        }
+        if (offset + size > this.size) {
+            throw new IllegalArgumentException("offset + size must be <= size");
+        }
+        return new CudaMemoryHandle(this, offset);
     }
 
     @Override
-    public boolean canFree() {
-        return parent == null;
+    public @Nullable CudaMemoryHandle getParent() {
+        return parent;
+    }
+
+    @Override
+    public boolean isFreed() {
+        return freed;
     }
 }

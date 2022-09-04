@@ -4,8 +4,12 @@ import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.View;
 import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
+import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.Pair;
+import me.mikex86.scicore.utils.ViewUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.ByteBuffer;
@@ -34,28 +38,37 @@ public class CudaMemoryManager {
         return alloc(dataType.getSizeOf(nElements));
     }
 
-    @NotNull
-    public PageLockedMemoryHandle allocPageLocked(long size) {
-        Pointer hostPtr = new Pointer();
-        cuCheck(cuMemAllocHost(hostPtr, size));
-        return new PageLockedMemoryHandle(hostPtr, size);
-    }
-
-    @NotNull
-    public PageLockedMemoryHandle allocPageLocked(long nElements, @NotNull DataType dataType) {
-        return allocPageLocked(dataType.getSizeOf(nElements));
-    }
 
     @NotNull
     public CudaMemoryHandle copyToDevice(@NotNull ITensor tensor) {
         CudaMemoryHandle handle = alloc(tensor.getNumberOfElements(), tensor.getDataType());
-        Pair<ByteBuffer, Boolean> pair = tensor.getAsDirectBuffer();
-        ByteBuffer directBuffer = pair.getFirst();
-        boolean needsFree = pair.getSecond();
-        cuCheck(cuMemcpyHtoD(handle.getPointer(), Pointer.to(directBuffer), handle.getSize()));
-        if (needsFree) {
-            backend.getDirectMemoryManager().free(directBuffer);
+        DirectMemoryHandle memoryHandle = tensor.getContentsAsDirectMemory();
+        cuCheck(cuMemcpyHtoD(handle.getDevicePointer(), Pointer.to(memoryHandle.asByteBuffer()), handle.getSize()));
+        if (memoryHandle.canFree()) {
+            memoryHandle.free();
         }
         return handle;
     }
+
+
+    /**
+     * Ensures the tensor data is on the device and returns a handle to it.
+     * If the tensor is already on the device, a reference handle will be returned. This handle cannot be freed,
+     * as the parent handle will be responsible for that. If the tensor is not on the device, memory will be allocated
+     * and the data will be copied. The returned handle can be freed.
+     * @param tensor the tensor to ensure is on the device.
+     * @return a handle to the tensor data on the device.
+     */
+    @NotNull
+    public CudaMemoryHandle ensureOnDevice(@NotNull ITensor tensor) {
+        if (tensor instanceof CudaTensor cudaTensor) {
+            return cudaTensor.getDataContainer().getDeviceMemoryHandle().createReference();
+        } else if (tensor instanceof View view && ViewUtils.getViewed(view) instanceof CudaTensor viewedCudaTensor) {
+            long offset = viewedCudaTensor.getDataType().getSizeOf(ViewUtils.getTotalOffset(view));
+            return viewedCudaTensor.getDataContainer().getDeviceMemoryHandle().offset(offset);
+        } else {
+            return copyToDevice(tensor);
+        }
+    }
+
 }

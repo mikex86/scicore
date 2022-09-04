@@ -1,10 +1,8 @@
 package me.mikex86.scicore.backend.impl.cuda.kernel;
 
-import jcuda.Pointer;
 import jcuda.driver.CUfunction;
 import jcuda.driver.CUmodule;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.PointerBuffer;
 
 import java.io.InputStream;
 import java.util.HashMap;
@@ -80,6 +78,8 @@ public class CudaKernel {
                 )
         );
     }
+
+    // TODO: IMPLEMENT LAUNCH BLOCKING AND USE IT EVERYWHERE INSTEAD OF launch()
 
     public void free() {
         if (freed) {

@@ -2,6 +2,7 @@ package me.mikex86.scicore.backend.impl.genericcpu;
 
 import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -148,22 +149,10 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
 
     @Override
     public void setContents(@NotNull ITensor tensor) {
-        if (tensor instanceof GenCPUTensor genCPUTensor) {
-            this.dataContainer.setContents(genCPUTensor.getAsDirectBuffer().getFirst()); // no free required
-        } else {
-            // General copy
-            long nElements = tensor.getNumberOfElements();
-            for (long i = 0; i < nElements; i++) {
-                switch (this.getDataType()) {
-                    case INT8 -> this.setByteFlat(tensor.getByteFlat(i), i);
-                    case INT16 -> this.setShortFlat(tensor.getShortFlat(i), i);
-                    case INT32 -> this.setIntFlat(tensor.getIntFlat(i), i);
-                    case INT64 -> this.setLongFlat(tensor.getLongFlat(i), i);
-                    case FLOAT32 -> this.setFloatFlat(tensor.getFloatFlat(i), i);
-                    case FLOAT64 -> this.setDoubleFlat(tensor.getDoubleFlat(i), i);
-                    default -> throw new IllegalArgumentException("Unsupported data type");
-                }
-            }
+        DirectMemoryHandle directMemory = tensor.getContentsAsDirectMemory();
+        this.dataContainer.setContents(directMemory.asByteBuffer());
+        if (directMemory.canFree()) {
+            directMemory.free();
         }
     }
 
@@ -482,17 +471,17 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
 
 
     @Override
-    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer() {
+    public @NotNull DirectMemoryHandle getContentsAsDirectMemory() {
         long nElements = getNumberOfElements();
         if (nElements > Integer.MAX_VALUE) {
             throw new UnsupportedOperationException("JvmTensors cannot have more than Integer.MAX_VALUE elements");
         }
-        return Pair.of(this.dataContainer.getAsDirectBuffer(), false);
+        return this.dataContainer.getAsDirectBuffer();
     }
 
 
     @Override
-    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
+    public @NotNull DirectMemoryHandle getContentsAsDirectMemory(long startFlatIndex, long endFlatIndex) {
         long nElements = getNumberOfElements();
         if (startFlatIndex < 0 || endFlatIndex > nElements) {
             throw new IndexOutOfBoundsException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (data container length " + nElements + ")");
@@ -503,7 +492,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
         if (startFlatIndex > Integer.MAX_VALUE || endFlatIndex > Integer.MAX_VALUE) {
             throw new UnsupportedOperationException("JvmTensors cannot have more than Integer.MAX_VALUE elements");
         }
-        return Pair.of(this.dataContainer.getAsDirectBuffer(Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex)), true);
+        return this.dataContainer.getAsDirectBuffer(Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex));
     }
 
     @Override

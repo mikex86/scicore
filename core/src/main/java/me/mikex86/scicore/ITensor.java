@@ -1,6 +1,7 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
@@ -614,16 +615,18 @@ public interface ITensor extends IValue {
     @NotNull ITensor argmax(int dimension);
 
     /**
-     * @return a direct byte buffer containing the tensor's data and a boolean indicating whether the buffer needs to be freed via the direct memory manager.
+     * @return a direct memory handle containing the contents of the tensor. Can be a reference to the tensor's internal memory, or a copy. Only copies can be freed.
+     * @see DirectMemoryHandle#canFree()
      */
-    @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer();
+    @NotNull DirectMemoryHandle getContentsAsDirectMemory();
 
     /**
      * @param startFlatIndex the flat index of the first element to retrieve
      * @param endFlatIndex   the flat index of the last element to retrieve (exclusive)
-     * @return a direct byte buffer containing the tensor's data in the specified interval and a boolean indicating whether the buffer needs to be freed via the direct memory manager.
+     * @return a direct memory handle containing the tensor's data in the specified interval. Can be a reference to the tensor's internal memory, or a copy. Only copies can be freed.
+     * @see DirectMemoryHandle#canFree()
      */
-    @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex);
+    @NotNull DirectMemoryHandle getContentsAsDirectMemory(long startFlatIndex, long endFlatIndex);
 
     // TODO: USE getIfIsType EVERYWHERE INSTEAD OF INSTANCEOF
     default <T extends ITensor> @Nullable T getIfIsType(@NotNull Class<T> typeClass) {

@@ -2,10 +2,10 @@ package me.mikex86.scicore.backend.impl.cuda;
 
 import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.*;
 
@@ -30,7 +30,7 @@ public class CudaTensor extends AbstractTensor {
         this.dataType = dataType;
         this.shape = shape;
         this.strides = ShapeUtils.makeStrides(shape);
-        this.dataContainer = new CudaDataContainer(backend, backend.getMemoryManager(), this.numElements, dataType);
+        this.dataContainer = new CudaDataContainer(backend, backend.getCudaMemoryManager(), this.numElements, dataType);
     }
 
     @Override
@@ -173,12 +173,11 @@ public class CudaTensor extends AbstractTensor {
             this.dataContainer.setContents(cudaTensor.dataContainer.getDeviceMemoryHandle(), flatIndex);
         } else {
             // general copy
-            Pair<ByteBuffer, Boolean> directBuffer = tensor.getAsDirectBuffer();
-            ByteBuffer hostBuffer = directBuffer.getFirst();
-            boolean shouldFree = directBuffer.getSecond();
+            DirectMemoryHandle memoryHandle = tensor.getContentsAsDirectMemory();
+            ByteBuffer hostBuffer = memoryHandle.asByteBuffer();
             this.dataContainer.setContents(hostBuffer, flatIndex);
-            if (shouldFree) {
-                backend.getDirectMemoryManager().free(hostBuffer);
+            if (memoryHandle.canFree()) {
+                memoryHandle.free();
             }
         }
     }
@@ -229,13 +228,13 @@ public class CudaTensor extends AbstractTensor {
     }
 
     @Override
-    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer() {
-        return Pair.of(dataContainer.getAsDirectBuffer(0, getNumberOfElements()), true);
+    public @NotNull DirectMemoryHandle getContentsAsDirectMemory() {
+        return dataContainer.getAsDirectBuffer(0, getNumberOfElements());
     }
 
     @Override
-    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
-        return Pair.of(dataContainer.getAsDirectBuffer(startFlatIndex, endFlatIndex), true);
+    public @NotNull DirectMemoryHandle getContentsAsDirectMemory(long startFlatIndex, long endFlatIndex) {
+        return dataContainer.getAsDirectBuffer(startFlatIndex, endFlatIndex);
     }
 
     @NotNull

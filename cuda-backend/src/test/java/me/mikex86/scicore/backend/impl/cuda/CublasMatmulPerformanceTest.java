@@ -1,8 +1,12 @@
 package me.mikex86.scicore.backend.impl.cuda;
 
 import jcuda.Pointer;
+import jcuda.driver.CUcontext;
+import jcuda.driver.CUdevice;
 import jcuda.driver.CUdeviceptr;
+import jcuda.jcublas.cublasHandle;
 import jcuda.jcurand.curandGenerator;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.jemalloc.JEmalloc;
@@ -11,6 +15,8 @@ import java.nio.FloatBuffer;
 
 import static jcuda.cudaDataType.CUDA_R_32F;
 import static jcuda.driver.JCudaDriver.*;
+import static jcuda.jcublas.JCublas.cublasInit;
+import static jcuda.jcublas.JCublas2.cublasCreate;
 import static jcuda.jcublas.JCublas2.cublasGemmEx_new;
 import static jcuda.jcublas.cublasComputeType.CUBLAS_COMPUTE_32F;
 import static jcuda.jcublas.cublasGemmAlgo.CUBLAS_GEMM_DFALT_TENSOR_OP;
@@ -23,6 +29,32 @@ import static me.mikex86.scicore.backend.impl.cuda.Validator.cublasCheck;
 
 public class CublasMatmulPerformanceTest {
 
+    @NotNull
+    private static final cublasHandle cublasHandle;
+
+    static {
+        cuInit(0);
+
+        CUdevice mainDevice = new CUdevice();
+        cuCheck(cuDeviceGet(mainDevice, 0));
+
+        // Create context
+        {
+            CUcontext ctx = new CUcontext();
+            cuCheck(cuCtxCreate(ctx, 0, mainDevice));
+        }
+
+        {
+            // Init cuBLAS
+            cuCheck(cublasInit());
+
+            // Init cuBLAS2
+            cublasHandle handle = new cublasHandle();
+            cuCheck(cublasCreate(handle));
+            cublasHandle = handle;
+        }
+    }
+
     public static void main(String[] args) {
         FloatBuffer factor = JEmalloc.je_malloc(Float.BYTES).asFloatBuffer();
         factor.put(1.0f);
@@ -33,7 +65,6 @@ public class CublasMatmulPerformanceTest {
         curandSetPseudoRandomGeneratorSeed(gen, 1234);
 
         for (int i = 0; i < 1000; i++) {
-
             CUdeviceptr aDevPtr = new CUdeviceptr();
             cuMemAlloc(aDevPtr, size * size * 4);
             CUdeviceptr bDevPtr = new CUdeviceptr();
@@ -49,7 +80,7 @@ public class CublasMatmulPerformanceTest {
             // cuSgemm
             int m = size, n = size, k = size;
             cublasCheck(cublasGemmEx_new(
-                    CudaBackend.getCublasHandle(),
+                    cublasHandle,
                     CUBLAS_OP_N, CUBLAS_OP_N,
                     m, n, k,
                     Pointer.to(factor),
@@ -68,7 +99,7 @@ public class CublasMatmulPerformanceTest {
             ));
             long end = System.nanoTime();
             double tflops = ((2 * m * n * k) / ((end - start) / 1e9)) / 1e12;
-            System.out.println("cuSgemm: " + tflops + " TFLOPS");
+            System.out.println("cuSgemm took: " + (end - start) / 1e6 + "ms, " + tflops + "TFLOPS");
 
             cuMemFree(aDevPtr);
             cuMemFree(bDevPtr);

@@ -1,6 +1,7 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -335,16 +336,16 @@ public class View extends AbstractTensor {
     }
 
     @Override
-    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer() {
+    public @NotNull DirectMemoryHandle getContentsAsDirectMemory() {
         long nElements = getNumberOfElements();
-        return this.viewed.getAsDirectBuffer(this.offset, this.offset + nElements);
+        return this.viewed.getContentsAsDirectMemory(this.offset, this.offset + nElements);
     }
 
     @Override
-    public @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
+    public @NotNull DirectMemoryHandle getContentsAsDirectMemory(long startFlatIndex, long endFlatIndex) {
         if (startFlatIndex < 0 || endFlatIndex > getNumberOfElements()) {
             throw new IllegalArgumentException("Invalid flat indices");
         }
-        return this.viewed.getAsDirectBuffer(this.offset + startFlatIndex, this.offset + endFlatIndex);
+        return this.viewed.getContentsAsDirectMemory(this.offset + startFlatIndex, this.offset + endFlatIndex);
     }
 }

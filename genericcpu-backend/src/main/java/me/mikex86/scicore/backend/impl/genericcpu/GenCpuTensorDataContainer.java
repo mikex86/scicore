@@ -1,6 +1,7 @@
 package me.mikex86.scicore.backend.impl.genericcpu;
 
 import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.memory.DirectMemoryManager;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.MemoryUtil;
@@ -11,7 +12,8 @@ import static java.lang.Math.min;
 
 public class GenCpuTensorDataContainer {
 
-    private final long dataPtr;
+    @NotNull
+    private final DirectMemoryHandle memoryHandle;
 
     private final long dataSize;
 
@@ -24,68 +26,68 @@ public class GenCpuTensorDataContainer {
     public GenCpuTensorDataContainer(@NotNull DirectMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
         this.memoryManager = memoryManager;
         long nBytes = dataType.getSizeOf(nElements);
-        this.dataPtr = memoryManager.calloc(nBytes);
+        this.memoryHandle = memoryManager.calloc(nBytes);
         this.dataSize = nBytes;
         this.dataType = dataType;
     }
 
     public byte getByteFlat(long flatIndex) {
-        long finalPtr = dataPtr + flatIndex;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex;
         return MemoryUtil.memGetByte(finalPtr);
     }
 
     public void setByteFlat(byte value, long flatIndex) {
-        long finalPtr = dataPtr + flatIndex;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex;
         MemoryUtil.memPutByte(finalPtr, value);
     }
 
     public short getInt16Flat(long flatIndex) {
-        long finalPtr = dataPtr + flatIndex * 2;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 2;
         return MemoryUtil.memGetShort(finalPtr);
     }
 
     public void setInt16Flat(short value, long flatIndex) {
-        long finalPtr = dataPtr + flatIndex * 2;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 2;
         MemoryUtil.memPutShort(finalPtr, value);
     }
 
     public int getInt32Flat(long flatIndex) {
-        long finalPtr = dataPtr + flatIndex * 4;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         return MemoryUtil.memGetInt(finalPtr);
     }
 
     public void setInt32Flat(int value, long flatIndex) {
-        long finalPtr = dataPtr + flatIndex * 4;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         MemoryUtil.memPutInt(finalPtr, value);
     }
 
     public long getInt64Flat(long flatIndex) {
-        long finalPtr = dataPtr + flatIndex * 8;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         return MemoryUtil.memGetLong(finalPtr);
     }
 
     public void setInt64Flat(long value, long flatIndex) {
-        long finalPtr = dataPtr + flatIndex * 8;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         MemoryUtil.memPutLong(finalPtr, value);
     }
 
     public float getFloat32Flat(long flatIndex) {
-        long finalPtr = dataPtr + flatIndex * 4;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         return MemoryUtil.memGetFloat(finalPtr);
     }
 
     public void setFloat32Flat(float value, long flatIndex) {
-        long finalPtr = dataPtr + flatIndex * 4;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         MemoryUtil.memPutFloat(finalPtr, value);
     }
 
     public double getFloat64Flat(long flatIndex) {
-        long finalPtr = dataPtr + flatIndex * 8;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         return MemoryUtil.memGetDouble(finalPtr);
     }
 
     public void setFloat64Flat(double value, long flatIndex) {
-        long finalPtr = dataPtr + flatIndex * 8;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         MemoryUtil.memPutDouble(finalPtr, value);
     }
 
@@ -112,15 +114,16 @@ public class GenCpuTensorDataContainer {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
         if (!buffer.isDirect()) {
-            ByteBuffer directBuffer = memoryManager.allocBuffer(buffer.capacity());
+            DirectMemoryHandle memoryHandle = memoryManager.alloc(buffer.capacity());
+            ByteBuffer directBuffer = memoryHandle.asByteBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, directBuffer.capacity());
-            memoryManager.free(directBuffer);
+            long bufferPtr = memoryHandle.getNativePtr();
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), directBuffer.capacity());
+            memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, buffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), buffer.capacity());
         }
     }
 
@@ -128,16 +131,18 @@ public class GenCpuTensorDataContainer {
         if (buffer.remaining() > this.dataSize / Short.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
+        long nBytes = (long) buffer.capacity() * Short.BYTES;
         if (!buffer.isDirect()) {
-            ShortBuffer directBuffer = memoryManager.allocShortBuffer(buffer.capacity());
+            DirectMemoryHandle memoryHandle = memoryManager.alloc(nBytes);
+            ShortBuffer directBuffer = memoryHandle.asShortBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) directBuffer.capacity() * Short.BYTES);
-            memoryManager.free(directBuffer);
+            long bufferPtr = memoryHandle.getNativePtr();
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) buffer.capacity() * Short.BYTES);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
         }
     }
 
@@ -145,16 +150,18 @@ public class GenCpuTensorDataContainer {
         if (buffer.remaining() > this.dataSize / Integer.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
+        long nBytes = (long) buffer.capacity() * Integer.BYTES;
         if (!buffer.isDirect()) {
-            IntBuffer directBuffer = memoryManager.allocIntBuffer(buffer.capacity());
+            DirectMemoryHandle memoryHandle = memoryManager.alloc(nBytes);
+            IntBuffer directBuffer = memoryHandle.asIntBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) directBuffer.capacity() * Integer.BYTES);
-            memoryManager.free(directBuffer);
+            long bufferPtr = memoryHandle.getNativePtr();
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) buffer.capacity() * Integer.BYTES);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
         }
     }
 
@@ -162,16 +169,18 @@ public class GenCpuTensorDataContainer {
         if (buffer.remaining() > this.dataSize / Long.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
+        long nBytes = (long) buffer.capacity() * Long.BYTES;
         if (!buffer.isDirect()) {
-            LongBuffer directBuffer = memoryManager.allocLongBuffer(buffer.capacity());
+            DirectMemoryHandle memoryHandle = memoryManager.alloc(nBytes);
+            LongBuffer directBuffer = memoryHandle.asLongBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) directBuffer.capacity() * Long.BYTES);
-            memoryManager.free(directBuffer);
+            long bufferPtr = memoryHandle.getNativePtr();
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) buffer.capacity() * Long.BYTES);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
         }
     }
 
@@ -179,16 +188,18 @@ public class GenCpuTensorDataContainer {
         if (buffer.remaining() > this.dataSize / Float.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
+        long nBytes = (long) buffer.capacity() * Float.BYTES;
         if (!buffer.isDirect()) {
-            FloatBuffer directBuffer = memoryManager.allocFloatBuffer(buffer.capacity());
+            DirectMemoryHandle memoryHandle = memoryManager.alloc(nBytes);
+            FloatBuffer directBuffer = memoryHandle.asFloatBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) directBuffer.capacity() * Float.BYTES);
-            memoryManager.free(directBuffer);
+            long bufferPtr = memoryHandle.getNativePtr();
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) buffer.capacity() * Float.BYTES);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
         }
     }
 
@@ -196,16 +207,18 @@ public class GenCpuTensorDataContainer {
         if (buffer.remaining() > this.dataSize / Double.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
+        long nBytes = (long) buffer.capacity() * Double.BYTES;
         if (!buffer.isDirect()) {
-            DoubleBuffer directBuffer = memoryManager.allocDoubleBuffer(buffer.capacity());
+            DirectMemoryHandle memoryHandle = memoryManager.alloc(nBytes);
+            DoubleBuffer directBuffer = memoryHandle.asDoubleBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) directBuffer.capacity() * Double.BYTES);
-            memoryManager.free(directBuffer);
+            long bufferPtr = memoryHandle.getNativePtr();
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) buffer.capacity() * Double.BYTES);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
         }
     }
 
@@ -227,14 +240,14 @@ public class GenCpuTensorDataContainer {
     }
 
     /**
-     * Copies the contents in the specified interval and returns it.
+     * Returns a reference memory handle to the internal data buffer in the specified index range.
      *
      * @param startFlatIndex the start index of the data to copy (flat index)
      * @param endFlatIndex   the end index of the data to copy (exclusive, flat index)
-     * @return the host byte buffer. Must be freed with JEmalloc.je_free()
+     * @return the host byte buffer. Must not be freed.
      */
     @NotNull
-    public ByteBuffer getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
+    public DirectMemoryHandle getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
         long containerSize = this.dataSize;
         if (startFlatIndex < 0 || endFlatIndex > containerSize) {
             throw new IndexOutOfBoundsException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (data container length " + containerSize + ")");
@@ -243,19 +256,15 @@ public class GenCpuTensorDataContainer {
             throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
         }
         long nElements = endFlatIndex - startFlatIndex;
-        ByteBuffer buffer = memoryManager.allocBuffer(nElements, dataType);
-        long bufferPtr = MemoryUtil.memAddress(buffer);
-        MemoryUtil.memCopy(this.dataPtr + dataType.getSizeOf(startFlatIndex), bufferPtr, dataType.getSizeOf(nElements));
-        return buffer;
+        return this.memoryHandle.offset(startFlatIndex, nElements);
     }
 
     /**
-     * @return a bytebuffer with the contents of the data container. This is not a copy, the data must not be freed.
+     * @return a reference memory handle to the internal data buffer. Must not be freed.
      */
     @NotNull
-    public ByteBuffer getAsDirectBuffer() {
-        int dataSize = (int) min(this.dataSize, Integer.MAX_VALUE);
-        return MemoryUtil.memByteBuffer(this.dataPtr, dataSize);
+    public DirectMemoryHandle getAsDirectBuffer() {
+        return this.memoryHandle.createReference();
     }
 
     @NotNull
@@ -263,8 +272,9 @@ public class GenCpuTensorDataContainer {
         return dataType;
     }
 
-    public long getDataPtr() {
-        return dataPtr;
+    @NotNull
+    public DirectMemoryHandle getMemoryHandle() {
+        return memoryHandle;
     }
 
     public long getDataSize() {
