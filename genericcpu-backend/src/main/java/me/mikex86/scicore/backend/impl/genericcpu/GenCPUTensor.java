@@ -515,4 +515,9 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     public @NotNull ISciCoreBackend getSciCoreBackend() {
         return this.backend;
     }
+
+    @NotNull
+    public GenCpuTensorDataContainer getDataContainer() {
+        return dataContainer;
+    }
 }

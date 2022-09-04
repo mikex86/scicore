@@ -4,9 +4,9 @@ import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.utils.Pair;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.ByteBuffer;
 
@@ -14,6 +14,13 @@ import static jcuda.driver.JCudaDriver.*;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 
 public class CudaMemoryManager {
+
+    @NotNull
+    private final CudaBackend backend;
+
+    public CudaMemoryManager(@NotNull CudaBackend cudaBackend) {
+        this.backend = cudaBackend;
+    }
 
     @NotNull
     public CudaMemoryHandle alloc(long size) {
@@ -47,7 +54,7 @@ public class CudaMemoryManager {
         boolean needsFree = pair.getSecond();
         cuCheck(cuMemcpyHtoD(handle.getPointer(), Pointer.to(directBuffer), handle.getSize()));
         if (needsFree) {
-            JEmalloc.je_free(directBuffer);
+            backend.getDirectMemoryManager().free(directBuffer);
         }
         return handle;
     }

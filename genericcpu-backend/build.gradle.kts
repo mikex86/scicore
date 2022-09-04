@@ -62,31 +62,25 @@ tasks.getByName<Test>("test") {
     useJUnitPlatform()
 }
 
-tasks.create("buildNativeLib") {
+tasks.processResources {
     // Builds generic-cpu native library
     // builds the cmake project in ./cmake
     // and copies the resulting .so/.dll/.dylib to ./src/main/resources
     // so that it can be loaded by the JVM
-    doLast {
-        val cmakeBuildDir = file("./cmake/build")
-        mkdir(cmakeBuildDir)
+    val cmakeBuildDir = file("./cmake/build")
+    mkdir(cmakeBuildDir)
 
-        // run cmake with ninja as generator
-        exec {
-            commandLine = listOf("cmake", "..", "-DCMAKE_BUILD_TYPE=Release")
-            workingDir = cmakeBuildDir
-        }
-
-        // build library with all threads
-        exec {
-            commandLine = listOf("cmake", "--build", ".", "--config", "Release")
-            workingDir = cmakeBuildDir
-        }
+    // run cmake
+    exec {
+        commandLine = listOf("cmake", "..")
+        workingDir = cmakeBuildDir
     }
-}
 
-tasks.processResources {
-    dependsOn("buildNativeLib")
+    // build library with all threads
+    exec {
+        commandLine = listOf("cmake", "--build", ".", "--config", "Release")
+        workingDir = cmakeBuildDir
+    }
 
     // copy libscicore_genericcpu.dll/.so/.dylib to resources
     @Suppress("INACCESSIBLE_TYPE")
@@ -96,7 +90,12 @@ tasks.processResources {
         OperatingSystem.LINUX -> "**/libscicore_genericcpu.so"
         else -> throw Error("Unsupported platform")
     }
-    from(fileTree("cmake/build").include(libName)) {
-        into(".")
+    val lib = fileTree("cmake/build").matching {
+        include(libName)
+    }.singleFile
+
+    from(lib) {
+        into("natives/")
     }
+
 }

@@ -30,7 +30,7 @@ public class CudaTensor extends AbstractTensor {
         this.dataType = dataType;
         this.shape = shape;
         this.strides = ShapeUtils.makeStrides(shape);
-        this.dataContainer = new CudaDataContainer(backend.getMemoryManager(), this.numElements, dataType);
+        this.dataContainer = new CudaDataContainer(backend, backend.getMemoryManager(), this.numElements, dataType);
     }
 
     @Override
@@ -178,7 +178,7 @@ public class CudaTensor extends AbstractTensor {
             boolean shouldFree = directBuffer.getSecond();
             this.dataContainer.setContents(hostBuffer, flatIndex);
             if (shouldFree) {
-                JEmalloc.je_free(hostBuffer);
+                backend.getDirectMemoryManager().free(hostBuffer);
             }
         }
     }

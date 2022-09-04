@@ -4,7 +4,9 @@
 // if macOS, use Accelerate framework
 #include <Accelerate/Accelerate.h>
 #else
-#include <cblas.h>
+#include <tinyblas.h>
+#include <cstdint>
+
 #endif
 
 #define OP_NONE 0
@@ -19,17 +21,17 @@
 
 JNIEXPORT void JNICALL
 Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_matmul(JNIEnv *, jclass, jint transa, jint transb,
-                                                                     jint m, jint n, jint k,
+                                                                     jlong m, jlong n, jlong k,
                                                                      jlong alphaPtr,
                                                                      jlong aPtr,
                                                                      jint aType,
-                                                                     jint lda,
+                                                                     jlong lda,
                                                                      jlong betaPtr, jlong bPtr,
                                                                      jint bType,
-                                                                     jint ldb,
+                                                                     jlong ldb,
                                                                      jlong cPtr,
                                                                      jint cType,
-                                                                     jint ldc) {
+                                                                     jlong ldc) {
     if (aType == DATA_TYPE_FLOAT32 && bType == DATA_TYPE_FLOAT32 && cType == DATA_TYPE_FLOAT32) {
         cblas_sgemm(CblasRowMajor,
                     transa == OP_TRANSPOSE ? CblasTrans : CblasNoTrans,
@@ -47,4 +49,5 @@ Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_matmul(JNIEnv *, j
                     (double *) bPtr, ldb, *(double *) betaPtr,
                     (double *) cPtr, ldc);
     }
+    // TODO: SUPPORT MORE DATA TYPE COMBINATIONS
 }

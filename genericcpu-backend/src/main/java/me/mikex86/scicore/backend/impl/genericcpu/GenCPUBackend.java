@@ -3,7 +3,7 @@ package me.mikex86.scicore.backend.impl.genericcpu;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
-import me.mikex86.scicore.backend.impl.genericcpu.mem.GenCpuMemoryManager;
+import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.backend.impl.genericcpu.op.*;
 import me.mikex86.scicore.nativelib.LibraryLoader;
 import me.mikex86.scicore.op.IOperation;
@@ -27,7 +27,7 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
     }
 
     @NotNull
-    private final GenCpuMemoryManager memoryManager = new GenCpuMemoryManager();
+    private final DirectMemoryManager memoryManager = new DirectMemoryManager();
 
     @Override
     public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
@@ -40,7 +40,7 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
     }
 
     @NotNull
-    public GenCpuMemoryManager getMemoryManager() {
+    public DirectMemoryManager getMemoryManager() {
         return memoryManager;
     }
 }

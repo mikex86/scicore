@@ -2,7 +2,6 @@ package me.mikex86.scicore.backend.impl.jvm;
 
 import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.op.IGraphRecorder;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -21,17 +20,17 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     private final long @NotNull [] strides;
 
     @NotNull
-    private final ISciCoreBackend backend;
+    private final JvmBackend backend;
 
 
-    public JvmTensor(@NotNull ISciCoreBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
+    public JvmTensor(@NotNull JvmBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
         this.numElements = ShapeUtils.getNumElements(shape);
-        this.dataContainer = new JvmTensorDataContainer(dataType, shape);
+        this.dataContainer = new JvmTensorDataContainer(backend, dataType, shape);
         this.strides = ShapeUtils.makeStrides(shape);
         this.backend = backend;
     }
 
-    JvmTensor(@NotNull ISciCoreBackend backend,@NotNull JvmTensorDataContainer dataContainer, long @NotNull [] shape) {
+    JvmTensor(@NotNull JvmBackend backend, @NotNull JvmTensorDataContainer dataContainer, long @NotNull [] shape) {
         this.numElements = ShapeUtils.getNumElements(shape);
         this.backend = backend;
         this.dataContainer = dataContainer;
@@ -487,6 +486,9 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     private static class JvmTensorDataContainer {
 
         @NotNull
+        private final JvmBackend backend;
+
+        @NotNull
         private final DataType dataType;
 
         private final long @NotNull [] shape;
@@ -501,7 +503,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
         private @Nullable BitSet bitSetData;
         private int nBits;
 
-        private JvmTensorDataContainer(@NotNull DataType dataType, long @NotNull [] shape) {
+        private JvmTensorDataContainer(@NotNull JvmBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
+            this.backend = backend;
             this.dataType = dataType;
             this.shape = shape;
             switch (dataType) {
@@ -516,42 +519,6 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     this.bitSetData = new BitSet(nBits);
                 }
             }
-        }
-
-        private JvmTensorDataContainer(long @NotNull [] shape, byte @NotNull [] byteData) {
-            this.dataType = DataType.INT8;
-            this.shape = shape;
-            this.byteData = byteData;
-        }
-
-        private JvmTensorDataContainer(long @NotNull [] shape, short @NotNull [] shortData) {
-            this.dataType = DataType.INT16;
-            this.shape = shape;
-            this.shortData = shortData;
-        }
-
-        private JvmTensorDataContainer(long @NotNull [] shape, int @NotNull [] intData) {
-            this.dataType = DataType.INT32;
-            this.shape = shape;
-            this.intData = intData;
-        }
-
-        private JvmTensorDataContainer(long @NotNull [] shape, long @NotNull [] longData) {
-            this.dataType = DataType.INT64;
-            this.shape = shape;
-            this.longData = longData;
-        }
-
-        private JvmTensorDataContainer(long @NotNull [] shape, float @NotNull [] floatData) {
-            this.dataType = DataType.FLOAT32;
-            this.shape = shape;
-            this.floatData = floatData;
-        }
-
-        private JvmTensorDataContainer(long @NotNull [] shape, double @NotNull [] doubleData) {
-            this.dataType = DataType.FLOAT64;
-            this.shape = shape;
-            this.doubleData = doubleData;
         }
 
         private byte @NotNull [] getByteData() {
@@ -863,10 +830,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Byte.BYTES);
-                    if (buffer == null) {
-                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
-                    }
+                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Byte.BYTES);
                     buffer.put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case INT16 -> {
@@ -874,10 +838,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Short.BYTES);
-                    if (buffer == null) {
-                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
-                    }
+                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Short.BYTES);
                     buffer.asShortBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case INT32 -> {
@@ -885,10 +846,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Integer.BYTES);
-                    if (buffer == null) {
-                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
-                    }
+                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Integer.BYTES);
                     buffer.asIntBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case INT64 -> {
@@ -896,10 +854,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Long.BYTES);
-                    if (buffer == null) {
-                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
-                    }
+                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Long.BYTES);
                     buffer.asLongBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case FLOAT32 -> {
@@ -907,10 +862,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Float.BYTES);
-                    if (buffer == null) {
-                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
-                    }
+                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Float.BYTES);
                     buffer.asFloatBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case FLOAT64 -> {
@@ -918,19 +870,13 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    buffer = JEmalloc.je_malloc((long) (endFlatIndex - startFlatIndex) * Double.BYTES);
-                    if (buffer == null) {
-                        throw new OutOfMemoryError("Could not allocate " + data.length + " bytes");
-                    }
+                    buffer = backend.getDirectMemoryManager().allocBuffer((long) (endFlatIndex - startFlatIndex) * Double.BYTES);
                     buffer.asDoubleBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
                 }
                 case BOOLEAN -> {
                     BitSet data = getBooleanData();
                     int nBytes = (nBits + 7) / 8;
-                    buffer = JEmalloc.je_malloc(nBytes);
-                    if (buffer == null) {
-                        throw new OutOfMemoryError("Could not allocate " + nBytes + " bytes");
-                    }
+                    buffer = backend.getDirectMemoryManager().allocBuffer(nBytes);
                     for (int i = 0; i < nBits; i++) {
                         int byteIndex = i / 8;
                         int bitIndex = i % 8;

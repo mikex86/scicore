@@ -39,7 +39,7 @@ public class CudaBackend extends AbstractSciCoreBackend {
     }
 
     @NotNull
-    private final CudaMemoryManager memoryManager = new CudaMemoryManager();
+    private final CudaMemoryManager memoryManager = new CudaMemoryManager(this);
 
     /**
      * Device handle for the main CUDA device used.

@@ -7,17 +7,17 @@ extern "C" {
 
 #endif
 JNIEXPORT void JNICALL Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_matmul(JNIEnv *, jclass, jint transa, jint transb,
-                                                                                            jint m, jint n, jint k,
+                                                                                            jlong m, jlong n, jlong k,
                                                                                             jlong alphaPtr,
                                                                                             jlong aPtr,
                                                                                             jint aType,
-                                                                                            jint lda,
+                                                                                            jlong lda,
                                                                                             jlong betaPtr, jlong bPtr,
                                                                                             jint bType,
-                                                                                            jint ldb,
+                                                                                            jlong ldb,
                                                                                             jlong cPtr,
                                                                                             jint cType,
-                                                                                            jint ldc);
+                                                                                            jlong ldc);
 
 #ifdef __cplusplus
 }

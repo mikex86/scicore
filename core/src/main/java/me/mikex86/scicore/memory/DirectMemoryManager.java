@@ -1,4 +1,4 @@
-package me.mikex86.scicore.backend.impl.genericcpu.mem;
+package me.mikex86.scicore.memory;
 
 import me.mikex86.scicore.DataType;
 import org.jetbrains.annotations.NotNull;
@@ -6,7 +6,7 @@ import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.*;
 
-public class GenCpuMemoryManager {
+public class DirectMemoryManager {
 
     public static final long NULL = 0;
 
@@ -18,9 +18,22 @@ public class GenCpuMemoryManager {
         return ptr;
     }
 
+    public long calloc(long nBytes) {
+        long ptr = JEmalloc.nje_calloc(1, nBytes);
+        if (ptr == NULL) {
+            throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
+        }
+        return ptr;
+    }
+
     public long alloc(long nElements, @NotNull DataType dataType) {
         long nBytes = dataType.getSizeOf(nElements);
         return alloc(nBytes);
+    }
+
+    public long calloc(long nElements, @NotNull DataType dataType) {
+        long nBytes = dataType.getSizeOf(nElements);
+        return calloc(nBytes);
     }
 
     @NotNull

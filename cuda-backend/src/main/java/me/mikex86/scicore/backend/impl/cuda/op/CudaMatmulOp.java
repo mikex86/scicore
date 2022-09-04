@@ -19,6 +19,8 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
+import java.nio.FloatBuffer;
 
 import static jcuda.cudaDataType.CUDA_R_32F;
 import static jcuda.cudaDataType.CUDA_R_64F;
@@ -96,10 +98,8 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
 
         if (a.getDataType() == DataType.FLOAT32 && b.getDataType() == DataType.FLOAT32) {
             // float32 by float32 multiplication
-            ByteBuffer factor = JEmalloc.je_malloc(4);
-            if (factor == null)
-                throw new RuntimeException("Could not allocate memory for alpha");
-            factor.putFloat(1.0f);
+            FloatBuffer factor = backend.getDirectMemoryManager().allocFloatBuffer(1);
+            factor.put(1.0f);
             cublasCheck(cublasGemmEx_new(
                     CudaBackend.getCublasHandle(),
                     CUBLAS_OP_N, CUBLAS_OP_N,
@@ -118,13 +118,11 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                     CUBLAS_COMPUTE_32F,
                     CUBLAS_GEMM_DFALT_TENSOR_OP
             ));
-            JEmalloc.je_free(factor);
+            backend.getDirectMemoryManager().free(factor);
         } else if (a.getDataType() == DataType.FLOAT64 && b.getDataType() == DataType.FLOAT64) {
             // float64 by float64 multiplication
-            ByteBuffer factor = JEmalloc.je_malloc(8);
-            if (factor == null)
-                throw new RuntimeException("Could not allocate memory for alpha");
-            factor.putDouble(1.0);
+            DoubleBuffer factor = backend.getDirectMemoryManager().allocDoubleBuffer(1);
+            factor.put(1.0);
             cublasCheck(cublasGemmEx_new(
                     CudaBackend.getCublasHandle(),
                     CUBLAS_OP_N, CUBLAS_OP_N,
@@ -143,61 +141,10 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                     CUBLAS_COMPUTE_64F,
                     CUBLAS_GEMM_DFALT_TENSOR_OP
             ));
-            JEmalloc.je_free(factor);
-        } else if (a.getDataType() == DataType.FLOAT32 && b.getDataType() == DataType.FLOAT64) {
-            // float32 by float64 multiplication
-            // TODO
-            ByteBuffer factor = JEmalloc.je_malloc(8);
-            if (factor == null)
-                throw new RuntimeException("Could not allocate memory for alpha");
-            factor.putDouble(1.0);
-            cublasCheck(cublasGemmEx_new(
-                    CudaBackend.getCublasHandle(),
-                    CUBLAS_OP_N, CUBLAS_OP_N,
-                    m, n, k,
-                    Pointer.to(factor),
-                    aDevicePtr.getPointer(),
-                    CUDA_R_32F,
-                    m,
-                    bDevicePtr.getPointer(),
-                    CUDA_R_64F,
-                    k,
-                    Pointer.to(factor),
-                    resultMemoryHandle.getPointer(),
-                    CUDA_R_64F,
-                    m,
-                    CUBLAS_COMPUTE_64F,
-                    CUBLAS_GEMM_DFALT_TENSOR_OP
-            ));
-            JEmalloc.je_free(factor);
-        } else if (a.getDataType() == DataType.FLOAT64 && b.getDataType() == DataType.FLOAT32) {
-            // float64 by float32 multiplication
-            // TODO
-            ByteBuffer factor = JEmalloc.je_malloc(8);
-            if (factor == null)
-                throw new RuntimeException("Could not allocate memory for alpha");
-            factor.putDouble(1.0);
-            cublasCheck(cublasGemmEx_new(
-                    CudaBackend.getCublasHandle(),
-                    CUBLAS_OP_N, CUBLAS_OP_N,
-                    m, n, k,
-                    Pointer.to(factor),
-                    aDevicePtr.getPointer(),
-                    CUDA_R_64F,
-                    m,
-                    bDevicePtr.getPointer(),
-                    CUDA_R_32F,
-                    k,
-                    Pointer.to(factor),
-                    resultMemoryHandle.getPointer(),
-                    CUDA_R_64F,
-                    m,
-                    CUBLAS_COMPUTE_64F,
-                    CUBLAS_GEMM_DFALT_TENSOR_OP
-            ));
-            JEmalloc.je_free(factor);
+            backend.getDirectMemoryManager().free(factor);
         } else {
-            throw new RuntimeException("Unsupported data type combination");
+            // TODO: HANDLE OTHER DATA TYPES
+            throw new RuntimeException("TODO: Unsupported data type combination");
         }
 
         if (aIsCopy)
@@ -241,6 +188,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         // dL/dW = G @ X.T
         // dL/dX = W.T @ G
 
+        // TODO: HANDLE VIEWS PROPERLY
         if (a.requiresGradients()) {
             ITensor dLdW;
             if (upstreamGradient instanceof CudaTensor upstreamTensor && b.getValue() instanceof CudaTensor bCudaTensor) {
@@ -262,10 +210,8 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                 // Swap upstreamGradient and b because cublasSgemm expects column-major matrices, and we have row-major.
                 if (upstreamGradient.getDataType() == DataType.FLOAT32 && bCudaTensor.getDataType() == DataType.FLOAT32) {
                     // float32 by float32 multiplication
-                    ByteBuffer factor = JEmalloc.je_malloc(4);
-                    if (factor == null)
-                        throw new RuntimeException("Could not allocate memory for alpha");
-                    factor.putFloat(1.0f);
+                    FloatBuffer factor = backend.getDirectMemoryManager().allocFloatBuffer(1);
+                    factor.put(1.0f);
                     cublasCheck(cublasGemmEx_new(
                             CudaBackend.getCublasHandle(),
                             CUBLAS_OP_T, CUBLAS_OP_N,
@@ -284,13 +230,11 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                             CUBLAS_COMPUTE_32F,
                             CUBLAS_GEMM_DFALT_TENSOR_OP
                     ));
-                    JEmalloc.je_free(factor);
+                    backend.getDirectMemoryManager().free(factor);
                 } else if (upstreamGradient.getDataType() == DataType.FLOAT64 && bCudaTensor.getDataType() == DataType.FLOAT64) {
                     // float64 by float64 multiplication
-                    ByteBuffer factor = JEmalloc.je_malloc(8);
-                    if (factor == null)
-                        throw new RuntimeException("Could not allocate memory for alpha");
-                    factor.putDouble(1.0);
+                    DoubleBuffer factor = backend.getDirectMemoryManager().allocDoubleBuffer(1);
+                    factor.put(1.0);
                     cublasCheck(cublasGemmEx_new(
                             CudaBackend.getCublasHandle(),
                             CUBLAS_OP_T, CUBLAS_OP_N,
@@ -309,7 +253,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                             CUBLAS_COMPUTE_64F,
                             CUBLAS_GEMM_DFALT_TENSOR_OP
                     ));
-                    JEmalloc.je_free(factor);
+                    backend.getDirectMemoryManager().free(factor);
                 } else {
                     throw new UnsupportedOperationException("TODO: Unsupported data type combination");
                 }
@@ -340,10 +284,8 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                 // Swap upstreamGradient and a because cublasSgemm expects column-major matrices, and we have row-major.
                 if (upstreamGradient.getDataType() == DataType.FLOAT32 && aCudaTensor.getDataType() == DataType.FLOAT32) {
                     // float32 by float32 multiplication
-                    ByteBuffer factor = JEmalloc.je_malloc(4);
-                    if (factor == null)
-                        throw new RuntimeException("Could not allocate memory for alpha");
-                    factor.putFloat(1.0f);
+                    FloatBuffer factor = backend.getDirectMemoryManager().allocFloatBuffer(1);
+                    factor.put(1.0f);
                     cublasCheck(cublasGemmEx_new(
                             CudaBackend.getCublasHandle(),
                             CUBLAS_OP_N, CUBLAS_OP_T,
@@ -362,13 +304,11 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                             CUBLAS_COMPUTE_32F,
                             CUBLAS_GEMM_DFALT_TENSOR_OP
                     ));
-                    JEmalloc.je_free(factor);
+                    backend.getDirectMemoryManager().free(factor);
                 } else if (upstreamGradient.getDataType() == DataType.FLOAT64 && aCudaTensor.getDataType() == DataType.FLOAT64) {
                     // float64 by float64 multiplication
-                    ByteBuffer factor = JEmalloc.je_malloc(8);
-                    if (factor == null)
-                        throw new RuntimeException("Could not allocate memory for alpha");
-                    factor.putDouble(1.0);
+                    DoubleBuffer factor = backend.getDirectMemoryManager().allocDoubleBuffer(1);
+                    factor.put(1.0);
                     cublasCheck(cublasGemmEx_new(
                             CudaBackend.getCublasHandle(),
                             CUBLAS_OP_N, CUBLAS_OP_T,
@@ -387,7 +327,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                             CUBLAS_COMPUTE_64F,
                             CUBLAS_GEMM_DFALT_TENSOR_OP
                     ));
-                    JEmalloc.je_free(factor);
+                    backend.getDirectMemoryManager().free(factor);
                 } else {
                     throw new UnsupportedOperationException("TODO: Unsupported data type combination");
                 }

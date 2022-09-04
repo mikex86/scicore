@@ -1,7 +1,7 @@
 package me.mikex86.scicore.backend.impl.genericcpu;
 
 import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.backend.impl.genericcpu.mem.GenCpuMemoryManager;
+import me.mikex86.scicore.memory.DirectMemoryManager;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.MemoryUtil;
 
@@ -9,7 +9,7 @@ import java.nio.*;
 
 import static java.lang.Math.min;
 
-class GenCpuTensorDataContainer {
+public class GenCpuTensorDataContainer {
 
     private final long dataPtr;
 
@@ -19,12 +19,12 @@ class GenCpuTensorDataContainer {
     private final DataType dataType;
 
     @NotNull
-    private final GenCpuMemoryManager memoryManager;
+    private final DirectMemoryManager memoryManager;
 
-    public GenCpuTensorDataContainer(@NotNull GenCpuMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
+    public GenCpuTensorDataContainer(@NotNull DirectMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
         this.memoryManager = memoryManager;
         long nBytes = dataType.getSizeOf(nElements);
-        this.dataPtr = memoryManager.alloc(nBytes);
+        this.dataPtr = memoryManager.calloc(nBytes);
         this.dataSize = nBytes;
         this.dataType = dataType;
     }
@@ -133,11 +133,11 @@ class GenCpuTensorDataContainer {
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, directBuffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) directBuffer.capacity() * Short.BYTES);
             memoryManager.free(directBuffer);
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, buffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) buffer.capacity() * Short.BYTES);
         }
     }
 
@@ -150,11 +150,11 @@ class GenCpuTensorDataContainer {
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, directBuffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) directBuffer.capacity() * Integer.BYTES);
             memoryManager.free(directBuffer);
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, buffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) buffer.capacity() * Integer.BYTES);
         }
     }
 
@@ -167,11 +167,11 @@ class GenCpuTensorDataContainer {
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, directBuffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) directBuffer.capacity() * Long.BYTES);
             memoryManager.free(directBuffer);
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, buffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) buffer.capacity() * Long.BYTES);
         }
     }
 
@@ -184,11 +184,11 @@ class GenCpuTensorDataContainer {
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, directBuffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) directBuffer.capacity() * Float.BYTES);
             memoryManager.free(directBuffer);
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, buffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) buffer.capacity() * Float.BYTES);
         }
     }
 
@@ -201,17 +201,17 @@ class GenCpuTensorDataContainer {
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = MemoryUtil.memAddress(directBuffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, directBuffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) directBuffer.capacity() * Double.BYTES);
             memoryManager.free(directBuffer);
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.dataPtr, buffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.dataPtr, (long) buffer.capacity() * Double.BYTES);
         }
     }
 
     public void setContents(boolean @NotNull [] data) {
-        if (data.length > this.dataSize / 8) {
-            throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + data.length);
+        if (data.length > this.dataSize * 8) {
+            throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize * 8 + " bits with buffer of size " + data.length + " bits");
         }
         for (int i = 0; i < data.length; i++) {
             int byteIndex = i / 8;
@@ -243,9 +243,9 @@ class GenCpuTensorDataContainer {
             throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
         }
         long nElements = endFlatIndex - startFlatIndex;
-        ByteBuffer buffer = memoryManager.allocBuffer(nElements);
+        ByteBuffer buffer = memoryManager.allocBuffer(nElements, dataType);
         long bufferPtr = MemoryUtil.memAddress(buffer);
-        MemoryUtil.memCopy(this.dataPtr + startFlatIndex, bufferPtr, nElements);
+        MemoryUtil.memCopy(this.dataPtr + dataType.getSizeOf(startFlatIndex), bufferPtr, dataType.getSizeOf(nElements));
         return buffer;
     }
 
@@ -261,5 +261,13 @@ class GenCpuTensorDataContainer {
     @NotNull
     public DataType getDataType() {
         return dataType;
+    }
+
+    public long getDataPtr() {
+        return dataPtr;
+    }
+
+    public long getDataSize() {
+        return dataSize;
     }
 }

@@ -19,7 +19,7 @@ public class MatmulPerformanceTest {
     public void testMatmulPerformance() {
         long alphaPtr = JEmalloc.nje_malloc(4);
         MemoryUtil.memPutFloat(alphaPtr, 1.0f);
-        int size = 4096;
+        int size = 1024;
         for (int i = 0; i < 1000; i++) {
             FloatBuffer a = JEmalloc.je_malloc(size * size * 4).asFloatBuffer();
             FloatBuffer b = JEmalloc.je_malloc(size * size * 4).asFloatBuffer();
@@ -37,7 +37,7 @@ public class MatmulPerformanceTest {
             long end = System.nanoTime();
             long nFlops = 2L * size * size * size;
             double tflops = (nFlops / ((end - start) / 1e9)) / 1e12;
-            System.out.println("cblas_sgemm: " + tflops + " TFLOPS");
+            System.out.println("cblas_sgemm took " + (end - start) / 1e6 + " ms, " + tflops + " TFLOPS");
             JEmalloc.je_free(a);
             JEmalloc.je_free(b);
             JEmalloc.je_free(c);

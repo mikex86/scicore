@@ -614,17 +614,18 @@ public interface ITensor extends IValue {
     @NotNull ITensor argmax(int dimension);
 
     /**
-     * @return a direct byte buffer containing the tensor's data and a boolean indicating whether the buffer needs to be freed via JEmalloc.je_free(buffer).
+     * @return a direct byte buffer containing the tensor's data and a boolean indicating whether the buffer needs to be freed via the direct memory manager.
      */
     @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer();
 
     /**
      * @param startFlatIndex the flat index of the first element to retrieve
      * @param endFlatIndex   the flat index of the last element to retrieve (exclusive)
-     * @return a direct byte buffer containing the tensor's data in the specified interval and a boolean indicating whether the buffer needs to be freed via JEmalloc.je_free(buffer).
+     * @return a direct byte buffer containing the tensor's data in the specified interval and a boolean indicating whether the buffer needs to be freed via the direct memory manager.
      */
     @NotNull Pair<ByteBuffer, Boolean> getAsDirectBuffer(long startFlatIndex, long endFlatIndex);
 
+    // TODO: USE getIfIsType EVERYWHERE INSTEAD OF INSTANCEOF
     default <T extends ITensor> @Nullable T getIfIsType(@NotNull Class<T> typeClass) {
         return typeClass.isInstance(this) ? typeClass.cast(this) : null;
     }

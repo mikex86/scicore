@@ -1,5 +1,6 @@
 package me.mikex86.scicore.backend;
 
+import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.op.IGraphRecorder;
 import me.mikex86.scicore.op.IOperation;
 import me.mikex86.scicore.op.OperationType;
@@ -15,6 +16,9 @@ public abstract class AbstractSciCoreBackend implements ISciCoreBackend {
     @Nullable
     private IGraphRecorder operationRecorder;
 
+    @Nullable
+    private DirectMemoryManager directMemoryManager;
+
     public @NotNull Optional<IOperation> getOperation(@NotNull OperationType operationType) {
         IOperation operation = getOperationTable().get(operationType);
         return Optional.ofNullable(operation);
@@ -23,12 +27,21 @@ public abstract class AbstractSciCoreBackend implements ISciCoreBackend {
     @NotNull
     protected abstract Map<OperationType, IOperation> getOperationTable();
 
+    public void setOperationRecorder(@NotNull IGraphRecorder operationRecorder) {
+        this.operationRecorder = operationRecorder;
+    }
+
     @Override
     public @NotNull IGraphRecorder getOperationRecorder() {
         return Objects.requireNonNull(operationRecorder, "Operation recorder not set");
     }
 
-    public void setOperationRecorder(@Nullable IGraphRecorder operationRecorder) {
-        this.operationRecorder = operationRecorder;
+    public void setDirectMemoryManager(@NotNull DirectMemoryManager directMemoryManager) {
+        this.directMemoryManager = directMemoryManager;
+    }
+
+    @NotNull
+    public DirectMemoryManager getDirectMemoryManager() {
+        return Objects.requireNonNull(directMemoryManager, "Direct memory manager not set");
     }
 }

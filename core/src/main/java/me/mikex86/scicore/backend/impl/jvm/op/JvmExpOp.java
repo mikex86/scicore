@@ -4,6 +4,7 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableUnaryOperation;
@@ -14,9 +15,9 @@ import org.jetbrains.annotations.NotNull;
 public class JvmExpOp implements IDifferentiableUnaryOperation {
 
     @NotNull
-    private final ISciCoreBackend backend;
+    private final JvmBackend backend;
 
-    public JvmExpOp(@NotNull ISciCoreBackend backend) {
+    public JvmExpOp(@NotNull JvmBackend backend) {
         this.backend = backend;
     }
 

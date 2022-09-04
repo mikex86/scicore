@@ -4,6 +4,7 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
@@ -14,9 +15,9 @@ import org.jetbrains.annotations.NotNull;
 public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
 
     @NotNull
-    private final ISciCoreBackend backend;
+    private final JvmBackend backend;
 
-    public JvmMultiplyOp(@NotNull ISciCoreBackend backend) {
+    public JvmMultiplyOp(@NotNull JvmBackend backend) {
         this.backend = backend;
     }
 

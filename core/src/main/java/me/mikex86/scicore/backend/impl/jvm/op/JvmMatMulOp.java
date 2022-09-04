@@ -3,6 +3,7 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.op.Graph;
@@ -15,9 +16,9 @@ import org.jetbrains.annotations.NotNull;
 public class JvmMatMulOp implements IDifferentiableBinaryOperation {
 
     @NotNull
-    private final ISciCoreBackend backend;
+    private final JvmBackend backend;
 
-    public JvmMatMulOp(@NotNull ISciCoreBackend backend) {
+    public JvmMatMulOp(@NotNull JvmBackend backend) {
         this.backend = backend;
     }
 
@@ -37,6 +38,7 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
 
         ITensor result = new JvmTensor(this.backend, resultDataType, resultShape);
 
+        // TODO: OPTIMIZE
         long[] index = new long[resultShape.length];
         if (resultDataType.isFloatingPoint()) {
             for (int i = 0; i < resultShape[0]; i++) {

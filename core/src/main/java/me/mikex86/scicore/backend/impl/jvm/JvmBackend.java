@@ -4,6 +4,7 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.op.*;
+import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.op.IOperation;
 import me.mikex86.scicore.op.OperationType;
 import org.jetbrains.annotations.NotNull;
@@ -40,4 +41,5 @@ public class JvmBackend extends AbstractSciCoreBackend {
     protected @NotNull Map<OperationType, IOperation> getOperationTable() {
         return this.operationTable;
     }
+
 }

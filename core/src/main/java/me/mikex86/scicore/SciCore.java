@@ -4,6 +4,7 @@ import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.OperationRegistry;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
+import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.op.GraphRecorder;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.op.IGraphRecorder;
@@ -19,6 +20,9 @@ import java.util.Random;
 public class SciCore implements ISciCore {
 
     @NotNull
+    private final DirectMemoryManager directMemoryManager = new DirectMemoryManager();
+
+    @NotNull
     private final JvmBackend jvmBackend = new JvmBackend();
 
     @NotNull
@@ -27,12 +31,12 @@ public class SciCore implements ISciCore {
     @NotNull
     private final OperationRegistry operationRegistry = new OperationRegistry();
 
-
     @NotNull
     private final IGraphRecorder operationRecorder = new GraphRecorder(operationRegistry);
 
     {
         jvmBackend.setOperationRecorder(operationRecorder);
+        jvmBackend.setDirectMemoryManager(directMemoryManager);
         operationRegistry.pushLayer(jvmBackend); // JVM backend is always there as a fallback, if operations are not implemented in higher layers
     }
 
@@ -108,6 +112,7 @@ public class SciCore implements ISciCore {
             throw new IllegalArgumentException("Backend does not implement AbstractSciCoreBackend: " + sciCoreBackend.getClass().getName());
         }
         abstractSciCoreBackend.setOperationRecorder(operationRecorder);
+        abstractSciCoreBackend.setDirectMemoryManager(directMemoryManager);
         operationRegistry.pushLayer(sciCoreBackend);
     }
 
@@ -258,12 +263,13 @@ public class SciCore implements ISciCore {
         long[] shape = new long[]{array.length, array[0].length};
         int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.INT8, shape);
-        ByteBuffer buffer = ByteBuffer.allocateDirect(nElements);
+        ByteBuffer buffer = directMemoryManager.allocBuffer(nElements);
         for (byte[] row : array) {
             buffer.put(row);
         }
         buffer.flip();
         tensor.setContents(buffer);
+        directMemoryManager.free(buffer);
         return tensor;
     }
 
@@ -279,15 +285,13 @@ public class SciCore implements ISciCore {
         long[] shape = new long[]{array.length, array[0].length};
         int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.INT16, shape);
-        ShortBuffer buffer = ByteBuffer
-                .allocateDirect(nElements * Short.BYTES)
-                .order(ByteOrder.nativeOrder())
-                .asShortBuffer();
+        ShortBuffer buffer = directMemoryManager.allocShortBuffer(nElements);
         for (short[] row : array) {
             buffer.put(row);
         }
         buffer.flip();
         tensor.setContents(buffer);
+        directMemoryManager.free(buffer);
         return tensor;
     }
 
@@ -303,15 +307,13 @@ public class SciCore implements ISciCore {
         long[] shape = new long[]{array.length, array[0].length};
         int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.INT32, shape);
-        IntBuffer buffer = ByteBuffer
-                .allocateDirect(nElements * Integer.BYTES)
-                .order(ByteOrder.nativeOrder())
-                .asIntBuffer();
+        IntBuffer buffer = directMemoryManager.allocIntBuffer(nElements);
         for (int[] row : array) {
             buffer.put(row);
         }
         buffer.flip();
         tensor.setContents(buffer);
+        directMemoryManager.free(buffer);
         return tensor;
     }
 
@@ -327,15 +329,13 @@ public class SciCore implements ISciCore {
         long[] shape = new long[]{array.length, array[0].length};
         int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.INT64, shape);
-        LongBuffer buffer = ByteBuffer
-                .allocateDirect(nElements * Long.BYTES)
-                .order(ByteOrder.nativeOrder())
-                .asLongBuffer();
+        LongBuffer buffer = directMemoryManager.allocLongBuffer(nElements);
         for (long[] row : array) {
             buffer.put(row);
         }
         buffer.flip();
         tensor.setContents(buffer);
+        directMemoryManager.free(buffer);
         return tensor;
     }
 
@@ -351,15 +351,13 @@ public class SciCore implements ISciCore {
         long[] shape = new long[]{array.length, array[0].length};
         int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.FLOAT32, shape);
-        FloatBuffer buffer = ByteBuffer
-                .allocateDirect(nElements * Float.BYTES)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer();
+        FloatBuffer buffer = directMemoryManager.allocFloatBuffer(nElements);
         for (float[] row : array) {
             buffer.put(row);
         }
         buffer.flip();
         tensor.setContents(buffer);
+        directMemoryManager.free(buffer);
         return tensor;
     }
 
@@ -375,15 +373,13 @@ public class SciCore implements ISciCore {
         long[] shape = new long[]{array.length, array[0].length};
         int nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
         ITensor tensor = backend.createTensor(DataType.FLOAT64, shape);
-        DoubleBuffer buffer = ByteBuffer
-                .allocateDirect(nElements * Double.BYTES)
-                .order(ByteOrder.nativeOrder())
-                .asDoubleBuffer();
+        DoubleBuffer buffer = directMemoryManager.allocDoubleBuffer(nElements);
         for (double[] row : array) {
             buffer.put(row);
         }
         buffer.flip();
         tensor.setContents(buffer);
+        directMemoryManager.free(buffer);
         return tensor;
     }
 

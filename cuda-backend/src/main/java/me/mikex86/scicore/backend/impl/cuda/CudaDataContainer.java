@@ -5,7 +5,6 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryManager;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryHandle;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.*;
 
@@ -15,12 +14,16 @@ import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 public class CudaDataContainer {
 
     @NotNull
+    private final CudaBackend backend;
+
+    @NotNull
     private final CudaMemoryHandle deviceMemoryHandle;
 
     @NotNull
     private final DataType dataType;
 
-    public CudaDataContainer(@NotNull CudaMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
+    public CudaDataContainer(@NotNull CudaBackend backend, @NotNull CudaMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
+        this.backend = backend;
         this.deviceMemoryHandle = memoryManager.alloc(nElements, dataType);
         this.dataType = dataType;
     }
@@ -132,17 +135,14 @@ public class CudaDataContainer {
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
-            ByteBuffer directBuffer = JEmalloc.je_malloc(size);
-            if (directBuffer == null) {
-                throw new OutOfMemoryError("Could not allocate direct buffer (" + size + " bytes)");
-            }
+            ByteBuffer directBuffer = backend.getDirectMemoryManager().allocBuffer(size);
             directBuffer.put(buffer);
             directBuffer.flip();
 
             Pointer hostPtr = Pointer.to(buffer);
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
 
-            JEmalloc.je_free(directBuffer);
+            backend.getDirectMemoryManager().free(directBuffer);
         }
     }
 
@@ -159,17 +159,14 @@ public class CudaDataContainer {
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer().withByteOffset(flatStartIndex), hostPtr, size));
         } else {
             // to direct buffer
-            ByteBuffer directBuffer = JEmalloc.je_malloc(size);
-            if (directBuffer == null) {
-                throw new OutOfMemoryError("Could not allocate direct buffer (" + size + " bytes)");
-            }
+            ByteBuffer directBuffer = backend.getDirectMemoryManager().allocBuffer(size);
             directBuffer.put(hostBuffer);
             directBuffer.flip();
 
             Pointer hostPtr = Pointer.to(directBuffer);
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer().withByteOffset(flatStartIndex), hostPtr, size));
 
-            JEmalloc.je_free(directBuffer);
+            backend.getDirectMemoryManager().free(directBuffer);
         }
     }
 
@@ -194,15 +191,12 @@ public class CudaDataContainer {
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
-            ByteBuffer directBuffer = JEmalloc.je_malloc(size);
-            if (directBuffer == null) {
-                throw new OutOfMemoryError("Could not allocate direct buffer (" + size + " bytes)");
-            }
+            ByteBuffer directBuffer = backend.getDirectMemoryManager().allocBuffer(size);
             directBuffer.order(ByteOrder.nativeOrder());
             directBuffer.asShortBuffer().put(buffer);
             directBuffer.flip();
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), Pointer.to(directBuffer), size));
-            JEmalloc.je_free(directBuffer);
+            backend.getDirectMemoryManager().free(directBuffer);
         }
     }
 
@@ -220,15 +214,12 @@ public class CudaDataContainer {
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
-            ByteBuffer directBuffer = JEmalloc.je_malloc(size);
-            if (directBuffer == null) {
-                throw new OutOfMemoryError("Could not allocate direct buffer (" + size + " bytes)");
-            }
+            ByteBuffer directBuffer = backend.getDirectMemoryManager().allocBuffer(size);
             directBuffer.order(ByteOrder.nativeOrder());
             directBuffer.asIntBuffer().put(buffer);
             directBuffer.flip();
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), Pointer.to(directBuffer), size));
-            JEmalloc.je_free(directBuffer);
+            backend.getDirectMemoryManager().free(directBuffer);
         }
     }
 
@@ -246,15 +237,12 @@ public class CudaDataContainer {
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
-            ByteBuffer directBuffer = JEmalloc.je_malloc(size);
-            if (directBuffer == null) {
-                throw new OutOfMemoryError("Could not allocate direct buffer (" + size + " bytes)");
-            }
+            ByteBuffer directBuffer = backend.getDirectMemoryManager().allocBuffer(size);
             directBuffer.order(ByteOrder.nativeOrder());
             directBuffer.asLongBuffer().put(buffer);
             directBuffer.flip();
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), Pointer.to(directBuffer), size));
-            JEmalloc.je_free(directBuffer);
+            backend.getDirectMemoryManager().free(directBuffer);
         }
     }
 
@@ -272,15 +260,12 @@ public class CudaDataContainer {
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
-            ByteBuffer directBuffer = JEmalloc.je_malloc(size);
-            if (directBuffer == null) {
-                throw new OutOfMemoryError("Could not allocate direct buffer (" + size + " bytes)");
-            }
+            ByteBuffer directBuffer = backend.getDirectMemoryManager().allocBuffer(size);
             directBuffer.order(ByteOrder.nativeOrder());
             directBuffer.asFloatBuffer().put(buffer);
             directBuffer.flip();
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), Pointer.to(directBuffer), size));
-            JEmalloc.je_free(directBuffer);
+            backend.getDirectMemoryManager().free(directBuffer);
         }
     }
 
@@ -298,15 +283,12 @@ public class CudaDataContainer {
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
         } else {
             // to direct buffer
-            ByteBuffer directBuffer = JEmalloc.je_malloc(size);
-            if (directBuffer == null) {
-                throw new OutOfMemoryError("Could not allocate direct buffer (" + size + " bytes)");
-            }
+            ByteBuffer directBuffer = backend.getDirectMemoryManager().allocBuffer(size);
             directBuffer.order(ByteOrder.nativeOrder());
             directBuffer.asDoubleBuffer().put(buffer);
             directBuffer.flip();
             cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), Pointer.to(directBuffer), size));
-            JEmalloc.je_free(directBuffer);
+            backend.getDirectMemoryManager().free(directBuffer);
         }
     }
 
@@ -315,10 +297,7 @@ public class CudaDataContainer {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
         }
         int size = (data.length + 7) / 8; // round up to next byte
-        ByteBuffer buffer = JEmalloc.je_malloc(size);
-        if (buffer == null) {
-            throw new OutOfMemoryError("Could not allocate direct buffer (" + size + " bytes)");
-        }
+        ByteBuffer buffer = backend.getDirectMemoryManager().allocBuffer(size);
         buffer.order(ByteOrder.nativeOrder());
         for (int i = 0; i < data.length; i++) {
             int byteIndex = i / 8;
@@ -333,7 +312,7 @@ public class CudaDataContainer {
         buffer.flip();
         Pointer hostPtr = Pointer.to(buffer);
         cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getPointer(), hostPtr, size));
-        JEmalloc.je_free(buffer);
+        backend.getDirectMemoryManager().free(buffer);
     }
 
     /**
@@ -341,7 +320,7 @@ public class CudaDataContainer {
      *
      * @param startFlatIndex the start index of the data to copy (flat index)
      * @param endFlatIndex   the end index of the data to copy (exclusive, flat index)
-     * @return the host byte buffer. Must be freed with JEmalloc.je_free()
+     * @return the host byte buffer. Must be freed via the direct memory manager.
      */
     @NotNull
     public ByteBuffer getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
@@ -353,10 +332,7 @@ public class CudaDataContainer {
             throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
         }
         long nElements = endFlatIndex - startFlatIndex;
-        ByteBuffer buffer = JEmalloc.je_malloc(dataType.getSizeOf(nElements));
-        if (buffer == null) {
-            throw new OutOfMemoryError("Could not allocate direct buffer (" + deviceMemoryHandle.getSize() + " bytes)");
-        }
+        ByteBuffer buffer = backend.getDirectMemoryManager().allocBuffer(nElements, dataType);
         Pointer hostPtr = Pointer.to(buffer);
         cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getPointer().withByteOffset(dataType.getSizeOf(startFlatIndex)), (nElements * dataType.getBits() + 7) / 8));
         buffer.flip();
