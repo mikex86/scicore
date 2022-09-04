@@ -2,6 +2,7 @@ package me.mikex86.scicore.backend.impl.cuda.kernel;
 
 import jcuda.driver.CUfunction;
 import jcuda.driver.CUmodule;
+import jcuda.driver.CUstream;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.InputStream;
@@ -21,7 +22,7 @@ public class CudaKernel {
     @NotNull
     private final Map<String, CUfunction> cuFunctions = new HashMap<>();
 
-    private boolean freed = false;
+    private boolean disposed = false;
 
     private CudaKernel(@NotNull String ptxCode, @NotNull List<String> functionNames) {
         this.cuModule = new CUmodule();
@@ -66,8 +67,8 @@ public class CudaKernel {
     }
 
     private void launch(@NotNull CUfunction function, @NotNull CudaKernelLaunchConfig config) {
-        if (freed) {
-            throw new IllegalStateException("Cuda kernel already freed!");
+        if (disposed) {
+            throw new IllegalStateException("Cuda kernel already disposed!");
         }
         cuCheck(
                 cuLaunchKernel(
@@ -79,19 +80,44 @@ public class CudaKernel {
         );
     }
 
-    // TODO: IMPLEMENT LAUNCH BLOCKING AND USE IT EVERYWHERE INSTEAD OF launch()
+    private void launchBlocking(@NotNull CUfunction function, @NotNull CudaKernelLaunchConfig config) {
+        if (disposed) {
+            throw new IllegalStateException("Cuda kernel already freed!");
+        }
+        CUstream stream = new CUstream();
+        cuCheck(cuStreamCreate(stream, 0));
+        cuCheck(
+                cuLaunchKernel(
+                        function,
+                        config.gridDimX(), config.gridDimY(), config.gridDimZ(),
+                        config.blockDimX(), config.blockDimY(), config.blockDimZ(),
+                        config.sharedMemBytes(), stream, config.arguments(), null
+                )
+        );
+        cuCheck(cuStreamSynchronize(stream));
+        cuCheck(cuStreamDestroy(stream));
+    }
 
-    public void free() {
-        if (freed) {
+    public void launchBlocking(@NotNull String functionName, @NotNull CudaKernelLaunchConfig config) {
+        Optional<CUfunction> functionOpt = getFunction(functionName);
+        if (functionOpt.isEmpty()) {
+            throw new IllegalArgumentException("Function not found: " + functionName);
+        }
+        launchBlocking(functionOpt.get(), config);
+    }
+
+    public void disposed() {
+        if (disposed) {
             return;
         }
         cuCheck(cuModuleUnload(cuModule));
-        freed = true;
+        disposed = true;
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void finalize() throws Throwable {
         super.finalize();
-        free();
+        disposed();
     }
 }

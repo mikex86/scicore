@@ -4,7 +4,6 @@ import jcuda.Pointer;
 import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;
 import jcuda.driver.CUdeviceptr;
-import jcuda.jcublas.cublasHandle;
 import jcuda.jcurand.curandGenerator;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernel;
@@ -19,7 +18,6 @@ import static jcuda.driver.JCudaDriver.*;
 import static jcuda.jcurand.JCurand.*;
 import static jcuda.jcurand.JCurand.curandGenerateUniform;
 import static jcuda.jcurand.curandRngType.CURAND_RNG_PSEUDO_DEFAULT;
-import static jcuda.runtime.JCuda.cudaDeviceSynchronize;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 
 public class KernelMatmulPerformanceTest {
@@ -72,7 +70,7 @@ public class KernelMatmulPerformanceTest {
             int nBlocksY = Math.toIntExact((yDimSize + blockDimY - 1) / blockDimY);
 
             // KERNEL_TEMPLATE void matmul(A *a, B *b, C *c, size_t m, size_t n, size_t k)
-            matmulKernel.launch(
+            matmulKernel.launchBlocking(
                     KernelNameUtility.getTypePermutation("matmul", DataType.FLOAT32, DataType.FLOAT32),
                     CudaKernelLaunchConfig.builder()
                             .blockDimX(blockDimX)
@@ -91,7 +89,6 @@ public class KernelMatmulPerformanceTest {
                             )
                             .build()
             );
-            cudaDeviceSynchronize();
 
             long end = System.nanoTime();
             double tflops = ((2 * m * n * k) / ((end - start) / 1e9)) / 1e12;

@@ -135,7 +135,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
             int nBlocksY = Math.toIntExact((yDimSize + blockDimY - 1) / blockDimY);
 
             // KERNEL_TEMPLATE void matmul(A *a, B *b, C *c, size_t m, size_t n, size_t k)
-            this.matmulKernel.launch(
+            this.matmulKernel.launchBlocking(
                     KernelNameUtility.getTypePermutation("matmul", dataTypeA, dataTypeB),
                     CudaKernelLaunchConfig.builder()
                             .blockDimX(blockDimX)
