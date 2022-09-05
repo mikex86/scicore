@@ -65,14 +65,15 @@ public enum DataType {
     @NotNull
     public static DataType getLarger(DataType a, DataType b) {
         DataType largerByBitSize = a.bits > b.bits ? a : b;
-        if (a.isFp) {
-            if (b.isFp) {
-                return largerByBitSize;
-            } else {
-                return a;
-            }
+        if (a.isFp && b.isFp) {
+            return largerByBitSize;
+        } else if (a.isFp) {
+            return a;
+        } else if (b.isFp) {
+            return b;
+        } else {
+            return largerByBitSize;
         }
-        return largerByBitSize;
     }
 
     public boolean isSameType(@NotNull Class<?> fClass) {

@@ -936,7 +936,12 @@ public class GenCPUTensorTest {
                 {{28, 29, 30}, {31, 32, 33}, {34, 35, 36}}
         };
         double[][] result = {{192, 198, 204}, {471, 486, 501}, {750, 774, 798}};
-        return allNumericDataTypeVariants(a, b, result);
+        return allNumericDataTypeVariants(a, b, result).map(args -> {
+            ITensor aMatrix = (ITensor) args.get()[0];
+            ITensor bMatrix = (ITensor) args.get()[1];
+            ITensor cMatrix = (ITensor) args.get()[2];
+            return Arguments.of(aMatrix.getView(0), bMatrix.getView(1), cMatrix);
+        });
     }
 
     @ParameterizedTest
@@ -945,17 +950,6 @@ public class GenCPUTensorTest {
         ITensor result = a.matmul(b);
         assertEquals(c, result);
     }
-
-//    @Test
-//    void matmul_test__withJvmTensor() {
-//        SciCore jvmSciCore = new SciCore();
-//        jvmSciCore.setBackend(ISciCore.BackendType.JVM);
-//
-//        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
-//        ITensor matrixB = jvmSciCore.matrix(new float[][]{{5, 6}, {7, 8}});
-//        ITensor result = matrixA.matmul(matrixB);
-//        assertEquals(sciCore.matrix(new float[][]{{19, 22}, {43, 50}}), result);
-//    }
 
     Stream<Arguments> getMatmul_test__withJvmTensorData() {
         SciCore jvmSciCore = new SciCore();
@@ -969,8 +963,8 @@ public class GenCPUTensorTest {
             ITensor aMatrix = (ITensor) objects[0];
             ITensor bMatrix = (ITensor) objects[1];
             ITensor cMatrix = (ITensor) objects[2];
-            ITensor bMatrixJvm = jvmSciCore.zeros(aMatrix.getDataType(), bMatrix.getShape());
-            bMatrix.setContents(bMatrixJvm);
+            ITensor bMatrixJvm = jvmSciCore.zeros(bMatrix.getDataType(), bMatrix.getShape());
+            bMatrixJvm.setContents(bMatrix);
             return Arguments.of(aMatrix, bMatrixJvm, cMatrix);
         });
     }

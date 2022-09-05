@@ -12,10 +12,6 @@ import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.MemoryUtil;
-
-import java.nio.*;
 
 import static me.mikex86.scicore.backend.impl.genericcpu.jni.MatmulJNI.*;
 
@@ -48,82 +44,29 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                 n = Math.toIntExact(otherShape[1]),
                 k = Math.toIntExact(shape[1]);
 
-        // TODO: THIS IS AWFUL CODE
+        DirectMemoryHandle aPtr = backend.getDirectMemoryManager().ensureDirect(a);
+        DirectMemoryHandle bPtr = backend.getDirectMemoryManager().ensureDirect(b);
 
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            Buffer factor;
-            switch (aDataType) {
-                case INT8: {
-                    ByteBuffer ptr = stack.malloc(1);
-                    ptr.put((byte) 1);
-                    ptr.flip();
-                    factor = ptr;
-                    break;
-                }
-                case INT16: {
-                    ShortBuffer ptr = stack.mallocShort(1);
-                    ptr.put((short) 1);
-                    ptr.flip();
-                    factor = ptr;
-                    break;
-                }
-                case INT32: {
-                    IntBuffer ptr = stack.mallocInt(1);
-                    ptr.put(1);
-                    ptr.flip();
-                    factor = ptr;
-                    break;
-                }
-                case INT64: {
-                    LongBuffer ptr = stack.mallocLong(1);
-                    ptr.put(1L);
-                    ptr.flip();
-                    factor = ptr;
-                    break;
-                }
-                case FLOAT32: {
-                    FloatBuffer ptr = stack.mallocFloat(1);
-                    ptr.put(1.0f);
-                    ptr.flip();
-                    factor = ptr;
-                    break;
-                }
-                case FLOAT64: {
-                    DoubleBuffer ptr = stack.mallocDouble(1);
-                    ptr.put(1.0);
-                    ptr.flip();
-                    factor = ptr;
-                    break;
-                }
-                default:
-                    throw new IllegalArgumentException("Unsupported data type: " + aDataType);
-            }
-
-            DirectMemoryHandle aPtr = backend.getDirectMemoryManager().ensureDirect(a);
-            DirectMemoryHandle bPtr = backend.getDirectMemoryManager().ensureDirect(b);
-
-            matmul(OP_NONE, OP_NONE,
+        matmul(OP_NONE, OP_NONE,
                     m, n, k,
-                    MemoryUtil.memAddress(factor),
                     aPtr.getNativePtr(),
                     getMatmulDataType(aDataType),
                     m,
-                    MemoryUtil.memAddress(factor),
                     bPtr.getNativePtr(),
                     getMatmulDataType(bDataType),
                     k,
                     result.getDataContainer().getMemoryHandle().getNativePtr(),
                     getMatmulDataType(resultDataType),
                     m
-            );
+        );
 
-            if (aPtr.canFree()) {
-                aPtr.free();
-            }
-            if (bPtr.canFree()) {
-                bPtr.free();
-            }
+        if (aPtr.canFree()) {
+            aPtr.free();
         }
+        if (bPtr.canFree()) {
+            bPtr.free();
+        }
+
         return result;
     }
 
