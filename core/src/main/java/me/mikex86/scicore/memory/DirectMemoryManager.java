@@ -9,7 +9,6 @@ public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
 
     public static final long NULL = 0;
 
-
     @NotNull
     public DirectMemoryHandle alloc(long nBytes) {
         long ptr = JEmalloc.nje_malloc(nBytes);

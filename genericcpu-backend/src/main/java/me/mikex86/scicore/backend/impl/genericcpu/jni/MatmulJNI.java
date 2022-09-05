@@ -16,17 +16,17 @@ public class MatmulJNI {
     public static final int DATA_TYPE_FLOAT64 = 6;
 
     public static native void matmul(int transa, int transb,
-                                     long m, long n, long k,
+                                     int m, int n, int k,
                                      long alphaPtr,
                                      long aPtr,
                                      int aType,
-                                     long lda,
+                                     int lda,
                                      long betaPtr, long bPtr,
                                      int bType,
-                                     long ldb,
+                                     int ldb,
                                      long cPtr,
                                      int cType,
-                                     long ldc);
+                                     int ldc);
 
     public static int getMatmulDataType(@NotNull DataType dataType) {
         return switch (dataType) {

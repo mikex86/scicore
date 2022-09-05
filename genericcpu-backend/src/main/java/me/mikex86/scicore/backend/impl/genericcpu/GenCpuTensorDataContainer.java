@@ -256,7 +256,7 @@ public class GenCpuTensorDataContainer {
             throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
         }
         long nElements = endFlatIndex - startFlatIndex;
-        return this.memoryHandle.offset(startFlatIndex, nElements);
+        return this.memoryHandle.offset(startFlatIndex, nElements, dataType);
     }
 
     /**

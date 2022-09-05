@@ -16,8 +16,8 @@ target_include_directories(scicore_genericcpu PRIVATE ${JNI_INCLUDE_DIRS})
 if (APPLE)
     # Link vecLib on macOS
     target_link_libraries(scicore_genericcpu PRIVATE "-framework Accelerate")
-else ()
-    # Use tinyblas on other platforms
-    add_subdirectory(tinyblas)
-    target_link_libraries(scicore_genericcpu PRIVATE tinyblas)
-endif ()
+endif()
+
+# Tinyblas
+add_subdirectory(tinyblas)
+target_link_libraries(scicore_genericcpu PRIVATE tinyblas)

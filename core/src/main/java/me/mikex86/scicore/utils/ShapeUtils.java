@@ -261,9 +261,10 @@ public class ShapeUtils {
      * while index=shape.length-1 is the lowest dimension of the shape.
      * Note that for index=0 the n-th higher dimension is {@code shape.length} - n. This mimics python {@code array[-1]} indexing referencing the last element.
      * This behavior is there because it is useful.
-     * @param dimension the current dimension index
+     *
+     * @param dimension   the current dimension index
      * @param nDimensions the number of dimensions in the shape ({@code shape.length})
-     * @param n the number of dimensions the dimension index should get higher by
+     * @param n           the number of dimensions the dimension index should get higher by
      * @return the new dimension index
      */
     public static int getHigherDimension(int dimension, int nDimensions, int n) {
@@ -276,13 +277,14 @@ public class ShapeUtils {
 
     /**
      * Compares two shapes and returns whether 'shapeA broadcasts to shapeB' or vice versa, meaning whether shapeA is a subset of shapeB in the sense of a broadcast or not.
-     * @see #broadcastShapes(long[], long[]) for more information on broadcasting.
+     *
      * @param shapeA the first shape to compare
      * @param shapeB the second shape to compare
      * @return -1 if shapeA < shapeB, 0 if shapeA == shapeB, 1 if shapeA > shapeB, where > means superset, < means subset, and == means the shapes are equivalent.
      * @throws IllegalArgumentException if the shapes are not broadcast-able
+     * @see #broadcastShapes(long[], long[]) for more information on broadcasting.
      */
-    public static int compareBroadcastRank(long@NotNull[] shapeA, long@NotNull[] shapeB) {
+    public static int compareBroadcastRank(long @NotNull [] shapeA, long @NotNull [] shapeB) {
         int maxLength = Math.max(shapeA.length, shapeB.length);
         for (int i = 0; i < maxLength; i++) {
             long elementA = i < shapeA.length ? shapeA[shapeA.length - 1 - i] : -1;
@@ -305,12 +307,12 @@ public class ShapeUtils {
     }
 
 
-
     /**
      * Reduces the shape of the tensor by removing the dimension specified by the specified dimension index,
      * or reducing it to a single scalar at this dimension if keepDimensions is true.
-     * @param srcShape the shape to reduce
-     * @param dimension the dimension index that should be reduced in the output shape. If -1, all dimensions are reduced.
+     *
+     * @param srcShape       the shape to reduce
+     * @param dimension      the dimension index that should be reduced in the output shape. If -1, all dimensions are reduced.
      * @param keepDimensions whether to keep a single scalar at the reduced dimension
      * @return the reduced shape
      */
@@ -337,9 +339,10 @@ public class ShapeUtils {
     /**
      * Reduces the shape and writes the result to the output shape, which must be of the correct size according to shape.length and keepDimensions.
      * If keepDimensions is true, the length of the output shape must be shape.length, otherwise it must be shape.length - 1.
-     * @param shape the shape to reduce
-     * @param outputShape the output shape
-     * @param dimension the dimension index that should be reduced in the output shape
+     *
+     * @param shape          the shape to reduce
+     * @param outputShape    the output shape
+     * @param dimension      the dimension index that should be reduced in the output shape
      * @param keepDimensions whether to keep a single scalar at the reduced dimension
      */
     public static void reduceShape(long[] shape, long[] outputShape, int dimension, boolean keepDimensions) {
@@ -368,5 +371,18 @@ public class ShapeUtils {
             throw new IllegalArgumentException("Matrix multiply only works on matrices where the number of columns of the first matrix equals the number of rows of the second matrix");
         }
         return new long[]{shapeA[0], shapeB[1]};
+    }
+
+    /**
+     * @param shape the shape to check
+     * @return true if all dimensions of the shape fit into an int, false otherwise
+     */
+    public static boolean shapeFitsInInt(long[] shape) {
+        for (long l : shape) {
+            if (l > Integer.MAX_VALUE) {
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -632,5 +632,5 @@ public interface ITensor extends IValue {
     default <T extends ITensor> @Nullable T getIfIsType(@NotNull Class<T> typeClass) {
         return typeClass.isInstance(this) ? typeClass.cast(this) : null;
     }
-
+    @NotNull ITensor cast(@NotNull DataType dataType);
 }

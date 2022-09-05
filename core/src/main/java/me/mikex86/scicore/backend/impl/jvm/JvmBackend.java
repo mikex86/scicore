@@ -30,6 +30,7 @@ public class JvmBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.RELU, new JvmReluOp(this));
         operationTable.put(OperationType.SIGMOID, new JvmSigmoidOp(this));
         operationTable.put(OperationType.ARGMAX, new JvmArgmaxOp(this));
+        operationTable.put(OperationType.CAST, new JvmCastOp(this));
     }
 
     @Override

@@ -2,6 +2,8 @@ package me.mikex86.scicore;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Optional;
+
 public enum DataType {
 
     INT8(8, false, true), INT16(16, false, true), INT32(32, false, true), INT64(64, false, true),
@@ -21,6 +23,14 @@ public enum DataType {
         if (isFp && !isNumeric) {
             throw new IllegalArgumentException("Floating point data types must be numeric");
         }
+    }
+
+    @NotNull
+    public static Optional<DataType> fromOrdinal(int ordinal) {
+        if (ordinal < 0 || ordinal >= values().length) {
+            return Optional.empty();
+        }
+        return Optional.of(values()[ordinal]);
     }
 
     public boolean isFloatingPoint() {

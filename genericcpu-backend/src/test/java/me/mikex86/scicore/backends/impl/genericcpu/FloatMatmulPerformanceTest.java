@@ -3,13 +3,12 @@ package me.mikex86.scicore.backends.impl.genericcpu;
 import static me.mikex86.scicore.backend.impl.genericcpu.jni.MatmulJNI.*;
 
 import me.mikex86.scicore.nativelib.LibraryLoader;
-import org.junit.jupiter.api.Test;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.FloatBuffer;
 
-public class MatmulPerformanceTest {
+public class FloatMatmulPerformanceTest {
 
     static {
         LibraryLoader.loadLibrary("scicore_genericcpu");

@@ -609,6 +609,18 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
+    public @NotNull ITensor cast(@NotNull DataType dataType) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor dataTypeScalar;
+        {
+            dataTypeScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            dataTypeScalar.setIntFlat(dataType.ordinal(), 0);
+        }
+        return operationRecorder.recordOperation(OperationType.CAST, this, dataTypeScalar);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;

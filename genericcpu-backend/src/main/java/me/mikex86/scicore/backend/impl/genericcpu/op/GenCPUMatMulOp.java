@@ -38,19 +38,21 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
         long[] resultShape = ShapeUtils.matrixMultiplyShape(shape, otherShape);
-        DataType ownDataType = a.getDataType();
-        DataType otherDataType = b.getDataType();
-        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
+        DataType aDataType = a.getDataType();
+        DataType bDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
 
         GenCPUTensor result = new GenCPUTensor(this.backend, resultDataType, resultShape);
 
-        long m = shape[0], n = otherShape[1], k = shape[1];
+        int m = Math.toIntExact(shape[0]),
+                n = Math.toIntExact(otherShape[1]),
+                k = Math.toIntExact(shape[1]);
 
         // TODO: THIS IS AWFUL CODE
 
         try (MemoryStack stack = MemoryStack.stackPush()) {
             Buffer factor;
-            switch (ownDataType) {
+            switch (aDataType) {
                 case INT8: {
                     ByteBuffer ptr = stack.malloc(1);
                     ptr.put((byte) 1);
@@ -94,7 +96,7 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                     break;
                 }
                 default:
-                    throw new IllegalArgumentException("Unsupported data type: " + ownDataType);
+                    throw new IllegalArgumentException("Unsupported data type: " + aDataType);
             }
 
             DirectMemoryHandle aPtr = backend.getDirectMemoryManager().ensureDirect(a);
@@ -104,11 +106,11 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                     m, n, k,
                     MemoryUtil.memAddress(factor),
                     aPtr.getNativePtr(),
-                    getMatmulDataType(ownDataType),
+                    getMatmulDataType(aDataType),
                     m,
                     MemoryUtil.memAddress(factor),
                     bPtr.getNativePtr(),
-                    getMatmulDataType(otherDataType),
+                    getMatmulDataType(bDataType),
                     k,
                     result.getDataContainer().getMemoryHandle().getNativePtr(),
                     getMatmulDataType(resultDataType),
@@ -134,11 +136,13 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         Validator.assertTrue(shape[1] == otherShape[0], "Shape mismatch. A.shape[1] != B.shape[0]");
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
+        Validator.assertTrue(ShapeUtils.shapeFitsInInt(shape), "Shape of A is too large, no dimension must exceed Integer.MAX_VALUE");
+        Validator.assertTrue(ShapeUtils.shapeFitsInInt(otherShape), "Shape of B is too large, no dimension must exceed Integer.MAX_VALUE");
         long[] resultShape = ShapeUtils.matrixMultiplyShape(shape, otherShape);
-        DataType ownDataType = a.getDataType();
-        DataType otherDataType = b.getDataType();
+        DataType aDataType = a.getDataType();
+        DataType bDataType = b.getDataType();
         // TODO: DATA TYPE VALIDATION
-        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
+        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
         return new LazyTensor(this.backend, resultShape, resultDataType, () -> perform(ctx, a, b));
     }
 

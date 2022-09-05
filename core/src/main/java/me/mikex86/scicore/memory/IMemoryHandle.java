@@ -1,5 +1,6 @@
 package me.mikex86.scicore.memory;
 
+import me.mikex86.scicore.DataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,6 +53,17 @@ public interface IMemoryHandle<T extends IMemoryHandle<T>> {
      * @return a reference handle to the subregion
      */
     @NotNull T offset(long offset, long size);
+
+    /**
+     * Creates a reference handle to a subregion of this handle. The parent handle will be responsible for freeing the memory.
+     * @param offset the offset from the start of this handle in number of elements of the specified data type
+     * @param size the size of the subregion in number of elements of the specified data type
+     * @param dataType the specified data type
+     * @return a reference handle to the subregion
+     */
+    @NotNull default T offset(long offset, long size, @NotNull DataType dataType) {
+        return offset(dataType.getSizeOf(offset), dataType.getSizeOf(size));
+    }
 
     /**
      * Every memory handle must implement the finalize method, which will free the memory if it is not already freed.
