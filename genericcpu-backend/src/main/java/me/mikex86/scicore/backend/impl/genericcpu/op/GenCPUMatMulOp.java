@@ -51,13 +51,13 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                     m, n, k,
                     aPtr.getNativePtr(),
                     getMatmulDataType(aDataType),
-                    m,
+                    k,
                     bPtr.getNativePtr(),
                     getMatmulDataType(bDataType),
-                    k,
+                    n,
                     result.getDataContainer().getMemoryHandle().getNativePtr(),
                     getMatmulDataType(resultDataType),
-                    m
+                    n
         );
 
         if (aPtr.canFree()) {

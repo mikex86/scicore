@@ -3,7 +3,6 @@
 #ifdef __APPLE__
 // if macOS, use Accelerate framework
 #include <Accelerate/Accelerate.h>
-
 #else
 #define USE_TINYBLAS
 #endif
@@ -21,7 +20,7 @@
 #define DATA_TYPE_FLOAT64 6
 
 JNIEXPORT void JNICALL
-Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_matmul(JNIEnv *jniEnv, jclass, jint transa, jint transb,
+Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *jniEnv, jclass, jint transa, jint transb,
                                                                      jint m, jint n, jint k,
                                                                      jlong alphaPtr,
                                                                      jlong aPtr,

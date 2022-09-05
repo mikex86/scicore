@@ -6,7 +6,7 @@
 extern "C" {
 
 #endif
-JNIEXPORT void JNICALL Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_matmul(JNIEnv *, jclass, jint transa, jint transb,
+JNIEXPORT void JNICALL Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *, jclass, jint transa, jint transb,
                                                                                             jint m, jint n, jint k,
                                                                                             jlong alphaPtr,
                                                                                             jlong aPtr,

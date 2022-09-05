@@ -73,6 +73,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         }
 
         // TODO: CHECK IF SHAPE FITS INTO INT32
+        // TODO: FIX TERRIBLE BUG OF NOT SWAPING SHAPES
 
         int m = (int) shape[0]; // rows of A
         int k = (int) shape[1]; // columns of A and rows of B

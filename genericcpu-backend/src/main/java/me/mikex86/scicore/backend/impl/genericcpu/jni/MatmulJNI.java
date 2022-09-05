@@ -1,8 +1,11 @@
 package me.mikex86.scicore.backend.impl.genericcpu.jni;
 
 import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.MemoryUtil;
+
+import static java.lang.Math.max;
 
 public class MatmulJNI {
 
@@ -65,18 +68,47 @@ public class MatmulJNI {
         MemoryUtil.memPutDouble(DOUBLE_ALPHA_IDENTITY, 1.0);
     }
 
-    public static native void matmul(int transa, int transb,
-                                     int m, int n, int k,
-                                     long alphaPtr,
-                                     long aPtr,
-                                     int aType,
-                                     int lda,
-                                     long betaPtr, long bPtr,
-                                     int bType,
-                                     int ldb,
-                                     long cPtr,
-                                     int cType,
-                                     int ldc);
+    private static native void nmatmul(int transa, int transb,
+                                       int m, int n, int k,
+                                       long alphaPtr,
+                                       long aPtr,
+                                       int aType,
+                                       int lda,
+                                       long betaPtr, long bPtr,
+                                       int bType,
+                                       int ldb,
+                                       long cPtr,
+                                       int cType,
+                                       int ldc);
+
+    public static void matmul(int transa, int transb,
+                              int m, int n, int k,
+                              long alphaPtr,
+                              long aPtr,
+                              int aType,
+                              int lda,
+                              long betaPtr, long bPtr,
+                              int bType,
+                              int ldb,
+                              long cPtr,
+                              int cType,
+                              int ldc) {
+        Validator.assertTrue(transa == OP_NONE || transa == OP_TRANSPOSE, "transa must be OP_NONE or OP_TRANSPOSE");
+        Validator.assertTrue(transb == OP_NONE || transb == OP_TRANSPOSE, "transb must be OP_NONE or OP_TRANSPOSE");
+        Validator.assertTrue(aType == DATA_TYPE_INT8 || aType == DATA_TYPE_INT16 || aType == DATA_TYPE_INT32 || aType == DATA_TYPE_INT64 || aType == DATA_TYPE_FLOAT32 || aType == DATA_TYPE_FLOAT64, "aType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
+        Validator.assertTrue(bType == DATA_TYPE_INT8 || bType == DATA_TYPE_INT16 || bType == DATA_TYPE_INT32 || bType == DATA_TYPE_INT64 || bType == DATA_TYPE_FLOAT32 || bType == DATA_TYPE_FLOAT64, "bType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
+        Validator.assertTrue(cType == DATA_TYPE_INT8 || cType == DATA_TYPE_INT16 || cType == DATA_TYPE_INT32 || cType == DATA_TYPE_INT64 || cType == DATA_TYPE_FLOAT32 || cType == DATA_TYPE_FLOAT64, "cType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
+        Validator.assertTrue(m >= 0, "m must be greater than or equal to 0");
+        Validator.assertTrue(n >= 0, "n must be greater than or equal to 0");
+        Validator.assertTrue(k >= 0, "k must be greater than or equal to 0");
+        Validator.assertTrue(lda > 0, "ldc must be greater than 0");
+        Validator.assertTrue(ldb > 0, "ldc must be greater than 0");
+        Validator.assertTrue(ldc > 0, "ldc must be greater than 0");
+        Validator.assertTrue(lda >= (transa == OP_NONE ? k : m), "lda must be greater than or equal to transa == OP_NONE ? k : m");
+        Validator.assertTrue(ldb >= (transb == OP_NONE ? m : n), "ldb must be greater than or equal to transb == OP_NONE ? m : n");
+
+        nmatmul(transa, transb, m, n, k, alphaPtr, aPtr, aType, lda, betaPtr, bPtr, bType, ldb, cPtr, cType, ldc);
+    }
 
     public static void matmul(int transa, int transb,
                               int m, int n, int k,
