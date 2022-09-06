@@ -8,6 +8,7 @@ import me.mikex86.scicore.View;
 import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
+import me.mikex86.scicore.memory.IMemoryManager;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ViewUtils;
 import org.jetbrains.annotations.NotNull;
@@ -17,7 +18,7 @@ import java.nio.ByteBuffer;
 import static jcuda.driver.JCudaDriver.*;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 
-public class CudaMemoryManager {
+public class CudaMemoryManager implements IMemoryManager<CudaMemoryHandle> {
 
     @NotNull
     private final CudaBackend backend;
@@ -33,9 +34,21 @@ public class CudaMemoryManager {
         return new CudaMemoryHandle(devicePtr, size);
     }
 
+    @Override
+    public @NotNull CudaMemoryHandle calloc(long nBytes) {
+        CudaMemoryHandle handle = alloc(nBytes);
+        cuCheck(cuMemsetD8(handle.getDevicePointer(), (byte) 0, nBytes));
+        return handle;
+    }
+
     @NotNull
     public CudaMemoryHandle alloc(long nElements, @NotNull DataType dataType) {
         return alloc(dataType.getSizeOf(nElements));
+    }
+
+    @Override
+    public @NotNull CudaMemoryHandle calloc(long nElements, @NotNull DataType dataType) {
+        return calloc(dataType.getSizeOf(nElements));
     }
 
 

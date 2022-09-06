@@ -25,7 +25,7 @@ public class CudaDataContainer {
 
     public CudaDataContainer(@NotNull CudaBackend backend, @NotNull CudaMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
         this.backend = backend;
-        this.deviceMemoryHandle = memoryManager.alloc(nElements, dataType);
+        this.deviceMemoryHandle = memoryManager.calloc(nElements, dataType);
         this.dataType = dataType;
     }
 

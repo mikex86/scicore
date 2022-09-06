@@ -62,75 +62,68 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         CudaMemoryHandle resultMemoryHandle = result.getDataContainer().getDeviceMemoryHandle();
 
 
-        // if can use cublas, swap a and b
-        if ((a.getDataType() == DataType.FLOAT32 && b.getDataType() == DataType.FLOAT32) ||
-                a.getDataType() == DataType.FLOAT64 && b.getDataType() == DataType.FLOAT64) {
-            // Swap A and B because cublasSgemm expects column-major matrices, and we have row-major.
-            // Now, because B.T * A.T = C.T and A and B are already transposed when interpreted as column-major matrices, the result is C when interpreted as row-major.
-            ITensor tmp = a;
-            a = b;
-            b = tmp;
-        }
-
         // TODO: CHECK IF SHAPE FITS INTO INT32
-        // TODO: FIX TERRIBLE BUG OF NOT SWAPING SHAPES
 
         int m = (int) shape[0]; // rows of A
-        int k = (int) shape[1]; // columns of A and rows of B
         int n = (int) otherShape[1]; // columns of B
+        int k = (int) shape[1]; // columns of A and rows of B
 
         CudaMemoryHandle aMemoryHandle = backend.getCudaMemoryManager().ensureOnDevice(a);
         CudaMemoryHandle bMemoryHandle = backend.getCudaMemoryManager().ensureOnDevice(b);
 
         if (a.getDataType() == DataType.FLOAT32 && b.getDataType() == DataType.FLOAT32) {
             // float32 by float32 multiplication
+            // Swap A and B because cublasSgemm expects column-major matrices, and we have row-major.
+            // Now, because B.T * A.T = C.T and A and B are already transposed when interpreted as column-major matrices, the result is C when interpreted as row-major.
             DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(1, DataType.FLOAT32);
             FloatBuffer factor = memoryHandle.asFloatBuffer();
             factor.put(1.0f);
             cublasCheck(cublasGemmEx_new(
                     CudaBackend.getCublasHandle(),
                     CUBLAS_OP_N, CUBLAS_OP_N,
-                    m, n, k,
+                    n, m, k,
                     Pointer.to(factor),
-                    aMemoryHandle.getDevicePointer(),
-                    CUDA_R_32F,
-                    m,
                     bMemoryHandle.getDevicePointer(),
+                    CUDA_R_32F,
+                    n,
+                    aMemoryHandle.getDevicePointer(),
                     CUDA_R_32F,
                     k,
                     Pointer.to(factor),
                     resultMemoryHandle.getDevicePointer(),
                     CUDA_R_32F,
-                    m,
+                    n,
                     CUBLAS_COMPUTE_32F,
                     CUBLAS_GEMM_DFALT_TENSOR_OP
             ));
             memoryHandle.free();
         } else if (a.getDataType() == DataType.FLOAT64 && b.getDataType() == DataType.FLOAT64) {
             // float64 by float64 multiplication
+            // Also swap here because cublasDgemm expects column-major matrices, and we have row-major.
             DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(1, DataType.FLOAT64);
             DoubleBuffer factor = memoryHandle.asDoubleBuffer();
             factor.put(1.0);
             cublasCheck(cublasGemmEx_new(
                     CudaBackend.getCublasHandle(),
                     CUBLAS_OP_N, CUBLAS_OP_N,
-                    m, n, k,
+                    n, m, k,
                     Pointer.to(factor),
-                    aMemoryHandle.getDevicePointer(),
-                    CUDA_R_64F,
-                    m,
                     bMemoryHandle.getDevicePointer(),
+                    CUDA_R_64F,
+                    n,
+                    aMemoryHandle.getDevicePointer(),
                     CUDA_R_64F,
                     k,
                     Pointer.to(factor),
                     resultMemoryHandle.getDevicePointer(),
                     CUDA_R_64F,
-                    m,
+                    n,
                     CUBLAS_COMPUTE_64F,
                     CUBLAS_GEMM_DFALT_TENSOR_OP
             ));
             memoryHandle.free();
         } else {
+            // Fallback kernel for every other data type combination not supported by cublas
             int xDimSize = (int) shape[0];
             int yDimSize = (int) shape[1];
             int blockDimX = 32, blockDimY = 32;

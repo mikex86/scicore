@@ -1,18 +1,26 @@
 package me.mikex86.scicore.backend.impl.cuda;
 
+import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.SciCore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static me.mikex86.scicore.ITensor.EPSILON;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
-@TestInstance(TestInstance.Lifecycle.PER_METHOD)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class CudaTensorTest {
 
     ISciCore sciCore;
@@ -835,240 +843,138 @@ public class CudaTensorTest {
         }
     }
 
-    @Test
-    void matmul_test_float_by_float_2x2by2x2() {
-        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
-        ITensor matrixB = sciCore.matrix(new float[][]{{5, 6}, {7, 8}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new float[][]{{19, 22}, {43, 50}}), result);
+
+    Stream<Arguments> getMatmul_test_2x2by2x2Data() {
+        double[][] a = {{1, 2}, {3, 4}};
+        double[][] b = {{5, 6}, {7, 8}};
+        double[][] c = {{19, 22}, {43, 50}};
+        return allNumericDataTypeVariants(a, b, c);
     }
 
-    @Test
-    void matmul_test_float_by_float__2x3by2x3_failure() {
-        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
-        ITensor matrixB = sciCore.matrix(new float[][]{{7, 8, 9}, {10, 11, 12}});
-        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
+    DataType[] allDataTypes = {
+            DataType.INT8, DataType.INT16, DataType.INT32, DataType.INT64,
+            DataType.FLOAT32, DataType.FLOAT64
+    };
+
+    private Stream<Arguments> allNumericDataTypeVariants(Object a, Object b, Object c) {
+        ITensor aMatrix = sciCore.ndarray(a);
+        ITensor bMatrix = sciCore.ndarray(b);
+        ITensor cMatrix = sciCore.ndarray(c);
+        List<Arguments> arguments = new ArrayList<>(allDataTypes.length * allDataTypes.length);
+        for (DataType dataTypeA : allDataTypes) {
+            for (DataType dataTypeB : allDataTypes) {
+                DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
+                arguments.add(Arguments.of(aMatrix.cast(dataTypeA), bMatrix.cast(dataTypeB), cMatrix.cast(resultDataType)));
+            }
+        }
+        return arguments.stream();
     }
 
-    @Test
-    void matmul_test_float_by_float__3d_failure() {
-        ITensor matrixA = sciCore.ndarray(new float[3][4][5]);
-        ITensor matrixB = sciCore.ndarray(new float[8][9][10]);
-        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
+    private Stream<Arguments> allNumericDataTypeVariants(Object a, Object b) {
+        ITensor aMatrix = sciCore.ndarray(a);
+        ITensor bMatrix = sciCore.ndarray(b);
+        List<Arguments> arguments = new ArrayList<>(allDataTypes.length * allDataTypes.length);
+        for (DataType dataTypeA : allDataTypes) {
+            for (DataType dataTypeB : allDataTypes) {
+                arguments.add(Arguments.of(aMatrix.cast(dataTypeA), bMatrix.cast(dataTypeB)));
+            }
+        }
+        return arguments.stream();
     }
 
-    @Test
-    void matmul_test_float_by_float__2x3by3x2() {
-        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
-        ITensor matrixB = sciCore.matrix(new float[][]{{7, 8}, {9, 10}, {11, 12}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new float[][]{{58, 64}, {139, 154}}), result);
+    @ParameterizedTest
+    @MethodSource("getMatmul_test_2x2by2x2Data")
+    void matmul_test_2x2by2x2(ITensor a, ITensor b, ITensor c) {
+        ITensor result = a.matmul(b);
+        assertEquals(c, result);
     }
 
-    @Test
-    void matmul_test_float_by_float__withDimView() {
-        ITensor bigNdArrayA = sciCore.ndarray(new float[][][]{
+    Stream<Arguments> getMatmul_test__2x3by2x3_failureData() {
+        double[][] a = {{1, 2, 3}, {4, 5, 6}};
+        double[][] b = {{7, 8, 9}, {10, 11, 12}};
+        return allNumericDataTypeVariants(a, b);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMatmul_test__2x3by2x3_failureData")
+    void matmul_test__2x3by2x3_failure(ITensor a, ITensor b) {
+        assertThrows(IllegalArgumentException.class, () -> a.matmul(b));
+    }
+
+    Stream<Arguments> getMatmul_test__3d_failureData() {
+        double[][][] a = new double[3][4][5];
+        double[][][] b = new double[8][9][10];
+        return allNumericDataTypeVariants(a, b);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMatmul_test__3d_failureData")
+    void matmul_test__3d_failure(ITensor a, ITensor b) {
+        assertThrows(IllegalArgumentException.class, () -> a.matmul(b));
+    }
+
+    Stream<Arguments> getMatmul_test__2x3by3x2Data() {
+        double[][] a = {{1, 2, 3}, {4, 5, 6}};
+        double[][] b = {{7, 8}, {9, 10}, {11, 12}};
+        double[][] c = {{58, 64}, {139, 154}};
+        return allNumericDataTypeVariants(a, b, c);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMatmul_test__2x3by3x2Data")
+    void matmul_test__2x3by3x2(ITensor a, ITensor b, ITensor c) {
+        ITensor result = a.matmul(b);
+        assertEquals(c, result);
+    }
+
+    Stream<Arguments> getMatmul_test__withDimViewData() {
+        double[][][] a = {
                 {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
                 {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}
-        });
-        ITensor matrixA = bigNdArrayA.getView(0);
-        ITensor matrixB = bigNdArrayA.getView(1);
-
-        assertEquals(sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}), matrixA);
-        assertEquals(sciCore.matrix(new float[][]{{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}), matrixB);
-
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new float[][]{{84, 90, 96}, {201, 216, 231}, {318, 342, 366}}), result);
-    }
-
-    @Test
-    void matmul_test_float_by_float__withJvmTensor() {
-        SciCore jvmSciCore = new SciCore();
-        jvmSciCore.setBackend(ISciCore.BackendType.JVM);
-
-        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
-        ITensor matrixB = jvmSciCore.matrix(new float[][]{{5, 6}, {7, 8}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new float[][]{{19, 22}, {43, 50}}), result);
-    }
-
-    @Test
-    void matmul_test_double_by_double_2x2by2x2() {
-        ITensor matrixA = sciCore.matrix(new double[][]{{1, 2}, {3, 4}});
-        ITensor matrixB = sciCore.matrix(new double[][]{{5, 6}, {7, 8}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{19, 22}, {43, 50}}), result);
-    }
-
-    @Test
-    void matmul_test_double_by_double__2x3by2x3_failure() {
-        ITensor matrixA = sciCore.matrix(new double[][]{{1, 2, 3}, {4, 5, 6}});
-        ITensor matrixB = sciCore.matrix(new double[][]{{7, 8, 9}, {10, 11, 12}});
-        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
-    }
-
-    @Test
-    void matmul_test_double_by_double__3d_failure() {
-        ITensor matrixA = sciCore.ndarray(new double[3][4][5]);
-        ITensor matrixB = sciCore.ndarray(new double[8][9][10]);
-        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
-    }
-
-    @Test
-    void matmul_test_double_by_double__2x3by3x2() {
-        ITensor matrixA = sciCore.matrix(new double[][]{{1, 2, 3}, {4, 5, 6}});
-        ITensor matrixB = sciCore.matrix(new double[][]{{7, 8}, {9, 10}, {11, 12}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{58, 64}, {139, 154}}), result);
-    }
-
-    @Test
-    void matmul_test_double_by_double__withDimView() {
-        ITensor bigNdArrayA = sciCore.ndarray(new double[][][]{
-                {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
-                {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}
-        });
-        ITensor matrixA = bigNdArrayA.getView(0);
-        ITensor matrixB = bigNdArrayA.getView(1);
-
-        assertEquals(sciCore.matrix(new double[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}), matrixA);
-        assertEquals(sciCore.matrix(new double[][]{{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}), matrixB);
-
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{84, 90, 96}, {201, 216, 231}, {318, 342, 366}}), result);
-    }
-
-    @Test
-    void matmul_test_double_by_double__withJvmTensor() {
-        SciCore jvmSciCore = new SciCore();
-        jvmSciCore.setBackend(ISciCore.BackendType.JVM);
-
-        ITensor matrixA = sciCore.matrix(new double[][]{{1, 2}, {3, 4}});
-        ITensor matrixB = jvmSciCore.matrix(new double[][]{{5, 6}, {7, 8}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{19, 22}, {43, 50}}), result);
-    }
-
-    @Test
-    void matmul_test_float_by_double_2x2by2x2() {
-        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
-        ITensor matrixB = sciCore.matrix(new double[][]{{5, 6}, {7, 8}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{19, 22}, {43, 50}}), result);
-    }
-
-    @Test
-    void matmul_test_float_by_double__2x3by2x3_failure() {
-        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
-        ITensor matrixB = sciCore.matrix(new double[][]{{7, 8, 9}, {10, 11, 12}});
-        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
-    }
-
-    @Test
-    void matmul_test_float_by_double__3d_failure() {
-        ITensor matrixA = sciCore.ndarray(new float[3][4][5]);
-        ITensor matrixB = sciCore.ndarray(new double[8][9][10]);
-        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
-    }
-
-    @Test
-    void matmul_test_float_by_double__2x3by3x2() {
-        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
-        ITensor matrixB = sciCore.matrix(new double[][]{{7, 8}, {9, 10}, {11, 12}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{58, 64}, {139, 154}}), result);
-    }
-
-    @Test
-    void matmul_test_float_by_double__withDimView() {
-        ITensor bigNdArrayA = sciCore.ndarray(new float[][][]{
-                {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
-                {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}
-        });
-        ITensor bigNdArrayB = sciCore.ndarray(new double[][][]{
+        };
+        double[][][] b = {
                 {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}},
                 {{28, 29, 30}, {31, 32, 33}, {34, 35, 36}}
+        };
+        double[][] result = {{192, 198, 204}, {471, 486, 501}, {750, 774, 798}};
+        return allNumericDataTypeVariants(a, b, result).map(args -> {
+            ITensor aMatrix = (ITensor) args.get()[0];
+            ITensor bMatrix = (ITensor) args.get()[1];
+            ITensor cMatrix = (ITensor) args.get()[2];
+            return Arguments.of(aMatrix.getView(0), bMatrix.getView(1), cMatrix);
         });
-        ITensor matrixA = bigNdArrayA.getView(0);
-        ITensor matrixB = bigNdArrayB.getView(1);
-
-        assertEquals(sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}), matrixA);
-        assertEquals(sciCore.matrix(new double[][]{{28, 29, 30}, {31, 32, 33}, {34, 35, 36}}), matrixB);
-
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{192, 198, 204}, {471, 486, 501}, {750, 774, 798}}), result);
     }
 
-    @Test
-    void matmul_test_float_by_double__withJvmTensor() {
+    @ParameterizedTest
+    @MethodSource("getMatmul_test__withDimViewData")
+    void matmul_test__withDimView(ITensor a, ITensor b, ITensor c) {
+        ITensor result = a.matmul(b);
+        assertEquals(c, result);
+    }
+
+    Stream<Arguments> getMatmul_test__withJvmTensorData() {
         SciCore jvmSciCore = new SciCore();
         jvmSciCore.setBackend(ISciCore.BackendType.JVM);
-
-        ITensor matrixA = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
-        ITensor matrixB = jvmSciCore.matrix(new double[][]{{5, 6}, {7, 8}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{19, 22}, {43, 50}}), result);
-    }
-
-    @Test
-    void matmul_test_double_by_float_2x2by2x2() {
-        ITensor matrixA = sciCore.matrix(new double[][]{{1, 2}, {3, 4}});
-        ITensor matrixB = sciCore.matrix(new float[][]{{5, 6}, {7, 8}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{19, 22}, {43, 50}}), result);
-    }
-
-    @Test
-    void matmul_test_double_by_float__2x3by2x3_failure() {
-        ITensor matrixA = sciCore.matrix(new double[][]{{1, 2, 3}, {4, 5, 6}});
-        ITensor matrixB = sciCore.matrix(new float[][]{{7, 8, 9}, {10, 11, 12}});
-        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
-    }
-
-    @Test
-    void matmul_test_double_by_float__3d_failure() {
-        ITensor matrixA = sciCore.ndarray(new double[3][4][5]);
-        ITensor matrixB = sciCore.ndarray(new float[8][9][10]);
-        assertThrows(IllegalArgumentException.class, () -> matrixA.matmul(matrixB));
-    }
-
-    @Test
-    void matmul_test_double_by_float__2x3by3x2() {
-        ITensor matrixA = sciCore.matrix(new double[][]{{1, 2, 3}, {4, 5, 6}});
-        ITensor matrixB = sciCore.matrix(new float[][]{{7, 8}, {9, 10}, {11, 12}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{58, 64}, {139, 154}}), result);
-    }
-
-    @Test
-    void matmul_test_double_by_float__withDimView() {
-        ITensor bigNdArrayA = sciCore.ndarray(new double[][][]{
-                {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
-                {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}
+        double[][] a = {{1, 2}, {3, 4}};
+        double[][] b = {{5, 6}, {7, 8}};
+        double[][] c = {{19, 22}, {43, 50}};
+        Stream<Arguments> argumentsStream = allNumericDataTypeVariants(a, b, c);
+        return argumentsStream.map(arguments -> {
+            Object[] objects = arguments.get();
+            ITensor aMatrix = (ITensor) objects[0];
+            ITensor bMatrix = (ITensor) objects[1];
+            ITensor cMatrix = (ITensor) objects[2];
+            ITensor bMatrixJvm = jvmSciCore.zeros(bMatrix.getDataType(), bMatrix.getShape());
+            bMatrixJvm.setContents(bMatrix);
+            return Arguments.of(aMatrix, bMatrixJvm, cMatrix);
         });
-        ITensor bigNdArrayB = sciCore.ndarray(new float[][][]{
-                {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}},
-                {{28, 29, 30}, {31, 32, 33}, {34, 35, 36}}
-        });
-        ITensor matrixA = bigNdArrayA.getView(0);
-        ITensor matrixB = bigNdArrayB.getView(1);
-
-        assertEquals(sciCore.matrix(new double[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}), matrixA);
-        assertEquals(sciCore.matrix(new float[][]{{28, 29, 30}, {31, 32, 33}, {34, 35, 36}}), matrixB);
-
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{192, 198, 204}, {471, 486, 501}, {750, 774, 798}}), result);
     }
 
-    @Test
-    void matmul_test_double_by_float__withJvmTensor() {
-        SciCore jvmSciCore = new SciCore();
-        jvmSciCore.setBackend(ISciCore.BackendType.JVM);
-
-        ITensor matrixA = sciCore.matrix(new double[][]{{1, 2}, {3, 4}});
-        ITensor matrixB = jvmSciCore.matrix(new float[][]{{5, 6}, {7, 8}});
-        ITensor result = matrixA.matmul(matrixB);
-        assertEquals(sciCore.matrix(new double[][]{{19, 22}, {43, 50}}), result);
+    @ParameterizedTest
+    @MethodSource("getMatmul_test__withJvmTensorData")
+    void matmul_test__withJvmTensor(ITensor a, ITensor b, ITensor c) {
+        ITensor result = a.matmul(b);
+        assertEquals(c, result);
     }
 
     // TODO: TEST BOOLEAN MULTIPLY
