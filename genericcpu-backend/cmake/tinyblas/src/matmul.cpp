@@ -53,10 +53,10 @@ void tblas_dgemm(TblasOrder order, TblasTranspose transa, TblasTranspose transb,
 // Extended BLAS functions
 template<typename A, typename B, typename C>
 FORCE_INLINE void tblas_gemm(TblasOrder order, TblasTranspose transa, TblasTranspose transb,
-                                                      int m, int n, int k,
-                                                      A alpha, A *a, int lda,
-                                                      B *b, int ldb, B beta,
-                                                      C *c, int ldc) {
+                             int m, int n, int k,
+                             A alpha, A *a, int lda,
+                             B *b, int ldb, B beta,
+                             C *c, int ldc) {
     constexpr int TILE_SIZE = 16;
     for (int innerTile = 0; innerTile < k; innerTile += TILE_SIZE) {
         for (int row = 0; row < m; row++) {

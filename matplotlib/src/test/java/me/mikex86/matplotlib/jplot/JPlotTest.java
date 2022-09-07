@@ -43,4 +43,18 @@ class JPlotTest {
         jPlot.plot(data, new Color(46, 204, 113), true);
         jPlot.show(true);
     }
+
+    @Test
+    void plotParabola() {
+        JPlot jPlot = new JPlot();
+        float[] data = new float[50];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (float) Math.pow(-25 + i, 2);
+        }
+        jPlot.setName("Parabola");
+        jPlot.setXLabel("time");
+        jPlot.setYLabel("translation");
+        jPlot.plot(data, new Color(46, 138, 204), true);
+        jPlot.show(true);
+    }
 }
