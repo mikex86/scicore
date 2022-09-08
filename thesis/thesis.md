@@ -11,9 +11,9 @@ such as the Intel MKL library for matrix multiplication on x86 CPUs, and the App
 The library is designed with a focus on readability with shallow levels of abstraction in order to not obfuscate the underlying mathematics.
 Besides these vendor-specific libraries, the library is written in pure Java and does not use any other third-party libraries.
 
-# Introduction
+# Overview
 
-In this chapter, the problem of conversational AI is introduced and expressed as a mathematical problem.
+In the course of this thesis, we will express the problem of conversational AI as a mathematical problem.
 Concepts will be introduced from first principles and the layers of abstraction traversed from the low-level mathematical foundations to the high-level concept that is a conversational AI system.
 
 To start, the concept of a tensor will be introduced, which is a generalisation of a vector and a matrix and is the fundamental data structure in deep learning.
@@ -42,14 +42,11 @@ This is analogous to asking a reasonable interpreter of the problem $P(X)$ to ex
 This also seems to suggest that the idealized model $m_i(X)$ is impossible to derive from input output pairs $(X, Y)$, as for an arbitrarily complex problem $P(X)$, similarly to what we established above, $\frac{\partial m(X, W) - Y}{\partial W}$ as a change to $W$
 where $W$ are parameters of a sufficiently complex function $m(X)$ can mislead the model "into the wrong direction", if the example when looked at in a vacuum seems to imply a pattern that does not hold in the set of potential $(X, Y)$ pairs in the problem domain of $P(X)$.
 Generally, the only way to correct for a misleading example is for another example pair to compensate for the error in the previous pair, which is not guaranteed to happen. Thus deriving the idealized model $m_i(X)$ is only possible with an infinite amount of input output pairs $(X, Y)$,
-Nevertheless, we could define a way to define the parameters $W_i$ of the idealized model $m_i(X)$ in the following fashion:
+Nevertheless, we could define a way to derive the parameters $W_i$ of the idealized model $m_i(X)$ in the following fashion:
 
 $$
-W_{i} = \int_{1}^\infty \frac{\partial |m_i(X_n, W_n) - Y_n|}{\partial W_n} \space dn \space \text{with} \space W_0 \in \mathbb{R}
+W_{i} = \int_{1}^\infty -\frac{\partial |m_i(X_n, W_n) - Y_n|}{\partial W_n} \space dn \space \text{with} \space W_0 \in \mathbb{R}
 
 $$
 
-where $W_n$ are the parameters of the model $m_i(X)$ at the $n$-th iteration of the learning process, and $X_n$ and $Y_n$ are the $n$-th input output pair $(X, Y)$ of the set of possible examples in the problem domain of $P(X)$.
-This allows us to make basic statements about 'learnability'.
-For example, a problem $P(X)$ where the number of examples that suggest wrong patterns is greater than the number of examples which suggest the correct pattern due to the innate nature of the problem such that $n_{confusing}>n_{clear}$,
-the problem is fundamentally un-learnable.
+where $W_n$ are the parameters of the model $m_i(X)$ at the $n$-th step of the learning process, and $X_n$ and $Y_n$ are the $n$-th input output pair $(X, Y)$ of the set of possible examples in the problem domain of $P(X)$.
