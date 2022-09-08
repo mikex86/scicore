@@ -27,7 +27,7 @@ fwd2 = w2 * fwd1
 fwd2 = (1, 4) * (4, n)
 fwd2 = (1, n) # (output: 1, batch_size: n)
 */
-ITensor act = sciCore.matrix(new float[][]{{1}, {2}}); // (2, n)
+ITensor act = sciCore.matrix(new float[][]{{1}, {2}});
 ITensor w1 = sciCore.matrix(new float[][]{{3, 4}, {5, 6}, {7, 8}, {9, 10}});
 ITensor w2 = sciCore.matrix(new float[][]{{11, 12, 13, 14}});
 
@@ -47,12 +47,12 @@ ITensor dL_dW1 = graph.getGradient(w1).orElseThrow();
 
 ```
 
-# Same example in torch
-    
+## Same example in torch
+
 ```python
 import torch
 
-act = torch.tensor([[1], [2]]) # (2, n)
+act = torch.tensor([[1], [2]])
 w1 = torch.tensor([[3, 4], [5, 6], [7, 8], [9, 10]], requires_grad=True)
 w2 = torch.tensor([[11, 12, 13, 14]], requires_grad=True)
 
@@ -72,23 +72,39 @@ dL_dW1 = w1.grad
 
 ```java
 class BobNet implements IModule {
-    
+  
     private final Sigmoid act = new Sigmoid();
-    
+  
     private final Linear f1 = new Linear(sciCore, DataType.FLOAT32, 1, 1, true);
-    
+  
     private final Linear f2 = new Linear(sciCore, DataType.FLOAT32, 1, 1, true);
-    
+  
     public ITensor forward(ITensor input) {
         ITensor out = f1.forward(input);
         out = act.forward(out);
         out = f2.forward(out);
         return out;
     }
-    
+  
     @Override
     public List<ITensor> parameters() {
         return collectParameters(f1, f2);
     }
+}
+
+SciCore sciCore = new SciCore();
+sciCore.setBackend(SciCore.BackendType.JVM);
+                
+DatasetIterator dataIt = getData(batchSize);
+IOptimizer optimizer = new Sgd(sciCore, 0.5f, bobNet.parameters(), true, 1e-6f);
+for (int step = 0; step < nSteps; step++) {
+    sciCore.getBackend().getOperationRecorder().resetRecording();
+    Pair<ITensor, ITensor> next = dataIt.next();
+    ITensor X = next.getFirst();
+    ITensor Y = next.getSecond();
+    ITensor YPred = bobNet.forward(X);
+    ITensor loss = (YPred.minus(Y)).pow(2).reduceSum(0).divided(batchSize);
+    IGraph graph = sciCore.getGraphUpTo(loss);
+    optimizer.step(graph);
 }
 ```

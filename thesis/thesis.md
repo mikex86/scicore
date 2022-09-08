@@ -45,8 +45,8 @@ Generally, the only way to correct for a misleading example is for another examp
 Nevertheless, we could define a way to define the parameters $W_i$ of the idealized model $m_i(X)$ in the following fashion:
 
 $$
-W_{i} = \int_{1}^\infty \frac{\partial |m_i(X_n, W_n) - Y_n|}{\partial W_n}
-\space dn \space \text{with} \space W_0 \in \mathbb{R}
+W_{i} = \int_{1}^\infty \frac{\partial |m_i(X_n, W_n) - Y_n|}{\partial W_n} \space dn \space \text{with} \space W_0 \in \mathbb{R}
+
 $$
 
 where $W_n$ are the parameters of the model $m_i(X)$ at the $n$-th iteration of the learning process, and $X_n$ and $Y_n$ are the $n$-th input output pair $(X, Y)$ of the set of possible examples in the problem domain of $P(X)$.
