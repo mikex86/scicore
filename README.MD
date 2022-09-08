@@ -56,14 +56,14 @@ act = torch.tensor([[1], [2]])
 w1 = torch.tensor([[3, 4], [5, 6], [7, 8], [9, 10]], requires_grad=True)
 w2 = torch.tensor([[11, 12, 13, 14]], requires_grad=True)
 
-// Forward pass
+# Forward pass
 fwd1 = w1.matmul(act)
 fwd2 = w2.matmul(fwd1)
 
-// Automatic backpropagation
+# Automatic backpropagation
 fwd2.backward()
 
-// Get gradients
+# Get gradients
 dL_dW2 = w2.grad
 dL_dW1 = w1.grad
 ```
