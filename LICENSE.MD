@@ -1,4 +1,4 @@
-MIT License
+MIT License (modified)
 
 Copyright (c) 2022 Michael Keiblinger
 
