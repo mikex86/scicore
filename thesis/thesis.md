@@ -39,14 +39,23 @@ As part of correctly generalizing must also mean not jumping to false conclusion
 
 This seems to suggest we would need have access to some intermediate state as the model is evaluating the input $X$ in order to determine the similarity of the inputs, which is impossible given we defined the idealized model of the problem $P(X)$ as a black box.
 This is analogous to asking a reasonable interpreter of the problem $P(X)$ to explain their thought process, which is again problematic because it requires another reasonable interpreter of the problem $P(X)$ to interpret whether the explanation is correct.
-This also seems to suggest that the idealized model $m_i(X)$ is impossible to derive from input output pairs $(X, Y)$, as for an arbitrarily complex problem $P(X)$, similarly to what we established above, $\frac{\partial m(X, W) - Y}{\partial W}$ as a change to $W$
+This also seems to suggest that the idealized model $m_i(X)$ is impossible to derive from input output pairs $(X, Y)$, as for an arbitrarily complex problem $P(X)$, similarly to what we established above, $\frac{\partial |m(X, W) - Y|}{\partial W}$ as a change to $W$
 where $W$ are parameters of a sufficiently complex function $m(X)$ can mislead the model "into the wrong direction", if the example when looked at in a vacuum seems to imply a pattern that does not hold in the set of potential $(X, Y)$ pairs in the problem domain of $P(X)$.
 Generally, the only way to correct for a misleading example is for another example pair to compensate for the error in the previous pair, which is not guaranteed to happen. Thus deriving the idealized model $m_i(X)$ is only possible with an infinite amount of input output pairs $(X, Y)$,
-Nevertheless, we could define a way to derive the parameters $W_i$ of the idealized model $m_i(X)$ in the following fashion:
+Nevertheless, we could define a way to derive the parameters $W_i$ of the idealized model $m_i(X)in the following fashion:
 
 $$
-W_{i} = \int_{1}^\infty -\frac{\partial |m_i(X_n, W_n) - Y_n|}{\partial W_n}
-\space dn \space\text{with} \space W_0 \in \mathbb{R}
+W_0 \in \mathbb{R}
+
+$$
+$$
+W_{n + 1} = W_n - \frac{\partial{|m_i(X_n, W_n)-Y_n|}}{W_n} \space dn
+
 $$
 
-where $W_n$ are the parameters of the model $m_i(X)$ at the $n$-th step of the learning process, and $X_n$ and $Y_n$ are the $n$-th input output pair $(X, Y)$ of the set of possible examples in the problem domain of $P(X)$.
+$$
+W_i = W_\infty
+
+$$
+
+where $W_n$ are the parameters of the model $m_i(X)$ at the $n$-th step of the learning process - which is assumed to be infinitesimal, and $X_n$ and $Y_n$ are the $n$-th input output pair $(X, Y)$ of the set of possible examples in the problem domain of $P(X)$.
