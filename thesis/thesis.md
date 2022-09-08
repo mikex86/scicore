@@ -42,17 +42,17 @@ This is analogous to asking a reasonable interpreter of the problem $P(X)$ to ex
 This also seems to suggest that the idealized model $m_i(X)$ is impossible to derive from input output pairs $(X, Y)$, as for an arbitrarily complex problem $P(X)$, similarly to what we established above, $\frac{\partial |m(X, W) - Y|}{\partial W}$ as a change to $W$
 where $W$ are parameters of a sufficiently complex function $m(X)$ can mislead the model "into the wrong direction", if the example when looked at in a vacuum seems to imply a pattern that does not hold in the set of potential $(X, Y)$ pairs in the problem domain of $P(X)$.
 Generally, the only way to correct for a misleading example is for another example pair to compensate for the error in the previous pair, which is not guaranteed to happen. Thus deriving the idealized model $m_i(X)$ is only possible with an infinite amount of input output pairs $(X, Y)$,
-Nevertheless, we could define a way to derive the parameters $W_i$ of the idealized model $m_i(X)in the following fashion:
+Nevertheless, we could define a way to derive the parameters $W_i$ of the idealized model $m_i(X)$ in the following fashion:
 
 $$
 W_0 \in \mathbb{R}
 
 $$
 $$
-W_{n + 1} = W_n - \frac{\partial{|m_i(X_n, W_n)-Y_n|}}{W_n} \space dn
+W_{n + 1} = W_n - \frac{\partial{|m_i(X_n, W_n)-Y_n|}}{W_n}
+\space dn
 
 $$
-
 $$
 W_i = W_\infty
 
