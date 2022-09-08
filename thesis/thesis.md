@@ -48,9 +48,14 @@ $$
 W_0
 \in \mathbb{R}
 $$
+
 $$
 W_{n + 1} = W_n - \frac{\partial{|m_i(X_n, W_n)-Y_n|}}{W_n}
 \space dn
+$$
+
+$$
+W_i = W_{\infty}
 $$
 
 where $W_n$ are the parameters of the model $m_i(X)$ at the $n$-th step of the learning process - which is assumed to be infinitesimal, and $X_n$ and $Y_n$ are the $n$-th input output pair $(X, Y)$ of the set of possible examples in the problem domain of $P(X)$.
