@@ -206,5 +206,137 @@ $$
 a_j^{[l]} = g^{[l]}(\sum_{k=1}^{n^{[l-1]}} w_{jk}^{[l]} a_k^{[l-1]} + b_j^{[l]})
 $$
 
- where $a_j^{[l]}$ is the activation of the $l$-th layer of the $j$-th neuron, $g^{[l]}$ is the activation function of the $l$-th layer, $w^{[l]}$ is the weight matrix of the $l$-th layer, $b_j^{[l]}$ is the bias of the 
- $j$-th neuron of the $l$-th layer, and $n^{[l-1]}$ is the number of neurons in the previous layer.
+where $a_j^{[l]}$ is the activation of the $l$-th layer of the $j$-th neuron, $g^{[l]}$ is the activation function of the $l$-th layer, $w^{[l]}$ is the weight matrix of the $l$-th layer, $b_j^{[l]}$ is the bias of the 
+$j$-th neuron of the $l$-th layer, and $n^{[l-1]}$ is the number of neurons in the previous layer.
+The weight matrix is organized such that the weight at $w_jk$ is the weight of the connection from the $k$-th neuron of the previous layer to the $j$-th neuron of the current layer.
+
+An astude observer might notice that this is mathematcally equivalent to the definition of a matrix multiplication, and indeed, the activation of a layer can be calculated as a matrix multiplication/dot product of the activations of the previous layer and the weight matrix of the current layer, plus the bias vector of the current layer:
+
+$$
+a^{[l]} = g^{[l]}(W^{[l]}\times a^{[l-1]} + b^{[l]})
+$$
+
+
+## ANNs in Deep Learning Frameworks
+
+In modern deep learning frameworks, neural networks are typically represented as so-called "modules", which implement the so-called "forward pass", which is a function that takes the input data and propagates it through the network and returns the final output of the network. The deeplearning framework usually also provides modules for common neural network layers, such as a fully-connected layer. This allows the user to easily build complex neural networks by combining these modules by passing the output of one module as the input to another module in the forward pass.
+A fully-connected layer is usually refered to as a `Dense` or `Linear` layer.
+The `Linear` layer is such a module, and thus it implements the `forward` method, which takes the input data and returns the output of the layer. The `forward` method of the `Linear` layer is a simple matrix multiplication, equivalent to the mathematical definition above. The weights and bias are initialized uniformly between $\mathcal{U}(-\sqrt{k}, \sqrt{k})$ where $k=\frac{n}{in\_features}$. Note that the usage of a bias is optional and can be disabled by setting the `bias` parameter to `false`.
+The following snippet shows releveant parts of the implementation of the `Linear` module.
+
+```java
+public class Linear implements IModule {
+    ...
+    private final ITensor weights;
+
+    @Nullable
+    private final ITensor bias;
+
+    ...
+
+        float k = (float) (1.0 / Math.sqrt(inputSize));
+        this.weights = sciCore.uniform(dataType, outputSize, inputSize).multiply(2 * k).minus(k);
+        if (useBias) {
+            this.bias = sciCore.uniform(dataType, outputSize).multiply(2 * k).minus(k);
+        } else {
+            this.bias = null;
+        }
+
+    ...
+
+    @Override
+    public ITensor forward(ITensor input) {
+        ...
+        ITensor x = input.matmul(weights.transpose());
+        if (bias != null) {
+            x = x.plus(bias);
+        }
+        return x;
+    }
+    ...
+}
+```
+
+In SciCore, the `Linear` layer can be used as follows:
+
+```java
+class BobNet implements IModule {
+
+    private final Sigmoid act = new Sigmoid();
+
+    private final Linear fc1 = new Linear(sciCore, DataType.FLOAT32, 4, 5, true);
+    private final Linear fc2 = new Linear(sciCore, DataType.FLOAT32, 5, 5, true);
+    private final Linear fc3 = new Linear(sciCore, DataType.FLOAT32, 5, 3, true);
+
+    public Tensor forward(Tensor input) {
+        Tensor h = fc1.forward(input);
+        h = act.forward(out);
+        h = fc2.forward(out);
+        h = act.forward(out);
+        h = fc3.forward(out);
+        return h;
+    }
+
+    @Override
+    public List<ITensor> parameters() {
+        return collectParameters(fc1, fc2, fc3);
+    }
+}
+```
+
+The `Linear` layer is initialized with the `sciCore` instance, the data type, the number of input features, the number of output features, and a boolean indicating whether the layer should use a bias or not.
+
+Note how a multi-layer neural network is simply a composition of `Linear` layers in combination with an activation function, such as `Sigmoid` in the example above. 
+
+### Matrixmultiplication in SciCore
+Given that modules such as `Linear` rely on fast implementations of common operations such as matrix multiplication, these core operations are optimized in hardware-specific backends.
+Eg. for the CUDA backend, the matrix multiplication is implemented using the cuBLAS library, which implements common BLAS (Basic Linear Algebra Subprograms) operations such as matrix multiplication in an efficient manner on the GPU.
+The following code snippet shows how matrix multiplication is implemented in on the CUDA backend:
+
+```java
+public class CudaMatmulOp implements IDifferentiableBinaryOperation {
+    ...
+    @Override
+    public ITensor perform(Graph.IOperationContext ctx, ITensor a, ITensor b) {
+        ...
+        cublasCheck(cublasGemmEx_new(
+                    CudaBackend.getCublasHandle(),
+                    CUBLAS_OP_N, CUBLAS_OP_N,
+                    n, m, k,
+                    Pointer.to(factor),
+                    bMemoryHandle.getDevicePointer(),
+                    CUDA_R_32F,
+                    n,
+                    aMemoryHandle.getDevicePointer(),
+                    CUDA_R_32F,
+                    k,
+                    Pointer.to(factor),
+                    resultMemoryHandle.getDevicePointer(),
+                    CUDA_R_32F,
+                    n,
+                    CUBLAS_COMPUTE_32F,
+                    CUBLAS_GEMM_DFALT_TENSOR_OP
+            ));
+        ...
+    }
+    ...
+}
+```
+
+For data type combinations unsupported by cuBlas, the matrix multiplication is implemented using a custom CUDA kernel. Note that this kernel is a naive implementation that lacks many optimizations that are present in the highly-efficient cuBLAS implementation.
+
+```c++
+template <typename A, typename B, typename C>
+KERNEL_TEMPLATE void matmul(A *a, B *b, C *c, size_t m, size_t n, size_t k) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i >= m || j >= n) {
+      return;
+    }
+    C sum = 0;
+    for (int l = 0; l < k; l++) {
+      sum += a[i * k + l] * b[l * n + j];
+    }
+    c[i * n + j] = sum;
+}
+```
