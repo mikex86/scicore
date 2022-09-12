@@ -9,7 +9,6 @@ import java.util.*;
 
 public class GraphRecorder implements IGraphRecorder {
 
-
     @NotNull
     private final OperationRegistry operationRegistry;
 
@@ -21,7 +20,7 @@ public class GraphRecorder implements IGraphRecorder {
     }
 
     @Override
-    public @NotNull ITensor recordOperation(@NotNull OperationType operationType, @NotNull ITensor... inputs) {
+    public @NotNull ITensor recordOperation(@NotNull OperationType operationType, @NotNull OptionBundle optionBundle, @NotNull ITensor... inputs) {
         IOperation operation = operationRegistry.getOperation(operationType);
 
         List<Graph.IGraphNode> inputNodes = new ArrayList<>();
@@ -36,7 +35,7 @@ public class GraphRecorder implements IGraphRecorder {
             }
             inputNodes.add(node);
         }
-        Graph.IOperationContext ctx = new Graph.OperationContext();
+        Graph.IOperationContext ctx = new Graph.OperationContext(optionBundle);
         Graph.OperationGraphNode operationGraphNode = new Graph.OperationGraphNode(operationType, inputNodes, ctx, operationRegistry);
         ITensor lazyResult = operation.performLazily(ctx, List.of(inputs));
         operationGraphNode.setOutput(lazyResult);

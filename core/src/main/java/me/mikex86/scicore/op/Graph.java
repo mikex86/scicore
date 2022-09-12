@@ -344,12 +344,20 @@ public class Graph implements IGraph {
         @NotNull
         Optional<ITensor> getSavedTensor(@NotNull String name);
 
+        @NotNull OptionBundle getOptionBundle();
     }
 
     public static class OperationContext implements IOperationContext {
 
         @NotNull
         private final Map<String, ITensor> savedTensors = new HashMap<>();
+
+        @NotNull
+        private final OptionBundle optionBundle;
+
+        public OperationContext(@NotNull OptionBundle optionBundle) {
+            this.optionBundle = optionBundle;
+        }
 
         @Override
         public void saveForBackward(@NotNull String name, @NotNull ITensor tensor) {
@@ -361,5 +369,10 @@ public class Graph implements IGraph {
             return Optional.ofNullable(savedTensors.get(name));
         }
 
+        @NotNull
+        @Override
+        public OptionBundle getOptionBundle() {
+            return optionBundle;
+        }
     }
 }

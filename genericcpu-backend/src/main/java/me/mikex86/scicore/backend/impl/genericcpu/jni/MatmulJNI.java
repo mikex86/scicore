@@ -104,8 +104,6 @@ public class MatmulJNI {
         Validator.assertTrue(lda > 0, "ldc must be greater than 0");
         Validator.assertTrue(ldb > 0, "ldc must be greater than 0");
         Validator.assertTrue(ldc > 0, "ldc must be greater than 0");
-        Validator.assertTrue(lda >= (transa == OP_NONE ? k : m), "lda must be greater than or equal to transa == OP_NONE ? k : m");
-        Validator.assertTrue(ldb >= (transb == OP_NONE ? m : n), "ldb must be greater than or equal to transb == OP_NONE ? m : n");
 
         nmatmul(transa, transb, m, n, k, alphaPtr, aPtr, aType, lda, betaPtr, bPtr, bType, ldb, cPtr, cType, ldc);
     }

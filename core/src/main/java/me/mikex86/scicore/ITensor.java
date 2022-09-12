@@ -495,6 +495,8 @@ public interface ITensor extends IValue {
 
     @NotNull ITensor matmul(@NotNull ITensor other);
 
+    @NotNull ITensor matmul(@NotNull ITensor other, boolean transposeSelf, boolean transposeOther);
+
     @NotNull ITensor divided(@NotNull ITensor other);
 
     @NotNull ITensor divided(byte value);
@@ -632,5 +634,6 @@ public interface ITensor extends IValue {
     default <T extends ITensor> @Nullable T getIfIsType(@NotNull Class<T> typeClass) {
         return typeClass.isInstance(this) ? typeClass.cast(this) : null;
     }
+
     @NotNull ITensor cast(@NotNull DataType dataType);
 }

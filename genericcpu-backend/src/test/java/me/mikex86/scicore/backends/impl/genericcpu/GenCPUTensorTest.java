@@ -13,7 +13,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static me.mikex86.scicore.ITensor.EPSILON;
@@ -30,7 +29,6 @@ public class GenCPUTensorTest {
         sciCore = new SciCore();
         sciCore.setBackend(SciCore.BackendType.GENERIC_CPU);
     }
-
 
     @Test
     void testCreateByteArray() {
@@ -888,31 +886,31 @@ public class GenCPUTensorTest {
         assertEquals(c, result);
     }
 
-    Stream<Arguments> getMatmul_test__2x3by2x3_failureData() {
+    Stream<Arguments> getMatmul_test_2x3by2x3__failureData() {
         double[][] a = {{1, 2, 3}, {4, 5, 6}};
         double[][] b = {{7, 8, 9}, {10, 11, 12}};
         return allNumericDataTypeVariants(a, b);
     }
 
     @ParameterizedTest
-    @MethodSource("getMatmul_test__2x3by2x3_failureData")
-    void matmul_test__2x3by2x3_failure(ITensor a, ITensor b) {
+    @MethodSource("getMatmul_test_2x3by2x3__failureData")
+    void matmul_test_2x3by2x3__failure(ITensor a, ITensor b) {
         assertThrows(IllegalArgumentException.class, () -> a.matmul(b));
     }
 
-    Stream<Arguments> getMatmul_test__3d_failureData() {
+    Stream<Arguments> getMatmul_test_3d__failureData() {
         double[][][] a = new double[3][4][5];
         double[][][] b = new double[8][9][10];
         return allNumericDataTypeVariants(a, b);
     }
 
     @ParameterizedTest
-    @MethodSource("getMatmul_test__3d_failureData")
-    void matmul_test__3d_failure(ITensor a, ITensor b) {
+    @MethodSource("getMatmul_test_3d__failureData")
+    void matmul_test_3d__failure(ITensor a, ITensor b) {
         assertThrows(IllegalArgumentException.class, () -> a.matmul(b));
     }
 
-    Stream<Arguments> getMatmul_test__2x3by3x2Data() {
+    Stream<Arguments> getMatmul_test_2x3by3x2Data() {
         double[][] a = {{1, 2, 3}, {4, 5, 6}};
         double[][] b = {{7, 8}, {9, 10}, {11, 12}};
         double[][] c = {{58, 64}, {139, 154}};
@@ -920,13 +918,51 @@ public class GenCPUTensorTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getMatmul_test__2x3by3x2Data")
-    void matmul_test__2x3by3x2(ITensor a, ITensor b, ITensor c) {
+    @MethodSource("getMatmul_test_2x3by3x2Data")
+    void matmul_test_2x3by3x2(ITensor a, ITensor b, ITensor c) {
         ITensor result = a.matmul(b);
         assertEquals(c, result);
     }
 
-    Stream<Arguments> getMatmul_test__withDimViewData() {
+    Stream<Arguments> getMatmul_test_2x3by3x2_transposeAData() {
+        double[][] a = {{1, 2, 3}, {4, 5, 6}};
+        double[][] b = {{7, 8}, {9, 10}, {11, 12}};
+        return allNumericDataTypeVariants(a, b);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMatmul_test_2x3by3x2_transposeAData")
+    void matmul_test_2x3by3x2_transposeA_failure(ITensor a, ITensor b) {
+        assertThrows(IllegalArgumentException.class, () -> a.matmul(b, true, false));
+    }
+
+    Stream<Arguments> getMatmul_test_2x3by3x2_transposeBData() {
+        double[][] a = {{1, 2, 3}, {4, 5, 6}};
+        double[][] b = {{7, 8}, {9, 10}, {11, 12}};
+        return allNumericDataTypeVariants(a, b);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMatmul_test_2x3by3x2_transposeBData")
+    void matmul_test_2x3by3x2_transposeB__failure(ITensor a, ITensor b) {
+        assertThrows(IllegalArgumentException.class, () -> a.matmul(b, false, true));
+    }
+
+    Stream<Arguments> getMatmul_test_2x3by3x2_transposeA_and_transposeBData() {
+        double[][] a = {{1, 2, 3}, {4, 5, 6}};
+        double[][] b = {{7, 8}, {9, 10}, {11, 12}};
+        double[][] c = {{39, 49, 59}, {54, 68, 82}, {69, 87, 105}};
+        return allNumericDataTypeVariants(a, b, c);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMatmul_test_2x3by3x2_transposeA_and_transposeBData")
+    void matmul_test_2x3by3x2_transposeA_and_transposeB(ITensor a, ITensor b, ITensor c) {
+        ITensor result = a.matmul(b, true, true);
+        assertEquals(c, result);
+    }
+
+    Stream<Arguments> getMatmul_test_withDimViewData() {
         double[][][] a = {
                 {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
                 {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}
@@ -945,13 +981,13 @@ public class GenCPUTensorTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getMatmul_test__withDimViewData")
-    void matmul_test__withDimView(ITensor a, ITensor b, ITensor c) {
+    @MethodSource("getMatmul_test_withDimViewData")
+    void matmul_test_withDimView(ITensor a, ITensor b, ITensor c) {
         ITensor result = a.matmul(b);
         assertEquals(c, result);
     }
 
-    Stream<Arguments> getMatmul_test__withJvmTensorData() {
+    Stream<Arguments> getMatmul_test_withJvmTensorData() {
         SciCore jvmSciCore = new SciCore();
         jvmSciCore.setBackend(ISciCore.BackendType.JVM);
         double[][] a = {{1, 2}, {3, 4}};
@@ -970,8 +1006,8 @@ public class GenCPUTensorTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getMatmul_test__withJvmTensorData")
-    void matmul_test__withJvmTensor(ITensor a, ITensor b, ITensor c) {
+    @MethodSource("getMatmul_test_withJvmTensorData")
+    void matmul_test_withJvmTensor(ITensor a, ITensor b, ITensor c) {
         ITensor result = a.matmul(b);
         assertEquals(c, result);
     }

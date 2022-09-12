@@ -1,6 +1,6 @@
 package me.mikex86.scicore;
 
-public class PerformanceTest {
+public class JvmMatmulPerformanceTest {
 
     public static void main(String[] args) {
         ISciCore sciCore = new SciCore();

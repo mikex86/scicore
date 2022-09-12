@@ -3,11 +3,13 @@ package me.mikex86.scicore;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.op.IGraphRecorder;
 import me.mikex86.scicore.op.OperationType;
+import me.mikex86.scicore.op.OptionBundle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.Map;
 
 import static me.mikex86.scicore.utils.StringUtils.formatFloat;
 
@@ -112,6 +114,27 @@ public abstract class AbstractTensor implements ITensor {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         return operationRecorder.recordOperation(OperationType.MATMUL, this, other);
+    }
+
+    @Override
+    public @NotNull ITensor matmul(@NotNull ITensor other, boolean transposeSelf, boolean transposeOther) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor transposeSelfTensor, transposeOtherTensor;
+        {
+            transposeSelfTensor = backend.createTensor(DataType.BOOLEAN, new long[]{1});
+            transposeSelfTensor.setBooleanFlat(transposeSelf, 0);
+        }
+        {
+            transposeOtherTensor = backend.createTensor(DataType.BOOLEAN, new long[]{1});
+            transposeOtherTensor.setBooleanFlat(transposeOther, 0);
+        }
+        return operationRecorder.recordOperation(OperationType.MATMUL, OptionBundle.of(
+                Map.of(
+                        "transposeA", transposeSelfTensor,
+                        "transposeB", transposeOtherTensor
+                )
+        ), this, other);
     }
 
     @Override

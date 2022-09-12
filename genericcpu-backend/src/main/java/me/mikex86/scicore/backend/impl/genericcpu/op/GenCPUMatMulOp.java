@@ -9,6 +9,7 @@ import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.op.OptionBundle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -26,38 +27,57 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
 
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
-        long[] shape = a.getShape();
-        long[] otherShape = b.getShape();
-        Validator.assertTrue(otherShape.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shape.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shape[1] == otherShape[0], "Shape mismatch. A.shape[1] != B.shape[0]");
+        long[] shapeA = a.getShape();
+        long[] shapeB = b.getShape();
+
+        Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
+        Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
+        OptionBundle options = ctx.getOptionBundle();
+        boolean transposeA = options.getOrDefault("transposeA", false);
+        boolean transposeB = options.getOrDefault("transposeB", false);
+        long[] opShapeA, opShapeB;
+        if (transposeA) {
+            opShapeA = new long[]{shapeA[1], shapeA[0]};
+        } else {
+            opShapeA = shapeA;
+        }
+        if (transposeB) {
+            opShapeB = new long[]{shapeB[1], shapeB[0]};
+        } else {
+            opShapeB = shapeB;
+        }
+        Validator.assertTrue(opShapeA[1] == opShapeB[0], "Shape mismatch. A.shape[1] != B.shape[0]");
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
-        long[] resultShape = ShapeUtils.matrixMultiplyShape(shape, otherShape);
+        long[] resultShape = ShapeUtils.matrixMultiplyShape(opShapeA, opShapeB);
         DataType aDataType = a.getDataType();
         DataType bDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(aDataType, bDataType);
 
         GenCPUTensor result = new GenCPUTensor(this.backend, resultDataType, resultShape);
 
-        int m = Math.toIntExact(shape[0]),
-                n = Math.toIntExact(otherShape[1]),
-                k = Math.toIntExact(shape[1]);
+        int m = Math.toIntExact(opShapeA[0]),
+                n = Math.toIntExact(opShapeB[1]),
+                k = Math.toIntExact(opShapeA[1]);
+
+        int lda = transposeA ? m : k;
+        int ldb = transposeB ? k : n;
 
         DirectMemoryHandle aPtr = backend.getDirectMemoryManager().ensureDirect(a);
         DirectMemoryHandle bPtr = backend.getDirectMemoryManager().ensureDirect(b);
 
-        matmul(OP_NONE, OP_NONE,
-                    m, n, k,
-                    aPtr.getNativePtr(),
-                    getMatmulDataType(aDataType),
-                    k,
-                    bPtr.getNativePtr(),
-                    getMatmulDataType(bDataType),
-                    n,
-                    result.getDataContainer().getMemoryHandle().getNativePtr(),
-                    getMatmulDataType(resultDataType),
-                    n
+        matmul(transposeA ? OP_TRANSPOSE : OP_NONE,
+                transposeB ? OP_TRANSPOSE : OP_NONE,
+                m, n, k,
+                aPtr.getNativePtr(),
+                getMatmulDataType(aDataType),
+                lda,
+                bPtr.getNativePtr(),
+                getMatmulDataType(bDataType),
+                ldb,
+                result.getDataContainer().getMemoryHandle().getNativePtr(),
+                getMatmulDataType(resultDataType),
+                n
         );
 
         if (aPtr.canFree()) {
@@ -72,20 +92,31 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
 
     @Override
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
-        long[] shape = a.getShape();
-        long[] otherShape = b.getShape();
-        Validator.assertTrue(otherShape.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shape.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shape[1] == otherShape[0], "Shape mismatch. A.shape[1] != B.shape[0]");
+        long[] shapeA = a.getShape();
+        long[] shapeB = b.getShape();
+        Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
+        Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
+        OptionBundle options = ctx.getOptionBundle();
+        boolean transposeA = options.getOrDefault("transposeA", false);
+        boolean transposeB = options.getOrDefault("transposeB", false);
+        if (transposeA) {
+            shapeA = new long[]{shapeA[1], shapeA[0]};
+        }
+        if (transposeB) {
+            shapeB = new long[]{shapeB[1], shapeB[0]};
+        }
+        Validator.assertTrue(shapeA[1] == shapeB[0], "Shape mismatch. A.shape[1] != B.shape[0]");
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
-        Validator.assertTrue(ShapeUtils.shapeFitsInInt(shape), "Shape of A is too large, no dimension must exceed Integer.MAX_VALUE");
-        Validator.assertTrue(ShapeUtils.shapeFitsInInt(otherShape), "Shape of B is too large, no dimension must exceed Integer.MAX_VALUE");
-        long[] resultShape = ShapeUtils.matrixMultiplyShape(shape, otherShape);
+        Validator.assertTrue(ShapeUtils.shapeFitsInInt(shapeA), "Shape of A is too large, no dimension must exceed Integer.MAX_VALUE");
+        Validator.assertTrue(ShapeUtils.shapeFitsInInt(shapeB), "Shape of B is too large, no dimension must exceed Integer.MAX_VALUE");
+        long[] resultShape = ShapeUtils.matrixMultiplyShape(shapeA, shapeB);
         DataType aDataType = a.getDataType();
         DataType bDataType = b.getDataType();
-        // TODO: DATA TYPE VALIDATION
         DataType resultDataType = DataType.getLarger(aDataType, bDataType);
+        if (!resultDataType.isNumeric()) {
+            throw new IllegalArgumentException("Cannot perform matrix multiplication on non-numeric data types");
+        }
         return new LazyTensor(this.backend, resultShape, resultDataType, () -> perform(ctx, a, b));
     }
 

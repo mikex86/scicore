@@ -63,6 +63,9 @@ public class ShapeUtils {
      */
     public static long @NotNull [] makeStrides(long @NotNull [] shape) {
         long[] strides = new long[shape.length];
+        if (shape.length == 0) {
+            return strides;
+        }
         strides[strides.length - 1] = 1;
         for (int dim = shape.length - 2; dim >= 0; dim--) {
             strides[dim] = strides[dim + 1] * shape[dim + 1];
