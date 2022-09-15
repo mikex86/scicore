@@ -15,6 +15,7 @@ import me.mikex86.scicore.memory.IMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.op.OptionBundle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +30,7 @@ import static jcuda.jcublas.JCublas2.cublasGemmEx_new;
 import static jcuda.jcublas.cublasComputeType.*;
 import static jcuda.jcublas.cublasGemmAlgo.CUBLAS_GEMM_DFALT_TENSOR_OP;
 import static jcuda.jcublas.cublasOperation.CUBLAS_OP_N;
+import static jcuda.jcublas.cublasOperation.CUBLAS_OP_T;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cublasCheck;
 
 public class CudaMatmulOp implements IDifferentiableBinaryOperation {
@@ -45,15 +47,29 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
 
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
-        long[] shape = a.getShape();
-        long[] otherShape = b.getShape();
-        Validator.assertTrue(otherShape.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shape.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shape[1] == otherShape[0], "Shape mismatch. A.shape[1] != B.shape[0]");
+        long[] shapeA = a.getShape();
+        long[] shapeB = b.getShape();
+        Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
+        Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
+        OptionBundle options = ctx.getOptionBundle();
+        boolean transposeA = options.getOrDefault("transposeA", false);
+        boolean transposeB = options.getOrDefault("transposeB", false);
+        long[] opShapeA, opShapeB;
+        if (transposeA) {
+            opShapeA = new long[]{shapeA[1], shapeA[0]};
+        } else {
+            opShapeA = shapeA;
+        }
+        if (transposeB) {
+            opShapeB = new long[]{shapeB[1], shapeB[0]};
+        } else {
+            opShapeB = shapeB;
+        }
+        Validator.assertTrue(opShapeA[1] == opShapeB[0], "Shape mismatch. A.shape[1] != B.shape[0]");
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
 
-        long[] resultShape = ShapeUtils.matrixMultiplyShape(shape, otherShape);
+        long[] resultShape = ShapeUtils.matrixMultiplyShape(opShapeA, opShapeB);
         DataType dataTypeA = a.getDataType();
         DataType dataTypeB = b.getDataType();
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
@@ -64,9 +80,12 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
 
         // TODO: CHECK IF SHAPE FITS INTO INT32
 
-        int m = (int) shape[0]; // rows of A
-        int n = (int) otherShape[1]; // columns of B
-        int k = (int) shape[1]; // columns of A and rows of B
+        int m = Math.toIntExact(opShapeA[0]),
+                n = Math.toIntExact(opShapeB[1]),
+                k = Math.toIntExact(opShapeA[1]);
+
+        int lda = transposeA ? m : k;
+        int ldb = transposeB ? k : n;
 
         CudaMemoryHandle aMemoryHandle = backend.getCudaMemoryManager().ensureOnDevice(a);
         CudaMemoryHandle bMemoryHandle = backend.getCudaMemoryManager().ensureOnDevice(b);
@@ -80,15 +99,15 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
             factor.put(1.0f);
             cublasCheck(cublasGemmEx_new(
                     CudaBackend.getCublasHandle(),
-                    CUBLAS_OP_N, CUBLAS_OP_N,
+                    transposeA ? CUBLAS_OP_T : CUBLAS_OP_N, transposeB ? CUBLAS_OP_T : CUBLAS_OP_N,
                     n, m, k,
                     Pointer.to(factor),
                     bMemoryHandle.getDevicePointer(),
                     CUDA_R_32F,
-                    n,
+                    lda,
                     aMemoryHandle.getDevicePointer(),
                     CUDA_R_32F,
-                    k,
+                    ldb,
                     Pointer.to(factor),
                     resultMemoryHandle.getDevicePointer(),
                     CUDA_R_32F,
@@ -105,15 +124,15 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
             factor.put(1.0);
             cublasCheck(cublasGemmEx_new(
                     CudaBackend.getCublasHandle(),
-                    CUBLAS_OP_N, CUBLAS_OP_N,
+                    transposeA ? CUBLAS_OP_T : CUBLAS_OP_N, transposeB ? CUBLAS_OP_T : CUBLAS_OP_N,
                     n, m, k,
                     Pointer.to(factor),
                     bMemoryHandle.getDevicePointer(),
                     CUDA_R_64F,
-                    n,
+                    lda,
                     aMemoryHandle.getDevicePointer(),
                     CUDA_R_64F,
-                    k,
+                    ldb,
                     Pointer.to(factor),
                     resultMemoryHandle.getDevicePointer(),
                     CUDA_R_64F,
@@ -124,8 +143,8 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
             memoryHandle.free();
         } else {
             // Fallback kernel for every other data type combination not supported by cublas
-            int xDimSize = (int) shape[0];
-            int yDimSize = (int) shape[1];
+            int xDimSize = (int) shapeA[0];
+            int yDimSize = (int) shapeA[1];
             int blockDimX = 32, blockDimY = 32;
             int nBlocksX = Math.toIntExact((xDimSize + blockDimX - 1) / blockDimX);
             int nBlocksY = Math.toIntExact((yDimSize + blockDimY - 1) / blockDimY);
@@ -164,17 +183,31 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
 
     @Override
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
-        long[] shape = a.getShape();
-        long[] otherShape = b.getShape();
-        Validator.assertTrue(otherShape.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shape.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shape[1] == otherShape[0], "Shape mismatch. A.shape[1] != B.shape[0]");
+        long[] shapeA = a.getShape();
+        long[] shapeB = b.getShape();
+        Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
+        Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
+        OptionBundle options = ctx.getOptionBundle();
+        boolean transposeA = options.getOrDefault("transposeA", false);
+        boolean transposeB = options.getOrDefault("transposeB", false);
+        if (transposeA) {
+            shapeA = new long[]{shapeA[1], shapeA[0]};
+        }
+        if (transposeB) {
+            shapeB = new long[]{shapeB[1], shapeB[0]};
+        }
+        Validator.assertTrue(shapeA[1] == shapeB[0], "Shape mismatch. A.shape[1] != B.shape[0]");
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
-        long[] resultShape = ShapeUtils.matrixMultiplyShape(shape, otherShape);
-        DataType ownDataType = a.getDataType();
-        DataType otherDataType = b.getDataType();
-        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
+        Validator.assertTrue(ShapeUtils.shapeFitsInInt(shapeA), "Shape of A is too large, no dimension must exceed Integer.MAX_VALUE");
+        Validator.assertTrue(ShapeUtils.shapeFitsInInt(shapeB), "Shape of B is too large, no dimension must exceed Integer.MAX_VALUE");
+        long[] resultShape = ShapeUtils.matrixMultiplyShape(shapeA, shapeB);
+        DataType aDataType = a.getDataType();
+        DataType bDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
+        if (!resultDataType.isNumeric()) {
+            throw new IllegalArgumentException("Cannot perform matrix multiplication on non-numeric data types");
+        }
         return new LazyTensor(this.backend, resultShape, resultDataType, () -> perform(ctx, a, b));
     }
 

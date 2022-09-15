@@ -149,6 +149,12 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
 
     @Override
     public void setContents(@NotNull ITensor tensor) {
+        if (tensor.getDataType() != getDataType()) {
+            throw new IllegalArgumentException("Cannot copy tensor with different data type");
+        }
+        if (!ShapeUtils.equals(tensor.getShape(), getShape())) {
+            throw new IllegalArgumentException("Cannot copy tensor with different shape");
+        }
         DirectMemoryHandle directMemory = tensor.getContentsAsDirectMemory();
         this.dataContainer.setContents(directMemory.asByteBuffer());
         if (directMemory.canFree()) {

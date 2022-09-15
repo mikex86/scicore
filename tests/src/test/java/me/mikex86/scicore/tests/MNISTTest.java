@@ -1,4 +1,4 @@
-package me.mikex86.scicore.backends.impl.genericcpu;
+package me.mikex86.scicore.tests;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ISciCore;
@@ -13,6 +13,7 @@ import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.Pair;
+import me.mikex86.scicore.utils.ShapeUtils;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import me.tongfei.progressbar.ProgressBarStyle;
@@ -25,6 +26,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -79,44 +81,113 @@ public class MNISTTest {
         private final ReLU act;
 
         @NotNull
-        private final Linear f1, f2;
+        private final Linear fc1, fc2;
 
         @NotNull
-        private final Softmax f3;
+        private final Softmax softmax;
 
         public MnistNet(@NotNull ISciCore sciCore) {
             this.act = new ReLU();
-            this.f1 = new Linear(sciCore, DataType.FLOAT32, 28 * 28, 128, true);
-            this.f2 = new Linear(sciCore, DataType.FLOAT32, 128, 10, true);
-            this.f3 = new Softmax(sciCore, 1);
+            this.fc1 = new Linear(sciCore, DataType.FLOAT32, 28 * 28, 128, true);
+            this.fc2 = new Linear(sciCore, DataType.FLOAT32, 128, 10, true);
+            this.softmax = new Softmax(sciCore, 1);
         }
 
         @Override
         public @NotNull ITensor forward(@NotNull ITensor input) {
-            ITensor h = f1.forward(input);
+            ITensor h = fc1.forward(input);
             h = act.forward(h);
-            h = f2.forward(h);
-            return f3.forward(h);
+            h = fc2.forward(h);
+            return softmax.forward(h);
         }
 
         @Override
         public @NotNull List<ITensor> parameters() {
-            return Stream.concat(f1.parameters().stream(), f2.parameters().stream()).collect(Collectors.toList());
+            return Stream.concat(fc1.parameters().stream(), fc2.parameters().stream()).collect(Collectors.toList());
         }
 
+    }
+
+    // A very simple tensor loader. This is not a stable deserializer and only works for the purposes of this test.
+    private static ITensor readTensor(ISciCore sciCore, Path path) {
+        try (RandomAccessFile file = new RandomAccessFile(path.toFile(), "r")) {
+            // data-type string(32) ordinal, shape (n_dims: int64, dim1: int64, dim2: int64, ...), data
+            byte[] buf = new byte[32];
+            file.read(buf);
+            String type = new String(buf).trim();
+            DataType dataType = switch (type) {
+                case "torch.float32":
+                case "torch.float":
+                    yield DataType.FLOAT32;
+                case "torch.float64":
+                    yield DataType.FLOAT64;
+                case "torch.int32":
+                case "torch.int":
+                    yield DataType.INT32;
+                case "torch.int64":
+                    yield DataType.INT64;
+                default:
+                    throw new IllegalArgumentException("Unknown data type: " + type);
+            };
+            int nDims = Math.toIntExact(file.readLong());
+            long[] shape = new long[nDims];
+            for (int i = 0; i < nDims; i++) {
+                shape[i] = file.readLong();
+            }
+            long nElements = ShapeUtils.getNumElements(shape);
+            ITensor tensor = sciCore.zeros(dataType, shape);
+            ByteBuffer buffer = ByteBuffer.allocateDirect(Math.toIntExact(nElements * dataType.getSize()))
+                    .order(ByteOrder.LITTLE_ENDIAN);
+            file.getChannel().read(buffer);
+            buffer.flip();
+            switch (dataType) {
+                case FLOAT32 -> {
+                    FloatBuffer floatBuffer = buffer.asFloatBuffer();
+                    tensor.setContents(floatBuffer);
+                }
+                case FLOAT64 -> {
+                    DoubleBuffer doubleBuffer = buffer.asDoubleBuffer();
+                    tensor.setContents(doubleBuffer);
+                }
+                case INT32 -> {
+                    IntBuffer intBuffer = buffer.asIntBuffer();
+                    tensor.setContents(intBuffer);
+                }
+                case INT64 -> {
+                    LongBuffer longBuffer = buffer.asLongBuffer();
+                    tensor.setContents(longBuffer);
+                }
+                default -> throw new IllegalArgumentException("Unsupported data type: " + dataType);
+            }
+            return tensor;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         downloadMnist();
 
         ISciCore sciCore = new SciCore();
-        sciCore.setBackend(ISciCore.BackendType.CUDA);
+        sciCore.setBackend(ISciCore.BackendType.JVM);
         sciCore.seed(123);
 
         DatasetIterator trainIt = new DatasetIterator(BATCH_SIZE, new MnistDataSupplier(sciCore, true, false));
         DatasetIterator testIt = new DatasetIterator(1, new MnistDataSupplier(sciCore, false, false));
 
         MnistNet net = new MnistNet(sciCore);
+        // set initial weights
+        {
+            ITensor fc1weight = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.weight_0.bin"));
+            ITensor fc1bias = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.bias_0.bin"));
+            net.fc1.getWeights().setContents(fc1weight);
+            Objects.requireNonNull(net.fc1.getBias()).setContents(fc1bias);
+
+            ITensor fc2weight = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.weight_0.bin"));
+            ITensor fc2bias = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.bias_0.bin"));
+            net.fc2.getWeights().setContents(fc2weight);
+            Objects.requireNonNull(net.fc2.getBias()).setContents(fc2bias);
+        }
 
         long nSteps = 33_000;
         int nTestSteps = 10000;
@@ -138,10 +209,28 @@ public class MNISTTest {
                 if (Float.isNaN(loss.elementAsFloat())) {
                     System.out.println("Loss is NaN");
                 }
-                IGraph graph = sciCore.getGraphUpTo(loss);
-                optimizer.step(graph);
+                if (step % 100 == 0) {
+                    ITensor actualWeightsFc1 = net.fc1.getWeights();
+                    ITensor actualBiasFc1 = Objects.requireNonNull(net.fc1.getBias());
+                    ITensor expectedWeightsFc1 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.weight_" + step + ".bin"));
+                    ITensor expectedBiasFc1 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.bias_" + step + ".bin"));
+                    ITensor actualWeightsFc2 = net.fc2.getWeights();
+                    ITensor actualBiasFc2 = Objects.requireNonNull(net.fc2.getBias());
+                    ITensor expectedWeightsFc2 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.weight_" + step + ".bin"));
+                    ITensor expectedBiasFc2 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.bias_" + step + ".bin"));
 
-                progressBar.step();
+                    ITensor diffWeightsFc1 = actualWeightsFc1.minus(expectedWeightsFc1).reduceSum(-1);
+                    ITensor diffBiasFc1 = actualBiasFc1.minus(expectedBiasFc1).reduceSum(-1);
+                    ITensor diffWeightsFc2 = actualWeightsFc2.minus(expectedWeightsFc2).reduceSum(-1);
+                    ITensor diffBiasFc2 = actualBiasFc2.minus(expectedBiasFc2).reduceSum(-1);
+
+                    System.out.println("Step: " + step);
+                    System.out.println("Loss: " + loss.elementAsFloat());
+                    System.out.println("Diff weights fc1: " + diffWeightsFc1.elementAsFloat());
+                    System.out.println("Diff bias fc1: " + diffBiasFc1.elementAsFloat());
+                    System.out.println("Diff weights fc2: " + diffWeightsFc2.elementAsFloat());
+                    System.out.println("Diff bias fc2: " + diffBiasFc2.elementAsFloat());
+                }
 //                if (step % 2000 == 0) {
 //                    long nCorrect = 0;
 //                    for (int i = 0; i < nTestSteps; i++) {
@@ -163,6 +252,10 @@ public class MNISTTest {
 //                    }
 //                    System.out.println("\nStep: " + step + " Loss: " + loss.elementAsFloat() + " Accuracy: " + accuracy);
 //                }
+                IGraph graph = sciCore.getGraphUpTo(loss);
+                optimizer.step(graph);
+
+                progressBar.step();
                 progressBar.setExtraMessage(String.format(Locale.US, "loss: %.5f", loss.elementAsFloat()));
             }
         }

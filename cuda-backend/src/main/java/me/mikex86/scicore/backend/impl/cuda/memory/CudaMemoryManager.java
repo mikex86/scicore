@@ -9,11 +9,8 @@ import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.memory.IMemoryManager;
-import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ViewUtils;
 import org.jetbrains.annotations.NotNull;
-
-import java.nio.ByteBuffer;
 
 import static jcuda.driver.JCudaDriver.*;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
@@ -51,6 +48,19 @@ public class CudaMemoryManager implements IMemoryManager<CudaMemoryHandle> {
         return calloc(dataType.getSizeOf(nElements));
     }
 
+    @Override
+    public void copy(@NotNull CudaMemoryHandle dstMemoryHandle, @NotNull CudaMemoryHandle srcMemoryHandle) {
+        if (dstMemoryHandle.getSize() != srcMemoryHandle.getSize()) {
+            throw new IllegalArgumentException("Source and destination memory handles must be the same size.");
+        }
+        if (dstMemoryHandle.getDevicePointer().equals(srcMemoryHandle.getDevicePointer())) {
+            return;
+        }
+        if (dstMemoryHandle.getSize() == 0) {
+            return;
+        }
+        cuCheck(cuMemcpyDtoD(dstMemoryHandle.getDevicePointer(), srcMemoryHandle.getDevicePointer(), srcMemoryHandle.getSize()));
+    }
 
     @NotNull
     public CudaMemoryHandle copyToDevice(@NotNull ITensor tensor) {
@@ -83,5 +93,4 @@ public class CudaMemoryManager implements IMemoryManager<CudaMemoryHandle> {
             return copyToDevice(tensor);
         }
     }
-
 }

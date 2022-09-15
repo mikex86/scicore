@@ -3,6 +3,7 @@ package me.mikex86.scicore.memory;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.jemalloc.JEmalloc;
 
 public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
@@ -38,6 +39,20 @@ public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
     public DirectMemoryHandle calloc(long nElements, @NotNull DataType dataType) {
         long nBytes = dataType.getSizeOf(nElements);
         return calloc(nBytes);
+    }
+
+    @Override
+    public void copy(@NotNull DirectMemoryHandle dstMemoryHandle, @NotNull DirectMemoryHandle srcMemoryHandle) {
+        if (dstMemoryHandle.getSize() != srcMemoryHandle.getSize()) {
+            throw new IllegalArgumentException("Source and destination memory handles must be the same size.");
+        }
+        if (dstMemoryHandle.getNativePtr() == srcMemoryHandle.getNativePtr()) {
+            return;
+        }
+        if (dstMemoryHandle.getSize() == 0) {
+            return;
+        }
+        MemoryUtil.memCopy(dstMemoryHandle.getNativePtr(), srcMemoryHandle.getNativePtr(), dstMemoryHandle.getSize());
     }
 
     public void free(@NotNull DirectMemoryHandle directMemoryHandle) {

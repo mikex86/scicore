@@ -616,6 +616,8 @@ public interface ITensor extends IValue {
 
     @NotNull ITensor argmax(int dimension);
 
+    @NotNull ITensor to(@NotNull ISciCoreBackend backend);
+
     /**
      * @return a direct memory handle containing the contents of the tensor. Can be a reference to the tensor's internal memory, or a copy. Only copies can be freed.
      * @see DirectMemoryHandle#canFree()

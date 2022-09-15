@@ -1,6 +1,7 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.IGraphRecorder;
 import me.mikex86.scicore.op.OperationType;
 import me.mikex86.scicore.op.OptionBundle;
@@ -610,6 +611,13 @@ public abstract class AbstractTensor implements ITensor {
             dimensionScalar.setIntFlat(dimension, 0);
         }
         return operationRecorder.recordOperation(OperationType.ARGMAX, this, dimensionScalar);
+    }
+
+    @Override
+    public @NotNull ITensor to(@NotNull ISciCoreBackend backend) {
+        ITensor newTensor = backend.createTensor(getDataType(), getShape());
+        newTensor.setContents(this);
+        return newTensor;
     }
 
     protected void validateDataType(@NotNull DataType requestedDataType) {

@@ -8,3 +8,4 @@ if (OperatingSystem.current() != OperatingSystem.MAC_OS) {
 }
 include("core")
 include("genericcpu-backend")
+include("tests")

@@ -5,6 +5,7 @@ import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
+import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.*;
@@ -126,41 +127,58 @@ public class CudaTensor extends AbstractTensor {
 
     @Override
     public void setContents(@NotNull ITensor tensor) {
-        throw new UnsupportedOperationException("TODO: implement");
+        Validator.assertTrue(ShapeUtils.equals(shape, tensor.getShape()), "Cannot set contents of tensor with shape " + ShapeUtils.toString(shape) + " to tensor with shape " + ShapeUtils.toString(tensor.getShape()));
+        Validator.assertTrue(dataType == tensor.getDataType(), "Cannot set contents of tensor with data type " + dataType + " to tensor with data type " + tensor.getDataType());
+        if (tensor instanceof CudaTensor cudaTensor) {
+            backend.getCudaMemoryManager().copy(dataContainer.getDeviceMemoryHandle(), cudaTensor.dataContainer.getDeviceMemoryHandle());
+        } else {
+            DirectMemoryHandle contents = tensor.getContentsAsDirectMemory();
+            dataContainer.setContents(contents.asByteBuffer());
+            if (contents.canFree()) {
+                contents.free();
+            }
+        }
     }
 
     @Override
     public void setContents(@NotNull ByteBuffer buffer) {
+        Validator.assertTrue(dataType == DataType.INT8, "Cannot set contents of tensor with data type " + dataType);
         this.dataContainer.setContents(buffer);
     }
 
     @Override
     public void setContents(@NotNull ShortBuffer buffer) {
+        Validator.assertTrue(dataType == DataType.INT16, "Cannot set contents of tensor with data type " + dataType);
         this.dataContainer.setContents(buffer);
     }
 
     @Override
     public void setContents(@NotNull IntBuffer buffer) {
+        Validator.assertTrue(dataType == DataType.INT32, "Cannot set contents of tensor with data type " + dataType);
         this.dataContainer.setContents(buffer);
     }
 
     @Override
     public void setContents(@NotNull LongBuffer buffer) {
+        Validator.assertTrue(dataType == DataType.INT64, "Cannot set contents of tensor with data type " + dataType);
         this.dataContainer.setContents(buffer);
     }
 
     @Override
     public void setContents(@NotNull FloatBuffer buffer) {
+        Validator.assertTrue(dataType == DataType.FLOAT32, "Cannot set contents of tensor with data type " + dataType);
         this.dataContainer.setContents(buffer);
     }
 
     @Override
     public void setContents(@NotNull DoubleBuffer buffer) {
+        Validator.assertTrue(dataType == DataType.FLOAT64, "Cannot set contents of tensor with data type " + dataType);
         this.dataContainer.setContents(buffer);
     }
 
     @Override
     public void setContents(boolean @NotNull [] buffer) {
+        Validator.assertTrue(dataType == DataType.BOOLEAN, "Cannot set contents of tensor with data type " + dataType);
         this.dataContainer.setContents(buffer);
     }
 

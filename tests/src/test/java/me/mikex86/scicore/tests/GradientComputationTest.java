@@ -1,6 +1,11 @@
-package me.mikex86.scicore;
+package me.mikex86.scicore.tests;
 
+import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.ISciCore;
+import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.op.IGraph;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -23,7 +28,7 @@ public class GradientComputationTest {
         ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
         ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
         ITensor result = a.matmul(b);
-        assertEquals(sciCore.matrix(new float[][]{{130.0f}}), result);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{130.0f}}), result);
 
         IGraph graph = sciCore.getGraphUpTo(result);
         graph.requestGradientsFor(a, b);
@@ -32,8 +37,8 @@ public class GradientComputationTest {
         ITensor dLdA = graph.getGradient(a).orElseThrow();
         ITensor dLdB = graph.getGradient(b).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{6.0f, 7.0f, 8.0f, 9.0f, 10.0f}}), dLdA);
-        assertEquals(sciCore.matrix(new float[][]{{1}, {2}, {3}, {4}, {5}}), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{6.0f, 7.0f, 8.0f, 9.0f, 10.0f}}), dLdA);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1}, {2}, {3}, {4}, {5}}), dLdB);
 
     }
 
@@ -66,7 +71,7 @@ public class GradientComputationTest {
         ITensor fwd1 = w1.matmul(act);
         ITensor fwd2 = w2.matmul(fwd1);
 
-        assertEquals(sciCore.matrix(new float[][]{{1030.f}}), fwd2); // check forward pass
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1030.f}}), fwd2); // check forward pass
 
         // Automatic backpropagation
         IGraph graph = sciCore.getGraphUpTo(fwd2);
@@ -96,8 +101,8 @@ public class GradientComputationTest {
         ITensor dL_dW2_automatic = graph.getGradient(w2).orElseThrow();
         ITensor dL_dW1_automatic = graph.getGradient(w1).orElseThrow();
 
-        assertEquals(dL_dW2, dL_dW2_automatic);
-        assertEquals(dL_dW1, dL_dW1_automatic);
+        Assertions.assertEquals(dL_dW2, dL_dW2_automatic);
+        Assertions.assertEquals(dL_dW1, dL_dW1_automatic);
     }
 
     @Test
@@ -120,10 +125,10 @@ public class GradientComputationTest {
         ITensor dLdC = graph.getGradient(c).orElseThrow();
         ITensor dLdD = graph.getGradient(d).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{67.0f, 105.0f}}), dLdA);
-        assertEquals(sciCore.matrix(new float[][]{{9.0f, 10.0f}, {18.0f, 20.0f}}), dLdB);
-        assertEquals(sciCore.matrix(new float[][]{{9.0f, 10.0f}}), dLdC);
-        assertEquals(sciCore.matrix(new float[][]{{20.0f}, {24.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{67.0f, 105.0f}}), dLdA);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{9.0f, 10.0f}, {18.0f, 20.0f}}), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{9.0f, 10.0f}}), dLdC);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{20.0f}, {24.0f}}), dLdD);
     }
 
     @Test
@@ -141,8 +146,8 @@ public class GradientComputationTest {
         ITensor dLdA = graph.getGradient(a).orElseThrow();
         ITensor dLdB = graph.getGradient(b).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{20.0f, 33.0f}}), dLdA);
-        assertEquals(sciCore.matrix(new float[][]{{4.0f, 9.0f}}), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{20.0f, 33.0f}}), dLdA);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{4.0f, 9.0f}}), dLdB);
     }
 
     @Test
@@ -161,9 +166,9 @@ public class GradientComputationTest {
         ITensor dLdB = graph.getGradient(b).orElseThrow();
         ITensor dLdC = graph.getGradient(c).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{8.0f}, {12.0f}}), dLdC);
-        assertEquals(sciCore.matrix(new float[][]{{20.0f, 24.0f}}), dLdA);
-        assertEquals(sciCore.scalar(28.0f), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{8.0f}, {12.0f}}), dLdC);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{20.0f, 24.0f}}), dLdA);
+        Assertions.assertEquals(sciCore.scalar(28.0f), dLdB);
     }
 
     @Test
@@ -182,9 +187,9 @@ public class GradientComputationTest {
         ITensor dLdB = graph.getGradient(b).orElseThrow();
         ITensor dLdC = graph.getGradient(c).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{8.0f}, {12.0f}}), dLdC);
-        assertEquals(sciCore.matrix(new float[][]{{20.0f, 24.0f}}), dLdA);
-        assertEquals(sciCore.scalar(28.0f), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{8.0f}, {12.0f}}), dLdC);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{20.0f, 24.0f}}), dLdA);
+        Assertions.assertEquals(sciCore.scalar(28.0f), dLdB);
     }
 
     @Test
@@ -213,17 +218,17 @@ public class GradientComputationTest {
         ITensor dLdH = graph.getGradient(h).orElseThrow();
         ITensor dLdI = graph.getGradient(i).orElseThrow();
 
-        assertEquals(sciCore.scalar(1.0f), dLdI);
-        assertEquals(sciCore.array(new float[]{1.0f, 1.0f}), dLdH);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 1.0f}}), dLdG);
-        assertEquals(sciCore.matrix(new float[][]{{10780.0f, 10780.0f}, {14560.0f, 14560.0f}}), dLdF);
-        assertEquals(sciCore.matrix(new float[][]{{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}), dLdE);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.scalar(1.0f), dLdI);
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f, 1.0f}), dLdH);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 1.0f}}), dLdG);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{10780.0f, 10780.0f}, {14560.0f, 14560.0f}}), dLdF);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}), dLdE);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
                 {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
                 {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
                 {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}}), dLdD);
-        assertEquals(sciCore.ndarray(new float[][][][]{
+        Assertions.assertEquals(sciCore.ndarray(new float[][][][]{
                 {
                         {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
                         {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
@@ -255,12 +260,12 @@ public class GradientComputationTest {
                         {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
                 }
         }), dLdC);
-        assertEquals(sciCore.matrix(new float[][]{
+        Assertions.assertEquals(sciCore.matrix(new float[][]{
                 {3420.0f, 8120.0f},
                 {3540.0f, 8400.0f},
                 {3660.0f, 8680.0f}
         }), dLdB);
-        assertEquals(sciCore.ndarray(new float[][][][]{
+        Assertions.assertEquals(sciCore.ndarray(new float[][][][]{
                 {
                         {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
                         {{3.0f, 14.0f}, {9.0f, 28.0f}, {15.0f, 42.0f}},
@@ -310,8 +315,8 @@ public class GradientComputationTest {
         ITensor dLdA = graph.getGradient(a).orElseThrow();
         ITensor dLdB = graph.getGradient(b).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{0.4f, 0.4545f}}), dLdA);
-        assertEquals(sciCore.matrix(new float[][]{{-0.08f, -0.1240f}}), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{0.4f, 0.4545f}}), dLdA);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{-0.08f, -0.1240f}}), dLdB);
     }
 
     @Test
@@ -321,7 +326,7 @@ public class GradientComputationTest {
 
         ITensor c = a.pow(b);
 
-        assertEquals(sciCore.matrix(new float[][]{{25.0f}}), c);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{25.0f}}), c);
 
         IGraph graph = sciCore.getGraphUpTo(c);
         graph.requestGradientsFor(a, b);
@@ -330,8 +335,8 @@ public class GradientComputationTest {
         ITensor dLdA = graph.getGradient(a).orElseThrow();
         ITensor dLdB = graph.getGradient(b).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{10.0f}}), dLdA);
-        assertEquals(40.2359f, dLdB.elementAsFloat(), 0.0001f);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{10.0f}}), dLdA);
+        Assertions.assertEquals(40.2359f, dLdB.elementAsFloat(), 0.0001f);
     }
 
     @Test
@@ -350,8 +355,8 @@ public class GradientComputationTest {
         ITensor dLdA = graph.getGradient(a).orElseThrow();
         ITensor dLdB = graph.getGradient(b).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{48.0f, 135.0f, 288.0f, 525.0f, 864.0f, 1323.0f, 1920.0f, 2673.0f}}), dLdA);
-        assertEquals(39480.5586f, dLdB.elementAsFloat(), 0.0001f);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{48.0f, 135.0f, 288.0f, 525.0f, 864.0f, 1323.0f, 1920.0f, 2673.0f}}), dLdA);
+        Assertions.assertEquals(39480.5586f, dLdB.elementAsFloat(), 0.0001f);
     }
 
     @Test
@@ -372,11 +377,11 @@ public class GradientComputationTest {
         ITensor dLdB = graph.getGradient(b).orElseThrow();
         ITensor dLdA = graph.getGradient(a).orElseThrow();
 
-        assertEquals(sciCore.scalar(1.0f), dLdE);
-        assertEquals(sciCore.array(new float[]{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}), dLdD);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}}), dLdC);
-        assertEquals(sciCore.matrix(new float[][]{{12.0f, 27.0f, 48.0f, 75.0f, 108.0f, 147.0f, 192.0f, 243.0f}}), dLdA);
-        assertEquals(4046.0283203125f, dLdB.elementAsFloat(), 0.0001f);
+        Assertions.assertEquals(sciCore.scalar(1.0f), dLdE);
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}), dLdD);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}}), dLdC);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{12.0f, 27.0f, 48.0f, 75.0f, 108.0f, 147.0f, 192.0f, 243.0f}}), dLdA);
+        Assertions.assertEquals(4046.0283203125f, dLdB.elementAsFloat(), 0.0001f);
     }
 
     @Test
@@ -394,8 +399,8 @@ public class GradientComputationTest {
         ITensor dLdA = graph.getGradient(a).orElseThrow();
         ITensor dLdB = graph.getGradient(b).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{7.0f, 11.0f}}), dLdA);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f}, {2.0f, 2.0f}}), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{7.0f, 11.0f}}), dLdA);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f}, {2.0f, 2.0f}}), dLdB);
     }
 
     @Test
@@ -415,9 +420,9 @@ public class GradientComputationTest {
         ITensor dLdB = graph.getGradient(b).orElseThrow();
         ITensor dLdBt = graph.getGradient(bT).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{3.0f, 4.0f}}), dLdA);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f, 2.0f}}), dLdB);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f}, {2.0f}}), dLdBt);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{3.0f, 4.0f}}), dLdA);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f, 2.0f}}), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f}, {2.0f}}), dLdBt);
     }
 
     @Test
@@ -448,16 +453,16 @@ public class GradientComputationTest {
         ITensor dLdF = graph.getGradient(f).orElseThrow();
         ITensor dLdG = graph.getGradient(g).orElseThrow();
 
-        assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
-        assertEquals(sciCore.matrix(new float[][]{{52.0f}, {60.0f}}), dLdE);
-        assertEquals(sciCore.matrix(new float[][]{{11.0f, 12.0f}, {11.0f, 12.0f}}), dLdD);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{52.0f}, {60.0f}}), dLdE);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{11.0f, 12.0f}, {11.0f, 12.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
         }), dLdC);
-        assertEquals(sciCore.array(new float[]{44.0f, 48.0f}), dLdB);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{44.0f, 48.0f}), dLdB);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
         }), dLdA);
@@ -488,16 +493,16 @@ public class GradientComputationTest {
         ITensor dLdF = graph.getGradient(f).orElseThrow();
         ITensor dLdG = graph.getGradient(g).orElseThrow();
 
-        assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
-        assertEquals(sciCore.matrix(new float[][]{{52.0f}, {60.0f}}), dLdE);
-        assertEquals(sciCore.matrix(new float[][]{{11.0f, 12.0f}, {11.0f, 12.0f}}), dLdD);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{52.0f}, {60.0f}}), dLdE);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{11.0f, 12.0f}, {11.0f, 12.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
         }), dLdC);
-        assertEquals(sciCore.array(new float[]{44.0f, 48.0f}), dLdB);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{44.0f, 48.0f}), dLdB);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
         }), dLdA);
@@ -528,16 +533,16 @@ public class GradientComputationTest {
         ITensor dLdF = graph.getGradient(f).orElseThrow();
         ITensor dLdG = graph.getGradient(g).orElseThrow();
 
-        assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
-        assertEquals(sciCore.matrix(new float[][]{{52.0f}, {60.0f}}), dLdE);
-        assertEquals(sciCore.matrix(new float[][]{{11.0f, 12.0f}, {11.0f, 12.0f}}), dLdD);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{52.0f}, {60.0f}}), dLdE);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{11.0f, 12.0f}, {11.0f, 12.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
         }), dLdC);
-        assertEquals(sciCore.array(new float[]{44.0f, 48.0f}), dLdB);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{44.0f, 48.0f}), dLdB);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
         }), dLdA);
@@ -568,16 +573,16 @@ public class GradientComputationTest {
         ITensor dLdF = graph.getGradient(f).orElseThrow();
         ITensor dLdG = graph.getGradient(g).orElseThrow();
 
-        assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
-        assertEquals(sciCore.matrix(new float[][]{{56.0f}, {64.0f}}), dLdE);
-        assertEquals(sciCore.matrix(new float[][]{{13.0f, 14.0f}, {13.0f, 14.0f}}), dLdD);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{56.0f}, {64.0f}}), dLdE);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{13.0f, 14.0f}, {13.0f, 14.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{13.0f, 14.0f}, {13.0f, 14.0f}},
                 {{13.0f, 14.0f}, {13.0f, 14.0f}}
         }), dLdC);
-        assertEquals(sciCore.matrix(new float[][]{{26.0f, 28.0f}, {26.0f, 28.0f}}), dLdB);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{26.0f, 28.0f}, {26.0f, 28.0f}}), dLdB);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{13.0f, 14.0f}, {13.0f, 14.0f}},
                 {{13.0f, 14.0f}, {13.0f, 14.0f}}
         }), dLdA);
@@ -608,16 +613,16 @@ public class GradientComputationTest {
         ITensor dLdF = graph.getGradient(f).orElseThrow();
         ITensor dLdG = graph.getGradient(g).orElseThrow();
 
-        assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
-        assertEquals(sciCore.matrix(new float[][]{{56.0f}, {64.0f}}), dLdE);
-        assertEquals(sciCore.matrix(new float[][]{{13.0f, 14.0f}, {13.0f, 14.0f}}), dLdD);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{56.0f}, {64.0f}}), dLdE);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{13.0f, 14.0f}, {13.0f, 14.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{13.0f, 14.0f}, {13.0f, 14.0f}},
                 {{13.0f, 14.0f}, {13.0f, 14.0f}}
         }), dLdC);
-        assertEquals(sciCore.matrix(new float[][]{{26.0f, 28.0f}, {26.0f, 28.0f}}), dLdB);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{26.0f, 28.0f}, {26.0f, 28.0f}}), dLdB);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{13.0f, 14.0f}, {13.0f, 14.0f}},
                 {{13.0f, 14.0f}, {13.0f, 14.0f}}
         }), dLdA);
@@ -651,16 +656,16 @@ public class GradientComputationTest {
         ITensor dLdF = graph.getGradient(f).orElseThrow();
         ITensor dLdG = graph.getGradient(g).orElseThrow();
 
-        assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
-        assertEquals(sciCore.matrix(new float[][]{{-24.0f}, {-40.0f}}), dLdE);
-        assertEquals(sciCore.matrix(new float[][]{{11.0f, 12.0f}, {11.0f, 12.0f}}), dLdD);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{-24.0f}, {-40.0f}}), dLdE);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{11.0f, 12.0f}, {11.0f, 12.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
         }), dLdC);
-        assertEquals(sciCore.array(new float[]{-44.0f, -48.0f}), dLdB);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{-44.0f, -48.0f}), dLdB);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
         }), dLdA);
@@ -691,16 +696,16 @@ public class GradientComputationTest {
         ITensor dLdF = graph.getGradient(f).orElseThrow();
         ITensor dLdG = graph.getGradient(g).orElseThrow();
 
-        assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
-        assertEquals(sciCore.matrix(new float[][]{{-56.0f}, {-48.0f}}), dLdE);
-        assertEquals(sciCore.matrix(new float[][]{{13.0f, 14.0f}, {13.0f, 14.0f}}), dLdD);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{-56.0f}, {-48.0f}}), dLdE);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{13.0f, 14.0f}, {13.0f, 14.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{13.0f, 14.0f}, {13.0f, 14.0f}},
                 {{13.0f, 14.0f}, {13.0f, 14.0f}}
         }), dLdC);
-        assertEquals(sciCore.matrix(new float[][]{{-26.0f, -28.0f}, {-26.0f, -28.0f}}), dLdB);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{-26.0f, -28.0f}, {-26.0f, -28.0f}}), dLdB);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{13.0f, 14.0f}, {13.0f, 14.0f}},
                 {{13.0f, 14.0f}, {13.0f, 14.0f}}
         }), dLdA);
@@ -731,16 +736,16 @@ public class GradientComputationTest {
         ITensor dLdF = graph.getGradient(f).orElseThrow();
         ITensor dLdG = graph.getGradient(g).orElseThrow();
 
-        assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
-        assertEquals(sciCore.matrix(new float[][]{{24.0f}, {24.0f}}), dLdE);
-        assertEquals(sciCore.matrix(new float[][]{{13.0f, 14.0f}, {13.0f, 14.0f}}), dLdD);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdG);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f}, {1.0f}}), dLdF);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{24.0f}, {24.0f}}), dLdE);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{13.0f, 14.0f}, {13.0f, 14.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{13.0f, 14.0f}, {13.0f, 14.0f}},
                 {{13.0f, 14.0f}, {13.0f, 14.0f}}
         }), dLdC);
-        assertEquals(sciCore.matrix(new float[][]{{26.0f, 28.0f}, {26.0f, 28.0f}}), dLdB);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{26.0f, 28.0f}, {26.0f, 28.0f}}), dLdB);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{-13.0f, -14.0f}, {-13.0f, -14.0f}},
                 {{-13.0f, -14.0f}, {-13.0f, -14.0f}}
         }), dLdA);
@@ -773,22 +778,22 @@ public class GradientComputationTest {
         ITensor dLdH = graph.getGradient(h).orElseThrow();
         ITensor dLdI = graph.getGradient(i).orElseThrow();
 
-        assertEquals(sciCore.scalar(1.0f), dLdI);
-        assertEquals(sciCore.array(new float[]{1.0f, 1.0f}), dLdH);
-        assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 1.0f}}), dLdG);
-        assertEquals(sciCore.matrix(new float[][]{{3720.0f, 3720.0f}, {3840.0f, 3840.0f}}), dLdF);
-        assertEquals(sciCore.matrix(new float[][]{
+        Assertions.assertEquals(sciCore.scalar(1.0f), dLdI);
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f, 1.0f}), dLdH);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 1.0f}}), dLdG);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{3720.0f, 3720.0f}, {3840.0f, 3840.0f}}), dLdF);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{
                 {3.0f, 7.0f},
                 {3.0f, 7.0f},
                 {3.0f, 7.0f}
         }), dLdE);
-        assertEquals(sciCore.ndarray(new float[][][]{
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
                 {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
                 {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
                 {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
         }), dLdD);
-        assertEquals(sciCore.ndarray(new float[][][][]{
+        Assertions.assertEquals(sciCore.ndarray(new float[][][][]{
                 {
                         {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
                         {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
@@ -819,12 +824,12 @@ public class GradientComputationTest {
                         {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}}
                 }
         }), dLdC);
-        assertEquals(sciCore.matrix(new float[][]{
+        Assertions.assertEquals(sciCore.matrix(new float[][]{
                 {60.0f, 140.0f},
                 {60.0f, 140.0f},
                 {60.0f, 140.0f}
         }), dLdB);
-        assertEquals(sciCore.ndarray(new float[][][][]{
+        Assertions.assertEquals(sciCore.ndarray(new float[][][][]{
                 {
                         {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
                         {{3.0f, 7.0f}, {3.0f, 7.0f}, {3.0f, 7.0f}},
@@ -891,12 +896,12 @@ public class GradientComputationTest {
         ITensor dLdW = graph.getGradient(W).orElseThrow();
         ITensor dLdB = graph.getGradient(B).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{
+        Assertions.assertEquals(sciCore.matrix(new float[][]{
                 {0.4619f, 0.2503f, 0.4272f, 0.1720f},
                 {1.2270f, 0.6596f, 1.5049f, 1.1709f}
         }), dLdW);
 
-        assertEquals(sciCore.array(new float[]{0.4367f, 2.1342f}), dLdB);
+        Assertions.assertEquals(sciCore.array(new float[]{0.4367f, 2.1342f}), dLdB);
     }
 
     @Test
@@ -920,12 +925,12 @@ public class GradientComputationTest {
         ITensor dLdW = graph.getGradient(W).orElseThrow();
         ITensor dLdB = graph.getGradient(B).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{
+        Assertions.assertEquals(sciCore.matrix(new float[][]{
                 {0.013556f, 0.006425f, -0.006542f, -0.025779f},
                 {0.085262f, 0.039142f, 0.10286f, 0.111752f}
         }), dLdW);
 
-        assertEquals(sciCore.array(new float[]{-0.0318f, 0.1755f}), dLdB);
+        Assertions.assertEquals(sciCore.array(new float[]{-0.0318f, 0.1755f}), dLdB);
     }
 
     @Test
@@ -959,17 +964,17 @@ public class GradientComputationTest {
         ITensor dLdX = graph.getGradient(X).orElseThrow();
         ITensor dLdB = graph.getGradient(B).orElseThrow();
 
-        assertEquals(sciCore.array(new float[]{1.0f}), dLdL);
-        assertEquals(sciCore.array(new float[]{0.5f}), dLdTotalLoss);
-        assertEquals(sciCore.array(new float[]{0.5f, 0.5f}), dLdLossPerSample);
-        assertEquals(sciCore.matrix(new float[][]{{0.5f, 0.5f}, {0.5f, 0.5f}}), dLdDiffSquared);
-        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {35.0f, 49.0f}}), dLdDiff);
-        assertEquals(sciCore.matrix(new float[][]{{-15.0f, -21.0f}, {-35.0f, -49.0f}}), dLdY);
-        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {35.0f, 49.0f}}), dLdYPred);
-        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {35.0f, 49.0f}}), dLdD);
-        assertEquals(sciCore.matrix(new float[][]{{120.0f, 170.0f}, {168.0f, 238.0f}}), dLdW);
-        assertEquals(sciCore.matrix(new float[][]{{222.0f, 258.0f}, {518.0f, 602.0f}}), dLdX);
-        assertEquals(sciCore.array(new float[]{50.0f, 70.0f}), dLdB);
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdL);
+        Assertions.assertEquals(sciCore.array(new float[]{0.5f}), dLdTotalLoss);
+        Assertions.assertEquals(sciCore.array(new float[]{0.5f, 0.5f}), dLdLossPerSample);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{0.5f, 0.5f}, {0.5f, 0.5f}}), dLdDiffSquared);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {35.0f, 49.0f}}), dLdDiff);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{-15.0f, -21.0f}, {-35.0f, -49.0f}}), dLdY);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {35.0f, 49.0f}}), dLdYPred);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {35.0f, 49.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{120.0f, 170.0f}, {168.0f, 238.0f}}), dLdW);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{222.0f, 258.0f}, {518.0f, 602.0f}}), dLdX);
+        Assertions.assertEquals(sciCore.array(new float[]{50.0f, 70.0f}), dLdB);
     }
 
     @Test
@@ -1003,17 +1008,17 @@ public class GradientComputationTest {
         ITensor dLdX = graph.getGradient(X).orElseThrow();
         ITensor dLdB = graph.getGradient(B).orElseThrow();
 
-        assertEquals(sciCore.array(new float[]{1.0f}), dLdL);
-        assertEquals(sciCore.array(new float[]{0.5f}), dLdTotalLoss);
-        assertEquals(sciCore.array(new float[]{0.5f, 0.5f}), dLdLossPerSample);
-        assertEquals(sciCore.matrix(new float[][]{{0.5f, 0.5f}, {0.5f, 0.5f}}), dLdDiffSquared);
-        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdDiff);
-        assertEquals(sciCore.matrix(new float[][]{{-15.0f, -21.0f}, {-37.0f, -51.0f}}), dLdY);
-        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdYPred);
-        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdD);
-        assertEquals(sciCore.matrix(new float[][]{{126.0f, 178.0f}, {174.0f, 246.0f}}), dLdW);
-        assertEquals(sciCore.matrix(new float[][]{{222.0f, 258.0f}, {542.0f, 630.0f}}), dLdX);
-        assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdB);
+        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdL);
+        Assertions.assertEquals(sciCore.array(new float[]{0.5f}), dLdTotalLoss);
+        Assertions.assertEquals(sciCore.array(new float[]{0.5f, 0.5f}), dLdLossPerSample);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{0.5f, 0.5f}, {0.5f, 0.5f}}), dLdDiffSquared);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdDiff);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{-15.0f, -21.0f}, {-37.0f, -51.0f}}), dLdY);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdYPred);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdD);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{126.0f, 178.0f}, {174.0f, 246.0f}}), dLdW);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{222.0f, 258.0f}, {542.0f, 630.0f}}), dLdX);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdB);
     }
 
     @Test
@@ -1036,8 +1041,8 @@ public class GradientComputationTest {
         ITensor dLdW = graph.getGradient(W).orElseThrow();
         ITensor dLdB = graph.getGradient(B).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{-0.0980f}}), dLdW);
-        assertEquals(sciCore.array(new float[]{-0.9800f}), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{-0.0980f}}), dLdW);
+        Assertions.assertEquals(sciCore.array(new float[]{-0.9800f}), dLdB);
     }
 
     @Test
@@ -1060,8 +1065,8 @@ public class GradientComputationTest {
         ITensor dLdW = graph.getGradient(W).orElseThrow();
         ITensor dLdB = graph.getGradient(B).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{-0.0290f}}), dLdW);
-        assertEquals(sciCore.array(new float[]{-0.0800f}), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{-0.0290f}}), dLdW);
+        Assertions.assertEquals(sciCore.array(new float[]{-0.0800f}), dLdB);
     }
 
     @Test
@@ -1076,7 +1081,7 @@ public class GradientComputationTest {
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
-        assertEquals(sciCore.matrix(new float[][]{{8.1548f, 29.5562f}}), dLdA);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{8.1548f, 29.5562f}}), dLdA);
     }
 
     @Test
@@ -1090,8 +1095,8 @@ public class GradientComputationTest {
 
         graph.backward();
 
-        assertTrue(graph.getGradient(a).isPresent());
-        assertFalse(graph.getGradient(b).isPresent());
+        Assertions.assertTrue(graph.getGradient(a).isPresent());
+        Assertions.assertFalse(graph.getGradient(b).isPresent());
     }
 
     @Test
@@ -1104,7 +1109,7 @@ public class GradientComputationTest {
         graph.requestGradientsFor(a, b); // request for a and b
         graph.backward();
 
-        assertFalse(graph.getGradient(result).isPresent());
+        Assertions.assertFalse(graph.getGradient(result).isPresent());
     }
 
     /**
@@ -1141,11 +1146,11 @@ public class GradientComputationTest {
         ITensor dgraph2dA = graph2.getGradient(a).orElseThrow();
         ITensor dgraph2dB2 = graph2.getGradient(b2).orElseThrow();
 
-        assertEquals(sciCore.matrix(new float[][]{{6.0f, 7.0f, 8.0f, 9.0f, 10.0f}}), dgraph1dA);
-        assertEquals(sciCore.matrix(new float[][]{{1}, {2}, {3}, {4}, {5}}), dgraph1dB1);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{6.0f, 7.0f, 8.0f, 9.0f, 10.0f}}), dgraph1dA);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1}, {2}, {3}, {4}, {5}}), dgraph1dB1);
 
-        assertEquals(sciCore.matrix(new float[][]{{11, 12, 13, 14, 15}}), dgraph2dA);
-        assertEquals(sciCore.matrix(new float[][]{{1}, {2}, {3}, {4}, {5}}), dgraph2dB2);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{11, 12, 13, 14, 15}}), dgraph2dA);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{1}, {2}, {3}, {4}, {5}}), dgraph2dB2);
     }
 
     // TODO: TEST reduceSum(1)
