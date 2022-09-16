@@ -1,3 +1,5 @@
+import org.gradle.internal.os.OperatingSystem
+
 plugins {
     id("java")
 }
@@ -22,8 +24,10 @@ dependencies {
     implementation(project(":matplotlib"))
     implementation(project(":core"))
     implementation(project(":genericcpu-backend"))
-    implementation(project(":cuda-backend"))
-
+    @Suppress("INACCESSIBLE_TYPE")
+    if (OperatingSystem.current() != OperatingSystem.MAC_OS) {
+        implementation(project(":cuda-backend"))
+    }
 }
 
 tasks.getByName<Test>("test") {

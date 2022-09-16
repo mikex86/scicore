@@ -5,6 +5,7 @@ import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.utils.ShapeUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -18,12 +19,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ITensorTest {
+class TensorTest {
 
     private static final float EPSILON = 1E-6f;
 
-    ISciCore sciCore = new SciCore();
+    ISciCore sciCore;
+
+    TensorTest(@NotNull ISciCore.BackendType backendType) {
+        this.sciCore = new SciCore();
+        this.sciCore.setBackend(backendType);
+    }
 
     @Nested
     class CreateArrays {
@@ -925,27 +930,31 @@ class ITensorTest {
         @Test
         void toString_test_scalar() {
             ITensor scalar = sciCore.scalar(42.0f);
-            assertEquals("JvmTensor(dtype=FLOAT32, shape=[], isScalar=true, data=42.0)", scalar.toString());
+            String className = scalar.getClass().getSimpleName();
+            assertEquals(className + "(dtype=FLOAT32, shape=[], isScalar=true, data=42.0)", scalar.toString());
         }
 
         @Test
         void toString_test_1dArray() {
             ITensor array = sciCore.array(new float[]{1.0f, 2.0f, 3.0f, 4.0f, 5.0f});
-            assertEquals("JvmTensor(dtype=FLOAT32, shape=[5], data=[1.0, 2.0, 3.0, 4.0, 5.0])", array.toString());
+            String className = array.getClass().getSimpleName();
+            assertEquals(className + "(dtype=FLOAT32, shape=[5], data=[1.0, 2.0, 3.0, 4.0, 5.0])", array.toString());
         }
 
         @Test
         void toString_test_2dMatrix() {
             ITensor matrix = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}});
-            assertEquals("JvmTensor(dtype=FLOAT32, shape=[2, 3], data=[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])", matrix.toString());
+            String className = matrix.getClass().getSimpleName();
+            assertEquals(className + "(dtype=FLOAT32, shape=[2, 3], data=[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])", matrix.toString());
         }
 
         @Test
         void toString_test_2dMatrix_large() {
             ITensor matrix = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f},
                     {16.0f, 17.0f, 18.0f, 19.0f, 20.0f, 21.0f, 22.0f, 23.0f, 24.0f, 25.0f, 26.0f, 27.0f, 28.0f, 29.0f, 30.0f}});
-            assertEquals("""
-                    JvmTensor(dtype=FLOAT32, shape=[2, 15], data=
+            String className = matrix.getClass().getSimpleName();
+            assertEquals(className + """
+                    (dtype=FLOAT32, shape=[2, 15], data=
                     \t[[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
                     \t [16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0]])""", matrix.toString());
         }

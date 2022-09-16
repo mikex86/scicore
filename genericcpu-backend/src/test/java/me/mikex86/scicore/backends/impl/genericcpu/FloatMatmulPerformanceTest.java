@@ -35,7 +35,7 @@ public class FloatMatmulPerformanceTest {
             long end = System.nanoTime();
             long nFlops = 2L * size * size * size;
             double tflops = (nFlops / ((end - start) / 1e9)) / 1e12;
-            System.out.println("cblas_sgemm took " + (end - start) / 1e6 + " ms, " + tflops + " TFLOPS");
+            System.out.println("matmul took " + (end - start) / 1e6 + " ms, " + tflops + " TFLOPS");
             JEmalloc.je_free(a);
             JEmalloc.je_free(b);
             JEmalloc.je_free(c);
