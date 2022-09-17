@@ -193,9 +193,9 @@ Artificial neural networks are composed of multiple such neurons, generally orga
 Generally, artificial neural networks consist of an input layer, one or more hidden layers, and an output layer.
 The input layer is composed of neurons that take in the input data that the network should work with, and the output layer is composed of neurons hold the prediction and thus the output of the network. The hidden layers are the set of neurons that perform the actual computation of the network.
 
-<div style="text-align:center">
+<p align="center">
     <img src="neural_network.svg" alt="Neural Network" width="300vh"/>
-</div>
+</p>
 
 The number of hidden layers and the number of neurons in each layer are hyperparameters of the network, and are chosen based on the problem at hand.
 Generally, the more complex the problem, the more hidden layers and neurons are needed to solve it. Given that with each additional layer, a non-linearity is added to the activations, the number of hidden layers thus determines the complexity of the function that the network can approximate. Eg. a network with one hidden layer can only approximate linear functions, but would fail to approximate a parabola. For more complex task, there is no obvious answer on what the appropriate number of hidden layers and neurons is, and it is often determined by trial and error.
