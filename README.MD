@@ -1,6 +1,6 @@
 # SciCore
 
-<div style="text-align:center">
+<div style="text-align:center; align: center">
     <img src="logo_with_text.svg" alt="Neural Network" width="300vh"/>
 </div>
 SciCore is a tiny tensor processing library and autograd engine with a focus on simplicity. It is written in Java,
