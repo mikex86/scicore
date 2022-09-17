@@ -169,7 +169,7 @@ public class MNISTTest {
         downloadMnist();
 
         ISciCore sciCore = new SciCore();
-        sciCore.setBackend(ISciCore.BackendType.JVM);
+        sciCore.setBackend(ISciCore.BackendType.GENERIC_CPU);
         sciCore.seed(123);
 
         DatasetIterator trainIt = new DatasetIterator(BATCH_SIZE, new MnistDataSupplier(sciCore, true, false));

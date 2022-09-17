@@ -1,7 +1,7 @@
 #include <algorithm>
-#include "tinyblas.h"
+#include "matmul.h"
 
-#define FORCE_INLINE inline
+#define FORCE_INLINE __attribute__((always_inline)) inline
 
 template<typename A, typename B, typename C>
 FORCE_INLINE void tblas_gemm(TblasOrder order, TblasTranspose transa, TblasTranspose transb,
@@ -248,3 +248,5 @@ void tblas_dfgemm(TblasOrder order, TblasTranspose transa, TblasTranspose transb
                   const double *a, int lda, const float *b, int ldb, float beta, double *c, int ldc) {
     tblas_gemm(order, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 }
+
+#undef FORCE_INLINE

@@ -1,5 +1,7 @@
 # SciCore
 
+![logo](logo_with_text.svg)
+
 SciCore is a tiny tensor processing library and autograd engine with a focus on simplicity. It is written in Java,
 with some native code for hardware specific optimizations.
 At the moment the only fully featured backend is the jvm backend, which is a pure java implementation.

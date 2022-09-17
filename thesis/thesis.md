@@ -356,3 +356,4 @@ $$
 where $y_i$ is the desired output and $\hat{y}_i$ is the output of the network for the $i$-th example and N is the number of examples in the training dataset.
 
 Another common loss function is the cross-entropy loss, which is defined as follows:
+

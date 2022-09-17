@@ -5,6 +5,7 @@ import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.op.IGraph;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,10 +18,9 @@ public class GradientComputationTest {
 
     ISciCore sciCore;
 
-    @BeforeEach
-    void setUp() {
+    GradientComputationTest(@NotNull ISciCore.BackendType backendType) {
         sciCore = new SciCore();
-        sciCore.setBackend(SciCore.BackendType.JVM);
+        sciCore.setBackend(backendType);
     }
 
     @Test
