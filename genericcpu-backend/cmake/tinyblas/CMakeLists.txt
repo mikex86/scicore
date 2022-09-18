@@ -13,5 +13,5 @@ else ()
     endif ()
 endif ()
 
-add_library(tinyblas STATIC src/matmul.cpp src/tensormul.cpp)
+add_library(tinyblas STATIC src/matmul.cpp src/mul.cpp src/plus.cpp src/minus.cpp src/relu.cpp)
 target_include_directories(tinyblas PUBLIC include)
