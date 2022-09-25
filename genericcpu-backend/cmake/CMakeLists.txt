@@ -3,7 +3,7 @@ project(scicore_genericcpu)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_library(scicore_genericcpu SHARED src/matmul.cpp)
+add_library(scicore_genericcpu SHARED src/MatmulJNI.cpp src/MultiplyJNI.cpp)
 
 # Find JNI
 set(JAVA_AWT_LIBRARY NotNeeded)

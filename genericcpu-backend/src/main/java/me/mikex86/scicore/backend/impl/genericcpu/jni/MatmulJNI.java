@@ -5,18 +5,20 @@ import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.MemoryUtil;
 
+import java.util.OptionalInt;
+
 import static java.lang.Math.max;
 
 public class MatmulJNI {
 
     public static final int OP_NONE = 0;
     public static final int OP_TRANSPOSE = 1;
-    public static final int DATA_TYPE_INT8 = 1;
-    public static final int DATA_TYPE_INT16 = 2;
-    public static final int DATA_TYPE_INT32 = 3;
-    public static final int DATA_TYPE_INT64 = 4;
-    public static final int DATA_TYPE_FLOAT32 = 5;
-    public static final int DATA_TYPE_FLOAT64 = 6;
+    public static final int MATMUL_DATA_TYPE_INT8 = 1;
+    public static final int MATMUL_DATA_TYPE_INT16 = 2;
+    public static final int MATMUL_DATA_TYPE_INT32 = 3;
+    public static final int MATMUL_DATA_TYPE_INT64 = 4;
+    public static final int MATMUL_DATA_TYPE_FLOAT32 = 5;
+    public static final int MATMUL_DATA_TYPE_FLOAT64 = 6;
 
     /**
      * A pointer pointing to a byte value of 1.
@@ -95,9 +97,9 @@ public class MatmulJNI {
                               int ldc) {
         Validator.assertTrue(transa == OP_NONE || transa == OP_TRANSPOSE, "transa must be OP_NONE or OP_TRANSPOSE");
         Validator.assertTrue(transb == OP_NONE || transb == OP_TRANSPOSE, "transb must be OP_NONE or OP_TRANSPOSE");
-        Validator.assertTrue(aType == DATA_TYPE_INT8 || aType == DATA_TYPE_INT16 || aType == DATA_TYPE_INT32 || aType == DATA_TYPE_INT64 || aType == DATA_TYPE_FLOAT32 || aType == DATA_TYPE_FLOAT64, "aType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
-        Validator.assertTrue(bType == DATA_TYPE_INT8 || bType == DATA_TYPE_INT16 || bType == DATA_TYPE_INT32 || bType == DATA_TYPE_INT64 || bType == DATA_TYPE_FLOAT32 || bType == DATA_TYPE_FLOAT64, "bType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
-        Validator.assertTrue(cType == DATA_TYPE_INT8 || cType == DATA_TYPE_INT16 || cType == DATA_TYPE_INT32 || cType == DATA_TYPE_INT64 || cType == DATA_TYPE_FLOAT32 || cType == DATA_TYPE_FLOAT64, "cType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
+        Validator.assertTrue(aType == MATMUL_DATA_TYPE_INT8 || aType == MATMUL_DATA_TYPE_INT16 || aType == MATMUL_DATA_TYPE_INT32 || aType == MATMUL_DATA_TYPE_INT64 || aType == MATMUL_DATA_TYPE_FLOAT32 || aType == MATMUL_DATA_TYPE_FLOAT64, "aType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
+        Validator.assertTrue(bType == MATMUL_DATA_TYPE_INT8 || bType == MATMUL_DATA_TYPE_INT16 || bType == MATMUL_DATA_TYPE_INT32 || bType == MATMUL_DATA_TYPE_INT64 || bType == MATMUL_DATA_TYPE_FLOAT32 || bType == MATMUL_DATA_TYPE_FLOAT64, "bType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
+        Validator.assertTrue(cType == MATMUL_DATA_TYPE_INT8 || cType == MATMUL_DATA_TYPE_INT16 || cType == MATMUL_DATA_TYPE_INT32 || cType == MATMUL_DATA_TYPE_INT64 || cType == MATMUL_DATA_TYPE_FLOAT32 || cType == MATMUL_DATA_TYPE_FLOAT64, "cType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
         Validator.assertTrue(m >= 0, "m must be greater than or equal to 0");
         Validator.assertTrue(n >= 0, "n must be greater than or equal to 0");
         Validator.assertTrue(k >= 0, "k must be greater than or equal to 0");
@@ -125,26 +127,25 @@ public class MatmulJNI {
 
     private static long getIdentity(int type) {
         return switch (type) {
-            case DATA_TYPE_INT8 -> INT8_ALPHA_IDENTITY;
-            case DATA_TYPE_INT16 -> INT16_ALPHA_IDENTITY;
-            case DATA_TYPE_INT32 -> INT32_ALPHA_IDENTITY;
-            case DATA_TYPE_INT64 -> INT64_ALPHA_IDENTITY;
-            case DATA_TYPE_FLOAT32 -> FLOAT_ALPHA_IDENTITY;
-            case DATA_TYPE_FLOAT64 -> DOUBLE_ALPHA_IDENTITY;
+            case MATMUL_DATA_TYPE_INT8 -> INT8_ALPHA_IDENTITY;
+            case MATMUL_DATA_TYPE_INT16 -> INT16_ALPHA_IDENTITY;
+            case MATMUL_DATA_TYPE_INT32 -> INT32_ALPHA_IDENTITY;
+            case MATMUL_DATA_TYPE_INT64 -> INT64_ALPHA_IDENTITY;
+            case MATMUL_DATA_TYPE_FLOAT32 -> FLOAT_ALPHA_IDENTITY;
+            case MATMUL_DATA_TYPE_FLOAT64 -> DOUBLE_ALPHA_IDENTITY;
             default -> throw new IllegalArgumentException("Unknown data type: " + type);
         };
     }
 
     public static int getMatmulDataType(@NotNull DataType dataType) {
         return switch (dataType) {
-            case INT8 -> DATA_TYPE_INT8;
-            case INT16 -> DATA_TYPE_INT16;
-            case INT32 -> DATA_TYPE_INT32;
-            case INT64 -> DATA_TYPE_INT64;
-            case FLOAT32 -> DATA_TYPE_FLOAT32;
-            case FLOAT64 -> DATA_TYPE_FLOAT64;
+            case INT8 -> MATMUL_DATA_TYPE_INT8;
+            case INT16 -> MATMUL_DATA_TYPE_INT16;
+            case INT32 -> MATMUL_DATA_TYPE_INT32;
+            case INT64 -> MATMUL_DATA_TYPE_INT64;
+            case FLOAT32 -> MATMUL_DATA_TYPE_FLOAT32;
+            case FLOAT64 -> MATMUL_DATA_TYPE_FLOAT64;
             default -> throw new IllegalStateException("Unsupported data type: " + dataType);
         };
     }
-
 }

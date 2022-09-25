@@ -1,6 +1,5 @@
 #include "plus.h"
-
-#define FORCE_INLINE __attribute__((always_inline)) inline
+#include "forceinline.h"
 
 template<typename A, typename B>
 FORCE_INLINE void tblas_tensor_geminus_inplace(A *a, B b, size_t n) {

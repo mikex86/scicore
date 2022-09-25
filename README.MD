@@ -1,6 +1,6 @@
 
 <p align="center">
-    <img src="logo_with_text.png" alt="SciCore Logo" width="35%" shape-rendering="crispEdges"/>
+    <img src="logo_with_text.png" alt="SciCore Logo" width="35%" />
 </p>
 
 SciCore is a tiny tensor processing library and autograd engine with a focus on simplicity. It is written in Java,

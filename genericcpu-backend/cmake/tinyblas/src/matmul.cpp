@@ -1,7 +1,6 @@
 #include <algorithm>
 #include "matmul.h"
-
-#define FORCE_INLINE __attribute__((always_inline)) inline
+#include "forceinline.h"
 
 template<typename A, typename B, typename C>
 FORCE_INLINE void tblas_gemm(TblasOrder order, TblasTranspose transa, TblasTranspose transb,

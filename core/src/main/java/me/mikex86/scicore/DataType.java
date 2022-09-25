@@ -8,7 +8,7 @@ public enum DataType {
 
     INT8(8, false, true), INT16(16, false, true), INT32(32, false, true), INT64(64, false, true),
     FLOAT32(32, true, true), FLOAT64(64, true, true),
-    BOOLEAN(1, false, true);
+    BOOLEAN(1, false, false);
 
     private final int bits;
     private final boolean isFp;

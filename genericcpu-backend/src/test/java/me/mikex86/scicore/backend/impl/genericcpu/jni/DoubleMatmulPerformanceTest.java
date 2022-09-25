@@ -1,11 +1,10 @@
-package me.mikex86.scicore.backends.impl.genericcpu;
+package me.mikex86.scicore.backend.impl.genericcpu.jni;
 
 import me.mikex86.scicore.nativelib.LibraryLoader;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.jemalloc.JEmalloc;
 
 import java.nio.DoubleBuffer;
-import java.nio.FloatBuffer;
 
 import static me.mikex86.scicore.backend.impl.genericcpu.jni.MatmulJNI.*;
 
@@ -30,9 +29,9 @@ public class DoubleMatmulPerformanceTest {
             }
             long start = System.nanoTime();
             matmul(OP_NONE, OP_NONE, size, size, size,
-                    alphaPtr, MemoryUtil.memAddress(a), DATA_TYPE_FLOAT64, size,
-                    alphaPtr, MemoryUtil.memAddress(b), DATA_TYPE_FLOAT64, size,
-                    MemoryUtil.memAddress(c), DATA_TYPE_FLOAT64, size);
+                    alphaPtr, MemoryUtil.memAddress(a), MATMUL_DATA_TYPE_FLOAT64, size,
+                    alphaPtr, MemoryUtil.memAddress(b), MATMUL_DATA_TYPE_FLOAT64, size,
+                    MemoryUtil.memAddress(c), MATMUL_DATA_TYPE_FLOAT64, size);
             long end = System.nanoTime();
             long nFlops = 2L * size * size * size;
             double tflops = (nFlops / ((end - start) / 1e9)) / 1e12;

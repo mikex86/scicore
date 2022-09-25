@@ -1,6 +1,5 @@
 #include "relu.h"
-
-#define FORCE_INLINE __attribute__((always_inline)) inline
+#include "forceinline.h"
 
 template<typename A>
 FORCE_INLINE void tblas_tensor_gerelu_inplace(A *a, size_t n) {

@@ -79,7 +79,7 @@ tasks.processResources {
 
     // build library with all threads
     exec {
-        commandLine = listOf("cmake", "--build", ".", "--config", "Release")
+        commandLine = listOf("cmake", "--build", ".")
         workingDir = cmakeBuildDir
     }
 
