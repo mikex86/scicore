@@ -10,7 +10,7 @@
 #define MULTIPLY_DATA_TYPE_FLOAT32 5
 #define MULTIPLY_DATA_TYPE_FLOAT64 6
 
-void
+JNIEXPORT void JNICALL
 Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MultiplyJNI_nmultiply(JNIEnv *jniEnv, jclass,
                                                                           jlong aPtr,
                                                                           jint aDataType,

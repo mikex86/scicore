@@ -1,6 +1,7 @@
 package me.mikex86.scicore.backend.impl.genericcpu.jni;
 
 import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.memory.DirectMemoryManager;
@@ -18,6 +19,7 @@ import java.util.Random;
 import java.util.stream.Stream;
 
 import static java.lang.Math.max;
+import static me.mikex86.scicore.ITensor.EPSILON;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -29,6 +31,7 @@ class MultiplyJNITest {
         new GenCPUBackend(); // Load the native library
     }
 
+    @SuppressWarnings("ConstantConditions") // Keep the code explicit, even if it's a bit verbose
     @NotNull
     public Stream<Arguments> getMultiplyData() {
         List<Arguments> argumentsList = new ArrayList<>();
@@ -52,7 +55,7 @@ class MultiplyJNITest {
                 ByteBuffer aBuffer = aMemory.asByteBuffer();
                 ByteBuffer bBuffer = bMemory.asByteBuffer();
                 ByteBuffer expectedResultBuffer = expectedResult.asByteBuffer();
-                Random random = new Random();
+                Random random = new Random(123);
                 for (int i = 0; i < nElementsA; i++) {
                     switch (aType) {
                         case INT8 -> aBuffer.put((byte) random.nextInt());
@@ -73,6 +76,8 @@ class MultiplyJNITest {
                         case FLOAT64 -> bBuffer.putDouble(random.nextDouble());
                     }
                 }
+                aBuffer.flip();
+                bBuffer.flip();
                 // calculate result
                 for (int i = 0; i < nElementsC; i++) {
                     if (outputDataType.isFloatingPoint()) {
@@ -80,11 +85,11 @@ class MultiplyJNITest {
                         {
                             switch (aType) {
                                 case INT8 -> a = aBuffer.get(i % nElementsA);
-                                case INT16 -> a = aBuffer.getShort(i % nElementsA);
-                                case INT32 -> a = aBuffer.getInt(i % nElementsA);
-                                case INT64 -> a = aBuffer.getLong(i % nElementsA);
-                                case FLOAT32 -> a = aBuffer.getFloat(i % nElementsA);
-                                case FLOAT64 -> a = aBuffer.getDouble(i % nElementsA);
+                                case INT16 -> a = aBuffer.asShortBuffer().get(i % nElementsA);
+                                case INT32 -> a = aBuffer.asIntBuffer().get(i % nElementsA);
+                                case INT64 -> a = aBuffer.asLongBuffer().get(i % nElementsA);
+                                case FLOAT32 -> a = aBuffer.asFloatBuffer().get(i % nElementsA);
+                                case FLOAT64 -> a = aBuffer.asDoubleBuffer().get(i % nElementsA);
                                 default -> throw new IllegalStateException("Unexpected value: " + aType);
                             }
                         }
@@ -92,11 +97,11 @@ class MultiplyJNITest {
                         {
                             switch (bType) {
                                 case INT8 -> b = bBuffer.get(i % nElementsB);
-                                case INT16 -> b = bBuffer.getShort(i % nElementsB);
-                                case INT32 -> b = bBuffer.getInt(i % nElementsB);
-                                case INT64 -> b = bBuffer.getLong(i % nElementsB);
-                                case FLOAT32 -> b = bBuffer.getFloat(i % nElementsB);
-                                case FLOAT64 -> b = bBuffer.getDouble(i % nElementsB);
+                                case INT16 -> b = bBuffer.asShortBuffer().get(i % nElementsB);
+                                case INT32 -> b = bBuffer.asIntBuffer().get(i % nElementsB);
+                                case INT64 -> b = bBuffer.asLongBuffer().get(i % nElementsB);
+                                case FLOAT32 -> b = bBuffer.asFloatBuffer().get(i % nElementsB);
+                                case FLOAT64 -> b = bBuffer.asDoubleBuffer().get(i % nElementsB);
                                 default -> throw new IllegalStateException("Unexpected value: " + bType);
                             }
                         }
@@ -106,27 +111,61 @@ class MultiplyJNITest {
                             case FLOAT64 -> expectedResultBuffer.putDouble(result);
                         }
                     } else {
-                        long a;
+                        long a, b;
                         {
                             switch (aType) {
                                 case INT8 -> a = aBuffer.get(i % nElementsA);
-                                case INT16 -> a = aBuffer.getShort(i % nElementsA);
-                                case INT32 -> a = aBuffer.getInt(i % nElementsA);
-                                case INT64 -> a = aBuffer.getLong(i % nElementsA);
+                                case INT16 -> a = aBuffer.asShortBuffer().get(i % nElementsA);
+                                case INT32 -> a = aBuffer.asIntBuffer().get(i % nElementsA);
+                                case INT64 -> a = aBuffer.asLongBuffer().get(i % nElementsA);
                                 default -> throw new IllegalStateException("Unexpected value: " + aType);
                             }
                         }
-                        long b;
                         {
                             switch (bType) {
                                 case INT8 -> b = bBuffer.get(i % nElementsB);
-                                case INT16 -> b = bBuffer.getShort(i % nElementsB);
-                                case INT32 -> b = bBuffer.getInt(i % nElementsB);
-                                case INT64 -> b = bBuffer.getLong(i % nElementsB);
+                                case INT16 -> b = bBuffer.asShortBuffer().get(i % nElementsB);
+                                case INT32 -> b = bBuffer.asIntBuffer().get(i % nElementsB);
+                                case INT64 -> b = bBuffer.asLongBuffer().get(i % nElementsB);
                                 default -> throw new IllegalStateException("Unexpected value: " + bType);
                             }
                         }
-                        long result = a * b;
+                        long result;
+                        if (aType == DataType.INT8 && bType == DataType.INT8) {
+                            result = (byte) ((byte)a * (byte)b);
+                        } else if (aType == DataType.INT8 && bType == DataType.INT16) {
+                            result = (short) ((byte)a * (short)b);
+                        } else if (aType == DataType.INT8 && bType == DataType.INT32) {
+                            result = (int) ((byte)a * (int)b);
+                        } else if (aType == DataType.INT8 && bType == DataType.INT64) {
+                            result = (long) ((byte)a * (long)b);
+                        } else if (aType == DataType.INT16 && bType == DataType.INT8) {
+                            result = (short) ((short)a * (byte)b);
+                        } else if (aType == DataType.INT16 && bType == DataType.INT16) {
+                            result = (short) ((short)a * (short)b);
+                        } else if (aType == DataType.INT16 && bType == DataType.INT32) {
+                            result = (int) ((short)a * (int)b);
+                        } else if (aType == DataType.INT16 && bType == DataType.INT64) {
+                            result = (long) ((short)a * (long)b);
+                        } else if (aType == DataType.INT32 && bType == DataType.INT8) {
+                            result = (int) ((int)a * (byte)b);
+                        } else if (aType == DataType.INT32 && bType == DataType.INT16) {
+                            result = (int) ((int)a * (short)b);
+                        } else if (aType == DataType.INT32 && bType == DataType.INT32) {
+                            result = (int) ((int)a * (int)b);
+                        } else if (aType == DataType.INT32 && bType == DataType.INT64) {
+                            result = (long) ((int)a * (long)b);
+                        } else if (aType == DataType.INT64 && bType == DataType.INT8) {
+                            result = (long) ((long)a * (byte)b);
+                        } else if (aType == DataType.INT64 && bType == DataType.INT16) {
+                            result = (long) ((long)a * (short)b);
+                        } else if (aType == DataType.INT64 && bType == DataType.INT32) {
+                            result = (long) ((long)a * (int)b);
+                        } else if (aType == DataType.INT64 && bType == DataType.INT64) {
+                            result = (long) ((long)a * (long)b);
+                        } else {
+                            throw new IllegalStateException("Unexpected value: " + aType + " " + bType);
+                        }
                         switch (outputDataType) {
                             case INT8 -> expectedResultBuffer.put((byte) result);
                             case INT16 -> expectedResultBuffer.putShort((short) result);
@@ -135,7 +174,7 @@ class MultiplyJNITest {
                         }
                     }
                 }
-
+                expectedResultBuffer.flip();
                 argumentsList.add(
                         Arguments.of(
                                 aMemory,
@@ -212,7 +251,9 @@ class MultiplyJNITest {
                 float[] expectedResultArray = new float[(int) nElementsC];
                 expectedResultBuffer.asFloatBuffer().get(expectedResultArray);
 
-                assertArrayEquals(expectedResultArray, cArray);
+                for (int i = 0; i < nElementsC; i++) {
+                    assertEquals(expectedResultArray[i], cArray[i], Math.ulp(expectedResultArray[i]));
+                }
             }
             case FLOAT64 -> {
                 double[] cArray = new double[(int) nElementsC];
@@ -220,7 +261,9 @@ class MultiplyJNITest {
                 double[] expectedResultArray = new double[(int) nElementsC];
                 expectedResultBuffer.asDoubleBuffer().get(expectedResultArray);
 
-                assertArrayEquals(expectedResultArray, cArray);
+                for (int i = 0; i < nElementsC; i++) {
+                    assertEquals(expectedResultArray[i], cArray[i], Math.ulp(expectedResultArray[i]));
+                }
             }
         }
     }
