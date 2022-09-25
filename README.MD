@@ -1,4 +1,3 @@
-
 <p align="center">
     <img src="logo_with_text.png" alt="SciCore Logo" width="35%" />
 </p>
@@ -51,7 +50,7 @@ ITensor dL_dW1 = graph.getGradient(w1).orElseThrow();
 ```
 
 # Same example in torch
-    
+
 ```python
 import torch
 
@@ -59,14 +58,14 @@ act = torch.tensor([[1], [2]]) # (2, n)
 w1 = torch.tensor([[3, 4], [5, 6], [7, 8], [9, 10]], requires_grad=True)
 w2 = torch.tensor([[11, 12, 13, 14]], requires_grad=True)
 
-// Forward pass
+# Forward pass
 fwd1 = w1.matmul(act)
 fwd2 = w2.matmul(fwd1)
 
-// Automatic backpropagation
+# Automatic backpropagation
 fwd2.backward()
 
-// Get gradients
+# Get gradients
 dL_dW2 = w2.grad
 dL_dW1 = w1.grad
 ```
@@ -75,20 +74,20 @@ dL_dW1 = w1.grad
 
 ```java
 class BobNet implements IModule {
-    
+  
     private final Sigmoid act = new Sigmoid();
-    
+  
     private final Linear f1 = new Linear(sciCore, DataType.FLOAT32, 1, 1, true);
-    
+  
     private final Linear f2 = new Linear(sciCore, DataType.FLOAT32, 1, 1, true);
-    
+  
     public ITensor forward(ITensor input) {
         ITensor out = f1.forward(input);
         out = act.forward(out);
         out = f2.forward(out);
         return out;
     }
-    
+  
     @Override
     public List<ITensor> parameters() {
         return collectParameters(f1, f2);
