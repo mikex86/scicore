@@ -2,9 +2,9 @@ package me.mikex86.scicore.tests;
 
 import me.mikex86.scicore.ISciCore;
 
-public class CpuTensorTest extends TensorTest {
+public class GenCpuTensorTest extends TensorTest {
 
-    CpuTensorTest() {
+    GenCpuTensorTest() {
         super(ISciCore.BackendType.GENERIC_CPU);
     }
 

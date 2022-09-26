@@ -1,7 +1,6 @@
 package me.mikex86.scicore.backend.impl.genericcpu.jni;
 
 import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.memory.DirectMemoryManager;
@@ -11,7 +10,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import javax.xml.crypto.Data;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +17,6 @@ import java.util.Random;
 import java.util.stream.Stream;
 
 import static java.lang.Math.max;
-import static me.mikex86.scicore.ITensor.EPSILON;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -33,7 +30,7 @@ class MultiplyJNITest {
 
     @SuppressWarnings("ConstantConditions") // Keep the code explicit, even if it's a bit verbose
     @NotNull
-    public Stream<Arguments> getMultiplyData() {
+    public Stream<Arguments> getMultiplyData(int nElementsA, int nElementsB) {
         List<Arguments> argumentsList = new ArrayList<>();
 
         for (DataType aType : DataType.values()) {
@@ -44,13 +41,13 @@ class MultiplyJNITest {
                 if (!bType.isNumeric()) {
                     continue;
                 }
-                int nElementsA = 100, nElementsB = 100, nElementsC = max(nElementsA, nElementsB);
-                DataType outputDataType = DataType.getLarger(aType, bType);
+                int nElementsC = max(nElementsA, nElementsB);
+                DataType cDataType = DataType.getLarger(aType, bType);
                 DirectMemoryHandle aMemory = directMemoryManager.calloc(nElementsA, aType);
                 DirectMemoryHandle bMemory = directMemoryManager.calloc(nElementsB, bType);
-                DirectMemoryHandle cMemory = directMemoryManager.calloc(nElementsC, outputDataType);
+                DirectMemoryHandle cMemory = directMemoryManager.calloc(nElementsC, cDataType);
 
-                DirectMemoryHandle expectedResult = directMemoryManager.calloc(nElementsC, outputDataType);
+                DirectMemoryHandle expectedResult = directMemoryManager.calloc(nElementsC, cDataType);
 
                 ByteBuffer aBuffer = aMemory.asByteBuffer();
                 ByteBuffer bBuffer = bMemory.asByteBuffer();
@@ -80,7 +77,7 @@ class MultiplyJNITest {
                 bBuffer.flip();
                 // calculate result
                 for (int i = 0; i < nElementsC; i++) {
-                    if (outputDataType.isFloatingPoint()) {
+                    if (cDataType.isFloatingPoint()) {
                         double a;
                         {
                             switch (aType) {
@@ -106,7 +103,7 @@ class MultiplyJNITest {
                             }
                         }
                         double result = a * b;
-                        switch (outputDataType) {
+                        switch (cDataType) {
                             case FLOAT32 -> expectedResultBuffer.putFloat((float) result);
                             case FLOAT64 -> expectedResultBuffer.putDouble(result);
                         }
@@ -132,41 +129,41 @@ class MultiplyJNITest {
                         }
                         long result;
                         if (aType == DataType.INT8 && bType == DataType.INT8) {
-                            result = (byte) ((byte)a * (byte)b);
+                            result = (byte) ((byte) a * (byte) b);
                         } else if (aType == DataType.INT8 && bType == DataType.INT16) {
-                            result = (short) ((byte)a * (short)b);
+                            result = (short) ((byte) a * (short) b);
                         } else if (aType == DataType.INT8 && bType == DataType.INT32) {
-                            result = (int) ((byte)a * (int)b);
+                            result = (int) ((byte) a * (int) b);
                         } else if (aType == DataType.INT8 && bType == DataType.INT64) {
-                            result = (long) ((byte)a * (long)b);
+                            result = (long) ((byte) a * (long) b);
                         } else if (aType == DataType.INT16 && bType == DataType.INT8) {
-                            result = (short) ((short)a * (byte)b);
+                            result = (short) ((short) a * (byte) b);
                         } else if (aType == DataType.INT16 && bType == DataType.INT16) {
-                            result = (short) ((short)a * (short)b);
+                            result = (short) ((short) a * (short) b);
                         } else if (aType == DataType.INT16 && bType == DataType.INT32) {
-                            result = (int) ((short)a * (int)b);
+                            result = (int) ((short) a * (int) b);
                         } else if (aType == DataType.INT16 && bType == DataType.INT64) {
-                            result = (long) ((short)a * (long)b);
+                            result = (long) ((short) a * (long) b);
                         } else if (aType == DataType.INT32 && bType == DataType.INT8) {
-                            result = (int) ((int)a * (byte)b);
+                            result = (int) ((int) a * (byte) b);
                         } else if (aType == DataType.INT32 && bType == DataType.INT16) {
-                            result = (int) ((int)a * (short)b);
+                            result = (int) ((int) a * (short) b);
                         } else if (aType == DataType.INT32 && bType == DataType.INT32) {
-                            result = (int) ((int)a * (int)b);
+                            result = (int) ((int) a * (int) b);
                         } else if (aType == DataType.INT32 && bType == DataType.INT64) {
-                            result = (long) ((int)a * (long)b);
+                            result = (long) ((int) a * (long) b);
                         } else if (aType == DataType.INT64 && bType == DataType.INT8) {
-                            result = (long) ((long)a * (byte)b);
+                            result = (long) ((long) a * (byte) b);
                         } else if (aType == DataType.INT64 && bType == DataType.INT16) {
-                            result = (long) ((long)a * (short)b);
+                            result = (long) ((long) a * (short) b);
                         } else if (aType == DataType.INT64 && bType == DataType.INT32) {
-                            result = (long) ((long)a * (int)b);
+                            result = (long) ((long) a * (int) b);
                         } else if (aType == DataType.INT64 && bType == DataType.INT64) {
-                            result = (long) ((long)a * (long)b);
+                            result = (long) ((long) a * (long) b);
                         } else {
                             throw new IllegalStateException("Unexpected value: " + aType + " " + bType);
                         }
-                        switch (outputDataType) {
+                        switch (cDataType) {
                             case INT8 -> expectedResultBuffer.put((byte) result);
                             case INT16 -> expectedResultBuffer.putShort((short) result);
                             case INT32 -> expectedResultBuffer.putInt((int) result);
@@ -185,7 +182,8 @@ class MultiplyJNITest {
                                 nElementsB,
                                 cMemory,
                                 nElementsC,
-                                expectedResult
+                                expectedResult,
+                                cDataType
                         )
                 );
             }
@@ -194,24 +192,132 @@ class MultiplyJNITest {
         return argumentsList.stream();
     }
 
+    @NotNull
+    public Stream<Arguments> getMultiplyData_sameLengthNoBroadcast() {
+        return getMultiplyData(100, 100);
+    }
+
+    @NotNull
+    public Stream<Arguments> getMultiplyData_differentLengthAGreaterBWithBroadcast() {
+        return getMultiplyData(100, 50);
+    }
+
+    @NotNull
+    public Stream<Arguments> getMultiplyData_differentLengthBGreaterAWithBroadcast() {
+        return getMultiplyData(50, 100);
+    }
+
+    @NotNull
+    public Stream<Arguments> getMultiplyData_differentLengthBIsScalar() {
+        return getMultiplyData(100, 1);
+    }
+
+    @NotNull
+    public Stream<Arguments> getMultiplyData_differentLengthAIsScalar() {
+        return getMultiplyData(1, 100);
+    }
+
     @ParameterizedTest
-    @MethodSource("getMultiplyData")
-    void multiply(DirectMemoryHandle a,
-                  DataType aDataType,
-                  long nElementsA,
-                  DirectMemoryHandle b,
-                  DataType bDataType,
-                  long nElementsB,
-                  DirectMemoryHandle c,
-                  long nElementsC,
-                  DirectMemoryHandle expectedResult) {
-        int aDataTypeEnum = MultiplyJNI.getDataType(aDataType).orElseThrow();
-        int bDataTypeEnum = MultiplyJNI.getDataType(bDataType).orElseThrow();
-        MultiplyJNI.multiply(a.getNativePtr(), aDataTypeEnum, nElementsA, b.getNativePtr(), bDataTypeEnum, nElementsB, c.getNativePtr(), nElementsC);
+    @MethodSource("getMultiplyData_sameLengthNoBroadcast")
+    void multiply_sameLengthNoBroadcast_success(DirectMemoryHandle a,
+                                                DataType aDataType,
+                                                long nElementsA,
+                                                DirectMemoryHandle b,
+                                                DataType bDataType,
+                                                long nElementsB,
+                                                DirectMemoryHandle c,
+                                                long nElementsC,
+                                                DirectMemoryHandle expectedResult,
+                                                DataType cDataType) {
+        MultiplyJNI.multiply(a.getNativePtr(), aDataType, nElementsA, b.getNativePtr(), bDataType, nElementsB, c.getNativePtr(), nElementsC, cDataType);
         ByteBuffer cBuffer = c.asByteBuffer();
         ByteBuffer expectedResultBuffer = expectedResult.asByteBuffer();
         DataType outputDataType = DataType.getLarger(aDataType, bDataType);
 
+        validateResult(outputDataType, cBuffer, expectedResultBuffer, nElementsC);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMultiplyData_differentLengthAGreaterBWithBroadcast")
+    void multiply_differentLengthAGreaterB_success(DirectMemoryHandle a,
+                                                   DataType aDataType,
+                                                   long nElementsA,
+                                                   DirectMemoryHandle b,
+                                                   DataType bDataType,
+                                                   long nElementsB,
+                                                   DirectMemoryHandle c,
+                                                   long nElementsC,
+                                                   DirectMemoryHandle expectedResult,
+                                                   DataType cDataType) {
+        MultiplyJNI.multiply(a.getNativePtr(), aDataType, nElementsA, b.getNativePtr(), bDataType, nElementsB, c.getNativePtr(), nElementsC, cDataType);
+        ByteBuffer cBuffer = c.asByteBuffer();
+        ByteBuffer expectedResultBuffer = expectedResult.asByteBuffer();
+        DataType outputDataType = DataType.getLarger(aDataType, bDataType);
+
+        validateResult(outputDataType, cBuffer, expectedResultBuffer, nElementsC);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMultiplyData_differentLengthBGreaterAWithBroadcast")
+    void multiply_differentLengthBGreaterA_success(DirectMemoryHandle a,
+                                                   DataType aDataType,
+                                                   long nElementsA,
+                                                   DirectMemoryHandle b,
+                                                   DataType bDataType,
+                                                   long nElementsB,
+                                                   DirectMemoryHandle c,
+                                                   long nElementsC,
+                                                   DirectMemoryHandle expectedResult,
+                                                   DataType cDataType) {
+        MultiplyJNI.multiply(a.getNativePtr(), aDataType, nElementsA, b.getNativePtr(), bDataType, nElementsB, c.getNativePtr(), nElementsC, cDataType);
+        ByteBuffer cBuffer = c.asByteBuffer();
+        ByteBuffer expectedResultBuffer = expectedResult.asByteBuffer();
+        DataType outputDataType = DataType.getLarger(aDataType, bDataType);
+
+        validateResult(outputDataType, cBuffer, expectedResultBuffer, nElementsC);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMultiplyData_differentLengthBIsScalar")
+    void multiply_differentLengthBIsScalar_success(DirectMemoryHandle a,
+                                                   DataType aDataType,
+                                                   long nElementsA,
+                                                   DirectMemoryHandle b,
+                                                   DataType bDataType,
+                                                   long nElementsB,
+                                                   DirectMemoryHandle c,
+                                                   long nElementsC,
+                                                   DirectMemoryHandle expectedResult,
+                                                   DataType cDataType) {
+        MultiplyJNI.multiply(a.getNativePtr(), aDataType, nElementsA, b.getNativePtr(), bDataType, nElementsB, c.getNativePtr(), nElementsC, cDataType);
+        ByteBuffer cBuffer = c.asByteBuffer();
+        ByteBuffer expectedResultBuffer = expectedResult.asByteBuffer();
+        DataType outputDataType = DataType.getLarger(aDataType, bDataType);
+
+        validateResult(outputDataType, cBuffer, expectedResultBuffer, nElementsC);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMultiplyData_differentLengthAIsScalar")
+    void multiply_differentLengthAIsScalar_success(DirectMemoryHandle a,
+                                                   DataType aDataType,
+                                                   long nElementsA,
+                                                   DirectMemoryHandle b,
+                                                   DataType bDataType,
+                                                   long nElementsB,
+                                                   DirectMemoryHandle c,
+                                                   long nElementsC,
+                                                   DirectMemoryHandle expectedResult,
+                                                   DataType cDataType) {
+        MultiplyJNI.multiply(a.getNativePtr(), aDataType, nElementsA, b.getNativePtr(), bDataType, nElementsB, c.getNativePtr(), nElementsC, cDataType);
+        ByteBuffer cBuffer = c.asByteBuffer();
+        ByteBuffer expectedResultBuffer = expectedResult.asByteBuffer();
+        DataType outputDataType = DataType.getLarger(aDataType, bDataType);
+
+        validateResult(outputDataType, cBuffer, expectedResultBuffer, nElementsC);
+    }
+
+    private void validateResult(DataType outputDataType, ByteBuffer cBuffer, ByteBuffer expectedResultBuffer, long nElementsC) {
         switch (outputDataType) {
             case INT8 -> {
                 byte[] cArray = new byte[(int) nElementsC];

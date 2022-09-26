@@ -20,14 +20,12 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
 
     {
         operationTable.put(OperationType.MATMUL, new GenCPUMatMulOp(this));
+        operationTable.put(OperationType.MULTIPLY, new GenCPUMultiplyOp(this));
     }
 
     static {
         LibraryLoader.loadLibrary("scicore_genericcpu");
     }
-
-    @NotNull
-    private final DirectMemoryManager memoryManager = new DirectMemoryManager();
 
     @Override
     public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
@@ -41,6 +39,6 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
 
     @NotNull
     public DirectMemoryManager getMemoryManager() {
-        return memoryManager;
+        return getDirectMemoryManager();
     }
 }

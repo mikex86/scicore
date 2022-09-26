@@ -28,21 +28,24 @@ public class MultiplyJNI {
 
     public static void multiply(
             long aPtr,
-            int aDataType,
+            DataType aDataType,
             long nElementsA,
             long bPtr,
-            int bDataType,
+            DataType bDataType,
             long nElementsB,
             long cPtr,
-            long nElementsC
+            long nElementsC,
+            DataType cDataType
     ) {
-        Validator.assertTrue(aDataType == MULTIPLY_DATA_TYPE_INT8 || aDataType == MULTIPLY_DATA_TYPE_INT16 || aDataType == MULTIPLY_DATA_TYPE_INT32 || aDataType == MULTIPLY_DATA_TYPE_INT64 || aDataType == MULTIPLY_DATA_TYPE_FLOAT32 || aDataType == MULTIPLY_DATA_TYPE_FLOAT64, "Invalid data type");
-        Validator.assertTrue(bDataType == MULTIPLY_DATA_TYPE_INT8 || bDataType == MULTIPLY_DATA_TYPE_INT16 || bDataType == MULTIPLY_DATA_TYPE_INT32 || bDataType == MULTIPLY_DATA_TYPE_INT64 || bDataType == MULTIPLY_DATA_TYPE_FLOAT32 || bDataType == MULTIPLY_DATA_TYPE_FLOAT64, "Invalid data type");
-        nmultiply(aPtr, aDataType, nElementsA, bPtr, bDataType, nElementsB, cPtr, nElementsC);
+        int aDataTypeInt = getDataTypeInt(aDataType).orElseThrow(() -> new IllegalArgumentException("Unsupported data type: " + aDataType));
+        int bDataTypeInt = getDataTypeInt(bDataType).orElseThrow(() -> new IllegalArgumentException("Invalid data type: " + nElementsB));
+        DataType resultType = DataType.getLarger(aDataType, bDataType);
+        Validator.assertTrue(cDataType == resultType, "Multiplying  " + aDataType + " and " + bDataType + " results in " + resultType + " but the result tensor is of type " + cDataType);
+        nmultiply(aPtr, aDataTypeInt, nElementsA, bPtr, bDataTypeInt, nElementsB, cPtr, nElementsC);
     }
 
     @NotNull
-    public static OptionalInt getDataType(@NotNull DataType dataType) {
+    public static OptionalInt getDataTypeInt(@NotNull DataType dataType) {
         return switch (dataType) {
             case INT8 -> OptionalInt.of(MULTIPLY_DATA_TYPE_INT8);
             case INT16 -> OptionalInt.of(MULTIPLY_DATA_TYPE_INT16);

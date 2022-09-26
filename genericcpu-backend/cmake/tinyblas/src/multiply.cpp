@@ -40,7 +40,7 @@ FORCE_INLINE void tblas_tensor_gemul_broadcast_inplace(A *a, B *b, size_t n, siz
 template<typename A, typename B, typename C>
 FORCE_INLINE void tblas_tensor_gemul_broadcast(A *a, B *b, C *c, size_t n, size_t r) {
     for (size_t i = 0; i < n; i++) {
-        size_t j = i * r;
+        size_t j = i % r;
         c[i] = a[i] * b[j];
     }
 }

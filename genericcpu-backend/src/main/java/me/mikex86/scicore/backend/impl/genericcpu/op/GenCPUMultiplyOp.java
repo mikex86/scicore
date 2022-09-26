@@ -5,6 +5,7 @@ import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUTensor;
+import me.mikex86.scicore.backend.impl.genericcpu.jni.MultiplyJNI;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
@@ -29,24 +30,31 @@ public class GenCPUMultiplyOp implements IDifferentiableBinaryOperation {
         long aNumElements = ShapeUtils.getNumElements(shapeA);
         long bNumElements = ShapeUtils.getNumElements(shapeB);
 
-        long[] finalShape = shapeA;
-        boolean broadcast = false;
-        if (!ShapeUtils.equals(shapeA, shapeB)) {
-            finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
-            broadcast = true;
-        }
+        long[] finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
+        DataType aDataType = a.getDataType();
+        DataType bDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
 
-        DataType dataTypeA = a.getDataType();
-        DataType dataTypeB = b.getDataType();
-        DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
+        long nResultElements = ShapeUtils.getNumElements(finalShape);
+        GenCPUTensor resultTensor = new GenCPUTensor(this.backend, resultDataType, finalShape);
 
-        long nElements = ShapeUtils.getNumElements(finalShape);
-        GenCPUTensor tensor = new GenCPUTensor(this.backend, resultDataType, finalShape);
+        DirectMemoryHandle aMemory = backend.getMemoryManager().ensureDirect(a);
+        DirectMemoryHandle bMemory = backend.getMemoryManager().ensureDirect(b);
+        DirectMemoryHandle resultMemory = resultTensor.getDataContainer().getMemoryHandle();
 
-        DirectMemoryHandle memoryHandle = tensor.getDataContainer().getMemoryHandle();
+        MultiplyJNI.multiply(
+                aMemory.getNativePtr(),
+                aDataType,
+                aNumElements,
+                bMemory.getNativePtr(),
+                bDataType,
+                bNumElements,
+                resultMemory.getNativePtr(),
+                nResultElements,
+                resultDataType
+        );
 
-
-        return tensor;
+        return resultTensor;
     }
 
     @Override

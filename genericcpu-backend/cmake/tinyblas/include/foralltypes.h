@@ -127,7 +127,7 @@ void tblas_tensor_ib##op_name(const int32_t *A, int8_t b, int32_t *C, size_t n);
 void tblas_tensor_is##op_name(const int32_t *A, int16_t b, int32_t *C, size_t n);\
 void tblas_tensor_ii##op_name(const int32_t *A, int32_t b, int32_t *C, size_t n);\
 void tblas_tensor_il##op_name(const int32_t *A, int64_t b, int64_t *C, size_t n);\
-void tblas_tensor_if##op_name(const int32_t *A, float b, int32_t *C, size_t n);\
+void tblas_tensor_if##op_name(const int32_t *A, float b, float *C, size_t n);\
 void tblas_tensor_id##op_name(const int32_t *A, double b, double *C, size_t n);\
 void tblas_tensor_lb##op_name(const int64_t *A, int8_t b, int64_t *C, size_t n);\
 void tblas_tensor_ls##op_name(const int64_t *A, int16_t b, int64_t *C, size_t n);\
@@ -450,16 +450,16 @@ void tblas_tensor_sb##op_name(const int16_t *A, int8_t b, int16_t *C, size_t n){
 void tblas_tensor_ss##op_name(const int16_t *A, int16_t b, int16_t *C, size_t n){\
     tblas_tensor_ge##op_name(A, b, C, n);\
 }\
-void tblas_tensor_si##op_name(const int16_t *A, int32_t b, int16_t *C, size_t n){\
+void tblas_tensor_si##op_name(const int16_t *A, int32_t b, int32_t *C, size_t n){\
     tblas_tensor_ge##op_name(A, b, C, n);\
 }\
 void tblas_tensor_sl##op_name(const int16_t *A, int64_t b, int64_t *C, size_t n){\
     tblas_tensor_ge##op_name(A, b, C, n);\
 }\
-void tblas_tensor_sf##op_name(const int16_t *A, float b, int16_t *C, size_t n){\
+void tblas_tensor_sf##op_name(const int16_t *A, float b, float *C, size_t n){\
     tblas_tensor_ge##op_name(A, b, C, n);\
 }\
-void tblas_tensor_sd##op_name(const int16_t *A, double b, int16_t *C, size_t n){\
+void tblas_tensor_sd##op_name(const int16_t *A, double b, double *C, size_t n){\
     tblas_tensor_ge##op_name(A, b, C, n);\
 }\
 void tblas_tensor_ib##op_name(const int32_t *A, int8_t b, int32_t *C, size_t n){\
@@ -477,7 +477,7 @@ void tblas_tensor_il##op_name(const int32_t *A, int64_t b, int64_t *C, size_t n)
 void tblas_tensor_if##op_name(const int32_t *A, float b, float *C, size_t n){\
     tblas_tensor_ge##op_name(A, b, C, n);\
 }\
-void tblas_tensor_id##op_name(const int32_t *A, double b, int32_t *C, size_t n){\
+void tblas_tensor_id##op_name(const int32_t *A, double b, double *C, size_t n){\
     tblas_tensor_ge##op_name(A, b, C, n);\
 }\
 void tblas_tensor_lb##op_name(const int64_t *A, int8_t b, int64_t *C, size_t n){\
