@@ -1,7 +1,7 @@
+#pragma once
+
 #include <jni.h>
 
-#ifndef _Included_me_mikex86_scicore_backend_impl_genericcpu_op_GenCPUMatMulOp
-#define _Included_me_mikex86_scicore_backend_impl_genericcpu_op_GenCPUMatMulOp
 #ifdef __cplusplus
 extern "C" {
 
@@ -21,5 +21,4 @@ JNIEXPORT void JNICALL Java_me_mikex86_scicore_backend_impl_genericcpu_jni_Matmu
 
 #ifdef __cplusplus
 }
-#endif
 #endif
