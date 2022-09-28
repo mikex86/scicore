@@ -38,10 +38,18 @@ FORCE_INLINE void tblas_tensor_geminus_broadcast_inplace(A *a, B *b, size_t n, s
 }
 
 template<typename A, typename B, typename C>
-FORCE_INLINE void tblas_tensor_geminus_broadcast(A *a, B *b, C *c, size_t n, size_t r) {
+FORCE_INLINE void tblas_tensor_geminus_broadcast_right(A *a, B *b, C *c, size_t n, size_t r) {
     for (size_t i = 0; i < n; i++) {
-        size_t j = i * r;
+        size_t j = i % r;
         c[i] = a[i] - b[j];
+    }
+}
+
+template<typename A, typename B, typename C>
+FORCE_INLINE void tblas_tensor_geminus_broadcast_left(A *a, B *b, C *c, size_t n, size_t r) {
+    for (size_t i = 0; i < n; i++) {
+        size_t j = i % r;
+        c[i] = a[j] - b[i];
     }
 }
 

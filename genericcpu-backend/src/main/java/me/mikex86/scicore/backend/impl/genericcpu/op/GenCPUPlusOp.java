@@ -1,23 +1,24 @@
-package me.mikex86.scicore.backend.impl.jvm.op;
+package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
-import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
 import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
+import me.mikex86.scicore.backend.impl.genericcpu.GenCPUTensor;
+import me.mikex86.scicore.backend.impl.genericcpu.jni.PlusJNI;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-public class JvmPlusOp implements IDifferentiableBinaryOperation {
+public class GenCPUPlusOp implements IDifferentiableBinaryOperation {
 
     @NotNull
-    private final JvmBackend backend;
+    private final GenCPUBackend backend;
 
-    public JvmPlusOp(@NotNull JvmBackend backend) {
+    public GenCPUPlusOp(@NotNull GenCPUBackend backend) {
         this.backend = backend;
     }
 
@@ -29,45 +30,31 @@ public class JvmPlusOp implements IDifferentiableBinaryOperation {
         long aNumElements = ShapeUtils.getNumElements(shapeA);
         long bNumElements = ShapeUtils.getNumElements(shapeB);
 
-        long[] finalShape = shapeA;
-        boolean broadcast = false;
-        if (!ShapeUtils.equals(shapeA, shapeB)) {
-            finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
-            broadcast = true;
-        }
+        long[] finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
+        DataType aDataType = a.getDataType();
+        DataType bDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
 
-        DataType dataTypeA = a.getDataType();
-        DataType dataTypeB = b.getDataType();
-        DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
+        long nResultElements = ShapeUtils.getNumElements(finalShape);
+        GenCPUTensor resultTensor = new GenCPUTensor(this.backend, resultDataType, finalShape);
 
-        long nElements = ShapeUtils.getNumElements(finalShape);
+        DirectMemoryHandle aMemory = backend.getMemoryManager().ensureDirect(a);
+        DirectMemoryHandle bMemory = backend.getMemoryManager().ensureDirect(b);
+        DirectMemoryHandle resultMemory = resultTensor.getDataContainer().getMemoryHandle();
 
-        ITensor tensor = new JvmTensor(this.backend, resultDataType, finalShape);
-        if (broadcast) {
-            for (long i = 0; i < nElements; i++) {
-                if (resultDataType.isFloatingPoint()) {
-                    double aV = a.getAsDoubleFlat(i % aNumElements);
-                    double bV = b.getAsDoubleFlat(i % bNumElements);
-                    double resultVal = aV + bV;
-                    tensor.setByDoubleFlat(resultVal, i);
-                } else {
-                    long aV = a.getAsLongFlat(i % aNumElements);
-                    long bV = b.getAsLongFlat(i % bNumElements);
-                    long resultVal = aV + bV;
-                    tensor.setByLongFlat(resultVal, i);
-                }
-            }
-        } else {
-            for (long i = 0; i < nElements; i++) {
-                if (resultDataType.isFloatingPoint()) {
-                    double aV = a.getAsDoubleFlat(i);
-                    double bV = b.getAsDoubleFlat(i);
-                    double resultVal = aV + bV;
-                    tensor.setByDoubleFlat(resultVal, i);
-                }
-            }
-        }
-        return tensor;
+        PlusJNI.plus(
+                aMemory.getNativePtr(),
+                aDataType,
+                aNumElements,
+                bMemory.getNativePtr(),
+                bDataType,
+                bNumElements,
+                resultMemory.getNativePtr(),
+                nResultElements,
+                resultDataType
+        );
+
+        return resultTensor;
     }
 
     @Override
@@ -78,6 +65,7 @@ public class JvmPlusOp implements IDifferentiableBinaryOperation {
         if (!ShapeUtils.equals(shapeA, shapeB)) {
             finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
         }
+
         DataType dataTypeA = a.getDataType();
         DataType dataTypeB = b.getDataType();
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
@@ -85,7 +73,7 @@ public class JvmPlusOp implements IDifferentiableBinaryOperation {
     }
 
     @Override
-    public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
+    public void computeGradients(Graph.@NotNull IOperationContext ctx, @NotNull ITensor upstreamGradient, IGraph.@NotNull ITensorNodeWithGradient a, IGraph.@NotNull ITensorNodeWithGradient b) {
         // Note that the upstream gradient dL/dz where z is the output of the current node
         // is with respect to all parameters a(p11,p12,...p1n) and b(p21,p22,...p2n) where a and b are the
         // inputs to the current node.
