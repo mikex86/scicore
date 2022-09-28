@@ -77,20 +77,39 @@ class BobNet implements IModule {
   
     private final Sigmoid act = new Sigmoid();
   
-    private final Linear f1 = new Linear(sciCore, DataType.FLOAT32, 1, 1, true);
+    private final Linear fc1 = new Linear(sciCore, DataType.FLOAT32, 1, 1, true);
   
-    private final Linear f2 = new Linear(sciCore, DataType.FLOAT32, 1, 1, true);
+    private final Linear fc2 = new Linear(sciCore, DataType.FLOAT32, 1, 1, true);
   
     public ITensor forward(ITensor input) {
-        ITensor out = f1.forward(input);
+        ITensor out = fc1.forward(input);
         out = act.forward(out);
-        out = f2.forward(out);
+        out = fc2.forward(out);
         return out;
     }
   
     @Override
     public List<ITensor> parameters() {
-        return collectParameters(f1, f2);
+        return collectParameters(fc1, fc2);
     }
 }
+```
+
+## Same example in PyTorch
+```python
+import torch
+import torch.nn as nn
+
+class BobNet(nn.Module):
+
+    def __init__(self):
+        super().__init__(self)
+        self.fc1 = nn.Linear(1, 1, True)
+        self.fc2 = nn.Linear(1, 1, True)
+    
+    def forward(x):
+        out = fc1(x)
+        out = torch.sigmoid(x)
+        out = fc2(x)
+        return out
 ```

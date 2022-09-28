@@ -129,6 +129,7 @@ public class CudaTensor extends AbstractTensor {
     public void setContents(@NotNull ITensor tensor) {
         Validator.assertTrue(ShapeUtils.equals(shape, tensor.getShape()), "Cannot set contents of tensor with shape " + ShapeUtils.toString(shape) + " to tensor with shape " + ShapeUtils.toString(tensor.getShape()));
         Validator.assertTrue(dataType == tensor.getDataType(), "Cannot set contents of tensor with data type " + dataType + " to tensor with data type " + tensor.getDataType());
+        // TODO: Handle Lazy Tensors and CUDA Tensor Views more efficiently
         if (tensor instanceof CudaTensor cudaTensor) {
             backend.getCudaMemoryManager().copy(dataContainer.getDeviceMemoryHandle(), cudaTensor.dataContainer.getDeviceMemoryHandle());
         } else {

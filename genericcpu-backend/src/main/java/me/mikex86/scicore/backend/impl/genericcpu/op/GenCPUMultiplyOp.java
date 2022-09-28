@@ -74,6 +74,41 @@ public class GenCPUMultiplyOp implements IDifferentiableBinaryOperation {
 
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, IGraph.@NotNull ITensorNodeWithGradient b) {
+        if (a.requiresGradients()) {
+            ITensor aValue = a.getValue();
+
+            long[] shapeA = aValue.getShape();
+
+            ITensor gradients = upstreamGradient.multiply(b.getValue());
+
+            long[] gradientShape = gradients.getShape();
+
+            if (ShapeUtils.compareBroadcastRank(gradientShape, shapeA) > 0) {
+                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeA, gradientShape);
+                for (int i = 0; i < nCommonDimensions; i++) {
+                    gradients = gradients.reduceSum(0);
+                }
+            }
+            a.accumulateGradient(gradients);
+        }
+        if (b.requiresGradients()) {
+            ITensor bValue = b.getValue();
+
+            long[] shapeB = bValue.getShape();
+
+            ITensor gradients = upstreamGradient.multiply(a.getValue());
+
+            long[] gradientShape = gradients.getShape();
+
+            if (ShapeUtils.compareBroadcastRank(gradientShape, shapeB) > 0) {
+                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeB, gradientShape);
+                for (int i = 0; i < nCommonDimensions; i++) {
+                    gradients = gradients.reduceSum(0);
+                }
+            }
+
+            b.accumulateGradient(gradients);
+        }
     }
 
     @NotNull

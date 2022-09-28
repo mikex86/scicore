@@ -77,9 +77,9 @@ tasks.processResources {
         workingDir = cmakeBuildDir
     }
 
-    // build library with all threads
+    // build library in release mode
     exec {
-        commandLine = listOf("cmake", "--build", ".")
+        commandLine = listOf("cmake", "--build", ".", "--config", "Release")
         workingDir = cmakeBuildDir
     }
 
