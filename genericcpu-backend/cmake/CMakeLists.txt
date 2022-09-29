@@ -3,7 +3,7 @@ project(scicore_genericcpu)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_library(scicore_genericcpu SHARED src/MatmulJNI.cpp src/MultiplyJNI.cpp src/PlusJNI.cpp)
+add_library(scicore_genericcpu SHARED src/MatmulJNI.cpp src/MultiplyJNI.cpp src/PlusJNI.cpp src/MinusJNI.cpp)
 
 # Find JNI
 set(JAVA_AWT_LIBRARY NotNeeded)
@@ -16,7 +16,7 @@ target_include_directories(scicore_genericcpu PRIVATE ${JNI_INCLUDE_DIRS})
 if (APPLE)
     # Link vecLib on macOS
     target_link_libraries(scicore_genericcpu PRIVATE "-framework Accelerate")
-endif()
+endif ()
 
 # Tinyblas
 add_subdirectory(tinyblas)

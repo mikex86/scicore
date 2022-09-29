@@ -24,6 +24,13 @@ FORCE_INLINE void tblas_tensor_gepow(const A *a, B b, C *c, size_t n) {
 }
 
 template<typename A, typename B, typename C>
+FORCE_INLINE void tblas_tensor_gepow(A a, const B *b, C *c, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        c[i] = pow(a, b[i]);
+    }
+}
+
+template<typename A, typename B, typename C>
 FORCE_INLINE void tblas_tensor_gepow(const A *a, const B *b, C *c, size_t n) {
     for (size_t i = 0; i < n; i++) {
         c[i] = pow(a[i], b[i]);

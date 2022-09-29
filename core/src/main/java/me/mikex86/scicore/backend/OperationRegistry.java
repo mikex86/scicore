@@ -20,6 +20,8 @@ public class OperationRegistry {
     @NotNull
     private static final Logger LOGGER = LogManager.getLogger("OperationRegistry");
 
+    private boolean fallthrough = true;
+
     public void pushLayer(@NotNull ISciCoreBackend backend) {
         backendStack.addFirst(backend);
     }
@@ -39,9 +41,14 @@ public class OperationRegistry {
                 operationTable.put(operationType, operation);
                 LOGGER.debug("Operation {} found in backend {}", operationType, backend.getClass().getSimpleName());
                 return operation;
+            } else if (!fallthrough) {
+                break; // stop searching
             }
         }
         throw new IllegalArgumentException("Operation not found implemented in any layer. Layers: [ " + backendStack.stream().map(b -> b.getClass().getSimpleName()).collect(Collectors.joining(" ")) + "]");
     }
 
+    public void disableFallthrough() {
+        this.fallthrough = false;
+    }
 }

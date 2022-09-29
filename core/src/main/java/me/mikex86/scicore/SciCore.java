@@ -572,4 +572,9 @@ public class SciCore implements ISciCore {
         }
         return tensor;
     }
+
+    @Override
+    public void disableBackendFallback() {
+        operationRegistry.disableFallthrough();
+    }
 }

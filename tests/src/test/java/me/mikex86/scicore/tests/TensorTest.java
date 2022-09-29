@@ -28,6 +28,7 @@ class TensorTest {
     TensorTest(@NotNull ISciCore.BackendType backendType) {
         this.sciCore = new SciCore();
         this.sciCore.setBackend(backendType);
+        this.sciCore.disableBackendFallback();
     }
 
     @Nested

@@ -15,6 +15,13 @@ FORCE_INLINE void tblas_tensor_gemul(const A *a, B b, C *c, size_t n) {
     }
 }
 
+template<typename A, typename B, typename C>
+FORCE_INLINE void tblas_tensor_gemul(A a, const B *b, C *c, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        c[i] = a * b[i];
+    }
+}
+
 template<typename A, typename B>
 FORCE_INLINE void tblas_tensor_gemul_inplace(A *a, const B *b, size_t n) {
     for (size_t i = 0; i < n; i++) {

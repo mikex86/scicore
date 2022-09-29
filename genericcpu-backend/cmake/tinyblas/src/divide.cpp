@@ -2,7 +2,7 @@
 #include "forceinline.h"
 
 template<typename A, typename B>
-FORCE_INLINE void tblas_tensor_gedivide_inplace(A *a, const B b, size_t n) {
+FORCE_INLINE void tblas_tensor_gedivide_inplace(A *a, B b, size_t n) {
     for (size_t i = 0; i < n; i++) {
         a[i] /= b;
     }
@@ -16,9 +16,16 @@ FORCE_INLINE void tblas_tensor_gedivide_inplace(A *a, const B *b, size_t n) {
 }
 
 template<typename A, typename B, typename C>
-FORCE_INLINE void tblas_tensor_gedivide(const A *a, const B b, C *c, size_t n) {
+FORCE_INLINE void tblas_tensor_gedivide(const A *a, B b, C *c, size_t n) {
     for (size_t i = 0; i < n; i++) {
         c[i] = a[i] / b;
+    }
+}
+
+template<typename A, typename B, typename C>
+FORCE_INLINE void tblas_tensor_gedivide(A a, const B *b, C *c, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        c[i] = a / b[i];
     }
 }
 

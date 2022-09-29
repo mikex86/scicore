@@ -112,6 +112,12 @@ public interface ISciCore {
      */
     @NotNull ITensor arange(double start, double stop, double step, long @NotNull [] shape, @NotNull DataType dataType);
 
+    /**
+     * Disables fallback to lower priority backends, when an implementation for a given operation is not available
+     * in the current backend.
+     */
+    void disableBackendFallback();
+
     enum BackendType {
 
         JVM {

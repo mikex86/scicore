@@ -23,6 +23,13 @@ FORCE_INLINE void tblas_tensor_geplus(const A *a, B b, C *c, size_t n) {
 }
 
 template<typename A, typename B, typename C>
+FORCE_INLINE void tblas_tensor_geplus(A a, const B *b, C *c, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        c[i] = a + b[i];
+    }
+}
+
+template<typename A, typename B, typename C>
 FORCE_INLINE void tblas_tensor_geplus(const A *a, const B *b, C *c, size_t n) {
     for (size_t i = 0; i < n; i++) {
         c[i] = a[i] + b[i];
