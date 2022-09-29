@@ -11,12 +11,12 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
-public class JvmDividedOp implements IDifferentiableBinaryOperation {
+public class JvmDivideOp implements IDifferentiableBinaryOperation {
 
     @NotNull
     private final ISciCoreBackend backend;
 
-    public JvmDividedOp(@NotNull ISciCoreBackend backend) {
+    public JvmDivideOp(@NotNull ISciCoreBackend backend) {
         this.backend = backend;
     }
 
@@ -96,7 +96,7 @@ public class JvmDividedOp implements IDifferentiableBinaryOperation {
             // dL/dA = dL/dR * 1/B
             ITensor dRdA = backend.createTensor(DataType.getLarger(A.getDataType(), B.getDataType()), B.getShape());
             dRdA.fill(1);
-            dRdA = dRdA.divided(B); // TODO: optimize this with an leftDivide operation so that you can do B.leftDiv(1) to express 1/B
+            dRdA = dRdA.divide(B); // TODO: optimize this with an leftDivide operation so that you can do B.leftDiv(1) to express 1/B
             a.accumulateGradient(upstreamGradients.multiply(dRdA));
         }
         if (b.requiresGradients()) {
@@ -107,7 +107,7 @@ public class JvmDividedOp implements IDifferentiableBinaryOperation {
             // dL/dB = dL/dR * -A * (1/B^2)
             ITensor dRdB = backend.createTensor(B.getDataType(), B.getShape());
             dRdB.fill(1);
-            dRdB = dRdB.divided(B.pow(2));
+            dRdB = dRdB.divide(B.pow(2));
             dRdB = A.multiply(-1).multiply(dRdB);
             b.accumulateGradient(upstreamGradients.multiply(dRdB));
         }

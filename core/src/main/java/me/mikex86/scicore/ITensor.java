@@ -2,7 +2,6 @@ package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -497,19 +496,19 @@ public interface ITensor extends IValue {
 
     @NotNull ITensor matmul(@NotNull ITensor other, boolean transposeSelf, boolean transposeOther);
 
-    @NotNull ITensor divided(@NotNull ITensor other);
+    @NotNull ITensor divide(@NotNull ITensor other);
 
-    @NotNull ITensor divided(byte value);
+    @NotNull ITensor divide(byte value);
 
-    @NotNull ITensor divided(short value);
+    @NotNull ITensor divide(short value);
 
-    @NotNull ITensor divided(int value);
+    @NotNull ITensor divide(int value);
 
-    @NotNull ITensor divided(long value);
+    @NotNull ITensor divide(long value);
 
-    @NotNull ITensor divided(float value);
+    @NotNull ITensor divide(float value);
 
-    @NotNull ITensor divided(double value);
+    @NotNull ITensor divide(double value);
 
     @NotNull ITensor plus(byte value);
 

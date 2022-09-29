@@ -89,7 +89,7 @@ public class ApproxNonlinearFuncTrainingTest {
             ITensor X = next.getFirst();
             ITensor Y = next.getSecond();
             ITensor YPred = bobNet.forward(X);
-            ITensor loss = (YPred.minus(Y)).pow(2).reduceSum(0).divided(batchSize);
+            ITensor loss = (YPred.minus(Y)).pow(2).reduceSum(0).divide(batchSize);
 
             IGraph graph = sciCore.getGraphUpTo(loss);
             optimizer.step(graph);

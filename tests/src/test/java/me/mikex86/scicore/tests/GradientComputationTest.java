@@ -7,11 +7,8 @@ import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.op.IGraph;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 public class GradientComputationTest {
@@ -305,7 +302,7 @@ public class GradientComputationTest {
         ITensor a = sciCore.matrix(new float[][]{{2, 3}});
         ITensor b = sciCore.matrix(new float[][]{{10, 11}});
         ITensor c = sciCore.matrix(new float[][]{{4}, {5}});
-        ITensor d = a.divided(b); // element-wise division
+        ITensor d = a.divide(b); // element-wise division
         ITensor e = d.matmul(c); // matrix multiplication to get a scalar
 
         IGraph graph = sciCore.getGraphUpTo(e);
@@ -887,7 +884,7 @@ public class GradientComputationTest {
         ITensor diff = Y.minus(Y_pred);
         ITensor squared = sciCore.pow(diff, 2);
         ITensor lossPerSample = squared.reduceSum(0);
-        ITensor loss = lossPerSample.reduceSum(0).divided(X.getShape()[0]);
+        ITensor loss = lossPerSample.reduceSum(0).divide(X.getShape()[0]);
 
         IGraph graph = sciCore.getGraphUpTo(loss);
         graph.requestGradientsFor(W, B);
@@ -916,7 +913,7 @@ public class GradientComputationTest {
         ITensor diff = Y.minus(Y_pred);
         ITensor squared = sciCore.pow(diff, 2);
         ITensor lossPerSample = squared.reduceSum(0);
-        ITensor loss = lossPerSample.reduceSum(0).divided(X.getShape()[0]);
+        ITensor loss = lossPerSample.reduceSum(0).divide(X.getShape()[0]);
 
         IGraph graph = sciCore.getGraphUpTo(loss);
         graph.requestGradientsFor(W, B);
@@ -946,7 +943,7 @@ public class GradientComputationTest {
         ITensor diffSquared = diff.pow(2);
         ITensor lossPerSample = diffSquared.reduceSum(0);
         ITensor totalLoss = lossPerSample.reduceSum(0);
-        ITensor L = totalLoss.divided(X.getShape()[0]);
+        ITensor L = totalLoss.divide(X.getShape()[0]);
 
         IGraph graph = sciCore.getGraphUpTo(L);
         graph.requestGradientsFor(L, totalLoss, lossPerSample, diffSquared, diff, Y, Y_pred, D, W, X, B);
@@ -990,7 +987,7 @@ public class GradientComputationTest {
         ITensor diffSquared = diff.pow(2);
         ITensor lossPerSample = diffSquared.reduceSum(0);
         ITensor totalLoss = lossPerSample.reduceSum(0);
-        ITensor L = totalLoss.divided(X.getShape()[0]);
+        ITensor L = totalLoss.divide(X.getShape()[0]);
 
         IGraph graph = sciCore.getGraphUpTo(L);
         graph.requestGradientsFor(L, totalLoss, lossPerSample, diffSquared, diff, Y, Y_pred, D, W, X, B);
@@ -1032,7 +1029,7 @@ public class GradientComputationTest {
         ITensor diff = Y.minus(D);
         ITensor squared = sciCore.pow(diff, 2);
         ITensor lossPerSample = squared.reduceSum(0);
-        ITensor loss = lossPerSample.reduceSum(0).divided(X.getShape()[0]);
+        ITensor loss = lossPerSample.reduceSum(0).divide(X.getShape()[0]);
 
         IGraph graph = sciCore.getGraphUpTo(loss);
         graph.requestGradientsFor(W, B);
@@ -1056,7 +1053,7 @@ public class GradientComputationTest {
         ITensor diff = Y.minus(D);
         ITensor squared = sciCore.pow(diff, 2);
         ITensor lossPerSample = squared.reduceSum(0);
-        ITensor loss = lossPerSample.reduceSum(0).divided(X.getShape()[0]);
+        ITensor loss = lossPerSample.reduceSum(0).divide(X.getShape()[0]);
 
         IGraph graph = sciCore.getGraphUpTo(loss);
         graph.requestGradientsFor(W, B);

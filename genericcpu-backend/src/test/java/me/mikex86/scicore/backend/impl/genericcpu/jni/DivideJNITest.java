@@ -5,6 +5,7 @@ import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.memory.DirectMemoryManager;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -12,13 +13,15 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.Math.max;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DivideJNITest {
@@ -66,12 +69,48 @@ class DivideJNITest {
                 }
                 for (int i = 0; i < nElementsB; i++) {
                     switch (bType) {
-                        case INT8 -> bBuffer.put((byte) random.nextInt());
-                        case INT16 -> bBuffer.putShort((short) random.nextInt());
-                        case INT32 -> bBuffer.putInt(random.nextInt());
-                        case INT64 -> bBuffer.putLong(random.nextLong());
-                        case FLOAT32 -> bBuffer.putFloat(random.nextFloat());
-                        case FLOAT64 -> bBuffer.putDouble(random.nextDouble());
+                        case INT8 -> {
+                            byte b;
+                            do {
+                                b = (byte) random.nextInt();
+                            } while (b == 0);
+                            bBuffer.put(b);
+                        }
+                        case INT16 -> {
+                            short b;
+                            do {
+                                b = (short) random.nextInt();
+                            } while (b == 0);
+                            bBuffer.putShort(b);
+                        }
+                        case INT32 -> {
+                            int b;
+                            do {
+                                b = random.nextInt();
+                            } while (b == 0);
+                            bBuffer.putInt(b);
+                        }
+                        case INT64 -> {
+                            long b;
+                            do {
+                                b = random.nextLong();
+                            } while (b == 0);
+                            bBuffer.putLong(b);
+                        }
+                        case FLOAT32 -> {
+                            float b;
+                            do {
+                                b = random.nextFloat();
+                            } while (b == 0);
+                            bBuffer.putFloat(b);
+                        }
+                        case FLOAT64 -> {
+                            double b;
+                            do {
+                                b = random.nextDouble();
+                            } while (b == 0);
+                            bBuffer.putDouble(b);
+                        }
                     }
                 }
                 aBuffer.flip();
@@ -144,7 +183,7 @@ class DivideJNITest {
                         } else if (aType == DataType.INT16 && bType == DataType.INT32) {
                             result = (int) ((short) a / (int) b);
                         } else if (aType == DataType.INT16 && bType == DataType.INT64) {
-                            result = (long) ((short) a + (long) b);
+                            result = (long) ((short) a / (long) b);
                         } else if (aType == DataType.INT32 && bType == DataType.INT8) {
                             result = (int) ((int) a / (byte) b);
                         } else if (aType == DataType.INT32 && bType == DataType.INT16) {
@@ -318,6 +357,144 @@ class DivideJNITest {
         validateResult(outputDataType, cBuffer, expectedResultBuffer, nElementsC);
     }
 
+    @NotNull
+    public Stream<Arguments> getDivide_intByIntZero_exception() {
+        List<DataType> intDataTypes = Arrays.stream(DataType.values()).filter(d -> !d.isFloatingPoint() && d.isNumeric()).toList();
+        List<Arguments> arguments = new ArrayList<>();
+        for (DataType aDataType : intDataTypes) {
+            for (DataType bDataType : intDataTypes) {
+                DirectMemoryHandle a = directMemoryManager.calloc(100, aDataType);
+                DirectMemoryHandle b = directMemoryManager.calloc(100, bDataType);
+                ByteBuffer aBuffer = a.asByteBuffer();
+                ByteBuffer bBuffer = b.asByteBuffer();
+                switch (aDataType) {
+                    case INT8 -> {
+                        byte[] aBytes = new byte[100];
+                        Arrays.fill(aBytes, (byte) 1);
+                        aBuffer.put(aBytes);
+                    }
+                    case INT16 -> {
+                        short[] aShorts = new short[100];
+                        Arrays.fill(aShorts, (short) 1);
+                        aBuffer.asShortBuffer().put(aShorts);
+                    }
+                    case INT32 -> {
+                        int[] aInts = new int[100];
+                        Arrays.fill(aInts, 1);
+                        aBuffer.asIntBuffer().put(aInts);
+                    }
+                    case INT64 -> {
+                        long[] aLongs = new long[100];
+                        Arrays.fill(aLongs, 1L);
+                        aBuffer.asLongBuffer().put(aLongs);
+                    }
+                }
+
+                switch (bDataType) {
+                    case INT8 -> {
+                        byte[] bBytes = new byte[100];
+                        Arrays.fill(bBytes, (byte) 0);
+                        bBuffer.put(bBytes);
+                    }
+                    case INT16 -> {
+                        short[] bShorts = new short[100];
+                        Arrays.fill(bShorts, (short) 0);
+                        bBuffer.asShortBuffer().put(bShorts);
+                    }
+                    case INT32 -> {
+                        int[] bInts = new int[100];
+                        Arrays.fill(bInts, 0);
+                        bBuffer.asIntBuffer().put(bInts);
+                    }
+                    case INT64 -> {
+                        long[] bLongs = new long[100];
+                        Arrays.fill(bLongs, 0L);
+                        bBuffer.asLongBuffer().put(bLongs);
+                    }
+                }
+                arguments.add(Arguments.of(a, aDataType, b, bDataType));
+            }
+        }
+        return arguments.stream();
+    }
+
+    @ParameterizedTest
+    @MethodSource("getDivide_intByIntZero_exception")
+    void divide_intByIntZero_exception(DirectMemoryHandle a, DataType aDataType, DirectMemoryHandle b, DataType bDataType) {
+        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
+        DirectMemoryHandle c = directMemoryManager.calloc(100, resultDataType);
+        assertThrows(ArithmeticException.class, () -> DivideJNI.divide(a.getNativePtr(), aDataType, 100, b.getNativePtr(), bDataType, 100, c.getNativePtr(), 100, resultDataType));
+    }
+
+    @NotNull
+    public Stream<Arguments> getDivide_floatByFloatZero_exception() {
+        List<DataType> floatDataTypes = Arrays.stream(DataType.values()).filter(DataType::isFloatingPoint).toList();
+        List<Arguments> arguments = new ArrayList<>();
+        for (DataType aDataType : floatDataTypes) {
+            for (DataType bDataType : floatDataTypes) {
+
+                DirectMemoryHandle a = directMemoryManager.calloc(100, aDataType);
+                DirectMemoryHandle b = directMemoryManager.calloc(100, bDataType);
+
+                ByteBuffer aBuffer = a.asByteBuffer();
+                ByteBuffer bBuffer = b.asByteBuffer();
+
+                switch (aDataType) {
+                    case FLOAT32 -> {
+                        float[] aFloats = new float[100];
+                        Arrays.fill(aFloats, 1.0f);
+                        aBuffer.asFloatBuffer().put(aFloats);
+                    }
+                    case FLOAT64 -> {
+                        double[] aDoubles = new double[100];
+                        Arrays.fill(aDoubles, 1.0);
+                        aBuffer.asDoubleBuffer().put(aDoubles);
+                    }
+                }
+
+                switch (bDataType) {
+                    case FLOAT32 -> {
+                        float[] bFloats = new float[100];
+                        Arrays.fill(bFloats, 0.0f);
+                        bBuffer.asFloatBuffer().put(bFloats);
+                    }
+                    case FLOAT64 -> {
+                        double[] bDoubles = new double[100];
+                        Arrays.fill(bDoubles, 0.0);
+                        bBuffer.asDoubleBuffer().put(bDoubles);
+                    }
+                }
+                arguments.add(Arguments.of(a, aDataType, b, bDataType));
+            }
+        }
+        return arguments.stream();
+    }
+
+    @ParameterizedTest
+    @MethodSource("getDivide_floatByFloatZero_exception")
+    void divide_floatByFloatZero_inf(DirectMemoryHandle a, DataType aDataType, DirectMemoryHandle b, DataType bDataType) {
+        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
+        DirectMemoryHandle c = directMemoryManager.calloc(100, resultDataType);
+        DivideJNI.divide(a.getNativePtr(), aDataType, 100, b.getNativePtr(), bDataType, 100, c.getNativePtr(), 100, resultDataType);
+        ByteBuffer cBuffer = c.asByteBuffer();
+        switch (resultDataType) {
+            case FLOAT32 -> {
+                float[] cFloats = new float[100];
+                cBuffer.asFloatBuffer().get(cFloats);
+                for (float cFloat : cFloats) {
+                    assertTrue(Float.isNaN(cFloat) || cFloat == Float.POSITIVE_INFINITY || cFloat == Float.NEGATIVE_INFINITY);
+                }
+            }
+            case FLOAT64 -> {
+                double[] cDoubles = new double[100];
+                cBuffer.asDoubleBuffer().get(cDoubles);
+                for (double cDouble : cDoubles) {
+                    assertTrue(Double.isNaN(cDouble) || cDouble == Float.POSITIVE_INFINITY || cDouble == Float.NEGATIVE_INFINITY);
+                }
+            }
+        }
+    }
+
     private void validateResult(DataType outputDataType, ByteBuffer cBuffer, ByteBuffer expectedResultBuffer, long nElementsC) {
         switch (outputDataType) {
             case INT8 -> {
@@ -359,7 +536,7 @@ class DivideJNITest {
                 expectedResultBuffer.asFloatBuffer().get(expectedResultArray);
 
                 for (int i = 0; i < nElementsC; i++) {
-                    assertEquals(expectedResultArray[i], cArray[i], Math.ulp(expectedResultArray[i]));
+                    assertEquals(expectedResultArray[i], cArray[i], 2 * Math.ulp(expectedResultArray[i]));
                 }
             }
             case FLOAT64 -> {

@@ -42,7 +42,7 @@ public class OperationRegistry {
                 LOGGER.debug("Operation {} found in backend {}", operationType, backend.getClass().getSimpleName());
                 return operation;
             } else if (!fallthrough) {
-                break; // stop searching
+                throw new IllegalArgumentException("Operation " + operationType + " not found in backend " + backend.getClass().getSimpleName());
             }
         }
         throw new IllegalArgumentException("Operation not found implemented in any layer. Layers: [ " + backendStack.stream().map(b -> b.getClass().getSimpleName()).collect(Collectors.joining(" ")) + "]");

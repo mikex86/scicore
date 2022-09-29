@@ -1198,13 +1198,13 @@ class TensorTest {
 
 
     @Nested
-    class Divided {
+    class Divide {
 
         @Test
-        void divided_test_2x2x2by2x2() {
+        void divide_test_2x2x2by2x2() {
             ITensor a = sciCore.ndarray(new float[][][]{{{1.0f, 2.0f}, {3.0f, 4.0f}}, {{5.0f, 6.0f}, {7.0f, 8.0f}}});
             ITensor b = sciCore.matrix(new float[][]{{5.0f, 6.0f}, {7.0f, 8.0f}});
-            ITensor result = a.divided(b);
+            ITensor result = a.divide(b);
             assertEquals(1.0f / 5.0f, result.getFloat(0, 0, 0), EPSILON);
             assertEquals(2.0f / 6.0f, result.getFloat(0, 0, 1), EPSILON);
             assertEquals(3.0f / 7.0f, result.getFloat(0, 1, 0), EPSILON);
@@ -1216,10 +1216,10 @@ class TensorTest {
         }
 
         @Test
-        void divided_test_2x2by2x1() {
+        void divide_test_2x2by2x1() {
             ITensor a = sciCore.matrix(new double[][]{{4.4701180e+01, 1.2818411e+20}, {1.4879732e+01, 6.6858945e+00}});
             ITensor b = sciCore.matrix(new double[][]{{1.2818411e+20}, {2.1565626e+01}});
-            ITensor result = a.divided(b);
+            ITensor result = a.divide(b);
             assertEquals(3.4872637e-19, result.getDouble(0, 0), EPSILON);
             assertEquals(1.0000000e+00, result.getDouble(0, 1), EPSILON);
             assertEquals(6.8997449e-01, result.getDouble(1, 0), EPSILON);
@@ -1513,6 +1513,14 @@ class TensorTest {
             ITensor b = sciCore.matrix(new float[][]{{2.0f}});
             ITensor result = a.plus(b);
             assertEquals(3.0f, result.getFloat(0, 0), EPSILON);
+        }
+
+        @Test
+        void plus_test_2x2by2x1() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+            ITensor b = sciCore.matrix(new float[][]{{5}, {6}});
+            ITensor result = a.plus(b);
+            assertEquals(sciCore.matrix(new float[][]{{6, 7}, {9, 10}}), result); // TODO: FIX BROADCASTING!
         }
 
         @Test
