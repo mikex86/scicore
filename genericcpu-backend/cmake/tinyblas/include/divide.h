@@ -2,4 +2,4 @@
 
 #include "foralltypes.h"
 
-BINARY_OP_FOR_ALL_TYPES_ALL_VARIANTS_PROTO(plus)
+BINARY_OP_FOR_ALL_TYPES_ALL_VARIANTS_PROTO(divide)
