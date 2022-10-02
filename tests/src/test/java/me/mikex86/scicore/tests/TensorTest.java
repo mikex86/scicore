@@ -1516,11 +1516,47 @@ class TensorTest {
         }
 
         @Test
-        void plus_test_2x2by2x1() {
+        void plus_test_2x2by2x1_broadcast () {
             ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
             ITensor b = sciCore.matrix(new float[][]{{5}, {6}});
             ITensor result = a.plus(b);
-            assertEquals(sciCore.matrix(new float[][]{{6, 7}, {9, 10}}), result); // TODO: FIX BROADCASTING!
+            assertEquals(sciCore.matrix(new float[][]{{6, 7}, {9, 10}}), result);
+        }
+
+        @Test
+        void plus_test_2x2by2x1x1_broadcast() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+            ITensor b = sciCore.ndarray(new float[][][]{{{5}}, {{6}}});
+            ITensor result = a.plus(b);
+            assertEquals(sciCore.ndarray(new float[][][]{{{6, 7}, {8, 9}}, {{7, 8}, {9, 10}}}), result);
+        }
+
+        @Test
+        void plus_test_2x2x1x1_broadcast() {
+            ITensor a = sciCore.array(new float[]{1, 2});
+            ITensor b = sciCore.ndarray(new float[][][]{{{5}}, {{6}}});
+            ITensor result = a.plus(b);
+            assertEquals(sciCore.ndarray(new float[][][]{{{6, 7}}, {{7, 8}}}), result);
+        }
+
+        @Test
+        void plus_test_2x2by1x1x2_broadcast() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+            ITensor b = sciCore.ndarray(new float[][][]{{{5, 6}}, {{7, 8}}});
+            ITensor result = a.plus(b);
+            assertEquals(sciCore.ndarray(new float[][][]{
+                    {{6, 8}, {8, 10}},
+                    {{8, 10}, {10, 12}}}), result);
+        }
+
+        @Test
+        void plus_tensor_2x3by1x2x1_broadcast() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
+            ITensor b = sciCore.ndarray(new float[][][]{{{5}, {6}}});
+            ITensor result = a.plus(b);
+            assertEquals(sciCore.ndarray(new float[][][]{
+                    {{6, 7, 8}, {10, 11, 12}}
+            }), result);
         }
 
         @Test
@@ -1597,6 +1633,14 @@ class TensorTest {
             ITensor b = sciCore.matrix(new float[][]{{2.0f, 3.0f}, {4.0f, 5.0f}});
             ITensor result = a.minus(b);
             assertEquals(sciCore.matrix(new float[][]{{-1.0f, -1.0f}, {-1.0f, -1.0f}}), result);
+        }
+
+        @Test
+        void minus_test_2x2by2x1() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+            ITensor b = sciCore.matrix(new float[][]{{5}, {6}});
+            ITensor result = a.minus(b);
+            assertEquals(sciCore.matrix(new float[][]{{-4, -3}, {-3, -2}}), result);
         }
 
         @Test

@@ -45,18 +45,20 @@ FORCE_INLINE void tblas_tensor_geplus_broadcast_inplace(A *a, const B *b, size_t
 }
 
 template<typename A, typename B, typename C>
-FORCE_INLINE void tblas_tensor_geplus_broadcast_right(const A *a, const B *b, C *c, size_t n, size_t r) {
+FORCE_INLINE void tblas_tensor_geplus_broadcast_right(const A *a, const B *b, C *c, size_t n, size_t ar, size_t br) {
     for (size_t i = 0; i < n; i++) {
-        size_t j = i % r;
-        c[i] = a[i] + b[j];
+        size_t j = i % ar;
+        size_t k = i / br;
+        c[i] = a[j] + b[k];
     }
 }
 
 template<typename A, typename B, typename C>
-FORCE_INLINE void tblas_tensor_geplus_broadcast_left(const A *a, const B *b, C *c, size_t n, size_t r) {
+FORCE_INLINE void tblas_tensor_geplus_broadcast_left(const A *a, const B *b, C *c, size_t n, size_t ar, size_t br) {
     for (size_t i = 0; i < n; i++) {
-        size_t j = i % r;
-        c[i] = a[j] + b[i];
+        size_t j = i / ar;
+        size_t k = i % br;
+        c[i] = a[j] + b[k];
     }
 }
 

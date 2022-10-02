@@ -25,55 +25,50 @@ public class JvmMinusOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
+        long[] finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
 
-        long aNumElements = ShapeUtils.getNumElements(shapeA);
-        long bNumElements = ShapeUtils.getNumElements(shapeB);
+        long[] stridesA = a.getStrides();
+        long[] stridesB = b.getStrides();
+        long[] stridesOut = ShapeUtils.makeStrides(finalShape);
 
-        long[] finalShape = shapeA;
-        boolean broadcast = false;
-        if (!ShapeUtils.equals(shapeA, shapeB)) {
-            finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
-            broadcast = true;
-        }
+        DataType ownDataType = a.getDataType();
+        DataType otherDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
+        ITensor result = backend.createTensor(resultDataType, finalShape);
 
-        DataType dataTypeA = a.getDataType();
-        DataType dataTypeB = b.getDataType();
-        DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
+        long[] outputIndex = new long[finalShape.length];
+        long[] indexA = new long[shapeA.length];
+        long[] indexB = new long[shapeB.length];
 
-        long nElements = ShapeUtils.getNumElements(finalShape);
-
-        ITensor tensor = new JvmTensor(this.backend, resultDataType, finalShape);
-
-        if (broadcast) {
-            for (long i = 0; i < nElements; i++) {
-                if (resultDataType.isFloatingPoint()) {
-                    double aV = a.getAsDoubleFlat(i % aNumElements);
-                    double bV = b.getAsDoubleFlat(i % bNumElements);
-                    double resultVal = aV - bV;
-                    tensor.setByDoubleFlat(resultVal, i);
-                } else {
-                    long aV = a.getAsLongFlat(i % aNumElements);
-                    long bV = b.getAsLongFlat(i % bNumElements);
-                    long resultVal = aV - bV;
-                    tensor.setByLongFlat(resultVal, i);
-                }
+        do {
+            // copy common dimensions into indexA and indexB
+            for (int i = 0; i < indexA.length; i++) {
+                indexA[indexA.length - 1 - i] = outputIndex[outputIndex.length - 1 - i];
             }
-        } else {
-            for (long i = 0; i < nElements; i++) {
-                if (resultDataType.isFloatingPoint()) {
-                    double aV = a.getAsDoubleFlat(i);
-                    double bV = b.isScalar() ? b.elementAsDouble() : b.getAsDoubleFlat(i);
-                    double resultVal = aV - bV;
-                    tensor.setByDoubleFlat(resultVal, i);
-                } else {
-                    long aV = a.getAsLongFlat(i);
-                    long bV = b.isScalar() ? b.elementAsLong() : b.getAsLongFlat(i);
-                    long resultVal = aV - bV;
-                    tensor.setByLongFlat(resultVal, i);
-                }
+            for (int i = 0; i < indexB.length; i++) {
+                indexB[indexB.length - 1 - i] = outputIndex[outputIndex.length - 1 - i];
             }
-        }
-        return tensor;
+            // constrain indices
+            ShapeUtils.constrainIndex(indexA, shapeA);
+            ShapeUtils.constrainIndex(indexB, shapeB);
+
+            long outputIndexFlat = ShapeUtils.getFlatIndex(outputIndex, stridesOut);
+            long indexAFlat = ShapeUtils.getFlatIndex(indexA, stridesA);
+            long indexBFlat = ShapeUtils.getFlatIndex(indexB, stridesB);
+
+            if (resultDataType.isFloatingPoint()) {
+                double aV = a.getAsDoubleFlat(indexAFlat);
+                double bV = b.getAsDoubleFlat(indexBFlat);
+                double aDivB = aV - bV;
+                result.setByDoubleFlat(aDivB, outputIndexFlat);
+            } else {
+                long aV = a.getAsLongFlat(indexAFlat);
+                long bV = b.getAsLongFlat(indexBFlat);
+                long aDivB = aV - bV;
+                result.setByLongFlat(aDivB, outputIndexFlat);
+            }
+        } while (ShapeUtils.incrementIndex(outputIndex, finalShape));
+        return result;
     }
 
     @Override
