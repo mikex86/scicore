@@ -303,79 +303,79 @@ void tblas_tensor_dd##op_name##_broadcast_inplace(double *A, const double *B, si
 
 #define BINARY_OP_FOR_ALL_TYPES_TENSOR_BY_TENSOR_BROADCAST_PROTO(op_name) \
 /* Tensor by tensor (element-wise, with broadcasting, not in-place, src=A, dst=C) */ \
-void tblas_tensor_bb##op_name##_broadcast_right(const int8_t *A, const int8_t *B, int8_t *C, size_t n, size_t r);\
-void tblas_tensor_bs##op_name##_broadcast_right(const int8_t *A, const int16_t *B, int16_t *C, size_t n, size_t r);\
-void tblas_tensor_bi##op_name##_broadcast_right(const int8_t *A, const int32_t *B, int32_t *C, size_t n, size_t r);\
-void tblas_tensor_bl##op_name##_broadcast_right(const int8_t *A, const int64_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_bf##op_name##_broadcast_right(const int8_t *A, const float *B, float *C, size_t n, size_t r);\
-void tblas_tensor_bd##op_name##_broadcast_right(const int8_t *A, const double *B, double *C, size_t n, size_t r);\
-void tblas_tensor_sb##op_name##_broadcast_right(const int16_t *A, const int8_t *B, int16_t *C, size_t n, size_t r);\
-void tblas_tensor_ss##op_name##_broadcast_right(const int16_t *A, const int16_t *B, int16_t *C, size_t n, size_t r);\
-void tblas_tensor_si##op_name##_broadcast_right(const int16_t *A, const int32_t *B, int32_t *C, size_t n, size_t r);\
-void tblas_tensor_sl##op_name##_broadcast_right(const int16_t *A, const int64_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_sf##op_name##_broadcast_right(const int16_t *A, const float *B, float *C, size_t n, size_t r);\
-void tblas_tensor_sd##op_name##_broadcast_right(const int16_t *A, const double *B, double *C, size_t n, size_t r);\
-void tblas_tensor_ib##op_name##_broadcast_right(const int32_t *A, const int8_t *B, int32_t *C, size_t n, size_t r);\
-void tblas_tensor_is##op_name##_broadcast_right(const int32_t *A, const int16_t *B, int32_t *C, size_t n, size_t r);\
-void tblas_tensor_ii##op_name##_broadcast_right(const int32_t *A, const int32_t *B, int32_t *C, size_t n, size_t r);\
-void tblas_tensor_il##op_name##_broadcast_right(const int32_t *A, const int64_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_if##op_name##_broadcast_right(const int32_t *A, const float *B, float *C, size_t n, size_t r);\
-void tblas_tensor_id##op_name##_broadcast_right(const int32_t *A, const double *B, double *C, size_t n, size_t r);\
-void tblas_tensor_lb##op_name##_broadcast_right(const int64_t *A, const int8_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_ls##op_name##_broadcast_right(const int64_t *A, const int16_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_li##op_name##_broadcast_right(const int64_t *A, const int32_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_ll##op_name##_broadcast_right(const int64_t *A, const int64_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_lf##op_name##_broadcast_right(const int64_t *A, const float *B, float *C, size_t n, size_t r);\
-void tblas_tensor_ld##op_name##_broadcast_right(const int64_t *A, const double *B, double *C, size_t n, size_t r);\
-void tblas_tensor_fb##op_name##_broadcast_right(const float *A, const int8_t *B, float *C, size_t n, size_t r);\
-void tblas_tensor_fs##op_name##_broadcast_right(const float *A, const int16_t *B, float *C, size_t n, size_t r);\
-void tblas_tensor_fi##op_name##_broadcast_right(const float *A, const int32_t *B, float *C, size_t n, size_t r);\
-void tblas_tensor_fl##op_name##_broadcast_right(const float *A, const int64_t *B, float *C, size_t n, size_t r);\
-void tblas_tensor_ff##op_name##_broadcast_right(const float *A, const float *B, float *C, size_t n, size_t r);\
-void tblas_tensor_fd##op_name##_broadcast_right(const float *A, const double *B, double *C, size_t n, size_t r);\
-void tblas_tensor_db##op_name##_broadcast_right(const double *A, const int8_t *B, double *C, size_t n, size_t r);\
-void tblas_tensor_ds##op_name##_broadcast_right(const double *A, const int16_t *B, double *C, size_t n , size_t  r);\
-void tblas_tensor_di##op_name##_broadcast_right(const double *A, const int32_t *B, double *C, size_t n, size_t r);\
-void tblas_tensor_dl##op_name##_broadcast_right(const double *A, const int64_t *B, double *C, size_t n, size_t r);\
-void tblas_tensor_df##op_name##_broadcast_right(const double *A, const float *B, double *C, size_t n, size_t r);\
-void tblas_tensor_dd##op_name##_broadcast_right(const double *A, const double *B, double *C, size_t n, size_t r);\
+void tblas_tensor_bb##op_name##_broadcast_right(const int8_t *A, const int8_t *B, int8_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_bs##op_name##_broadcast_right(const int8_t *A, const int16_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_bi##op_name##_broadcast_right(const int8_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_bl##op_name##_broadcast_right(const int8_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_bf##op_name##_broadcast_right(const int8_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_bd##op_name##_broadcast_right(const int8_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_sb##op_name##_broadcast_right(const int16_t *A, const int8_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ss##op_name##_broadcast_right(const int16_t *A, const int16_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_si##op_name##_broadcast_right(const int16_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_sl##op_name##_broadcast_right(const int16_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_sf##op_name##_broadcast_right(const int16_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_sd##op_name##_broadcast_right(const int16_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ib##op_name##_broadcast_right(const int32_t *A, const int8_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_is##op_name##_broadcast_right(const int32_t *A, const int16_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ii##op_name##_broadcast_right(const int32_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_il##op_name##_broadcast_right(const int32_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_if##op_name##_broadcast_right(const int32_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_id##op_name##_broadcast_right(const int32_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_lb##op_name##_broadcast_right(const int64_t *A, const int8_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ls##op_name##_broadcast_right(const int64_t *A, const int16_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_li##op_name##_broadcast_right(const int64_t *A, const int32_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ll##op_name##_broadcast_right(const int64_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_lf##op_name##_broadcast_right(const int64_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ld##op_name##_broadcast_right(const int64_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_fb##op_name##_broadcast_right(const float *A, const int8_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_fs##op_name##_broadcast_right(const float *A, const int16_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_fi##op_name##_broadcast_right(const float *A, const int32_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_fl##op_name##_broadcast_right(const float *A, const int64_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ff##op_name##_broadcast_right(const float *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_fd##op_name##_broadcast_right(const float *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_db##op_name##_broadcast_right(const double *A, const int8_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ds##op_name##_broadcast_right(const double *A, const int16_t *B, double *C, size_t n, size_t  r);\
+void tblas_tensor_di##op_name##_broadcast_right(const double *A, const int32_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_dl##op_name##_broadcast_right(const double *A, const int64_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_df##op_name##_broadcast_right(const double *A, const float *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_dd##op_name##_broadcast_right(const double *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
 \
-void tblas_tensor_bb##op_name##_broadcast_left(const int8_t *A, const int8_t *B, int8_t *C, size_t n, size_t r);\
-void tblas_tensor_bs##op_name##_broadcast_left(const int8_t *A, const int16_t *B, int16_t *C, size_t n, size_t r);\
-void tblas_tensor_bi##op_name##_broadcast_left(const int8_t *A, const int32_t *B, int32_t *C, size_t n, size_t r);\
-void tblas_tensor_bl##op_name##_broadcast_left(const int8_t *A, const int64_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_bf##op_name##_broadcast_left(const int8_t *A, const float *B, float *C, size_t n, size_t r);\
-void tblas_tensor_bd##op_name##_broadcast_left(const int8_t *A, const double *B, double *C, size_t n, size_t r);\
-void tblas_tensor_sb##op_name##_broadcast_left(const int16_t *A, const int8_t *B, int16_t *C, size_t n, size_t r);\
-void tblas_tensor_ss##op_name##_broadcast_left(const int16_t *A, const int16_t *B, int16_t *C, size_t n, size_t r);\
-void tblas_tensor_si##op_name##_broadcast_left(const int16_t *A, const int32_t *B, int32_t *C, size_t n, size_t r);\
-void tblas_tensor_sl##op_name##_broadcast_left(const int16_t *A, const int64_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_sf##op_name##_broadcast_left(const int16_t *A, const float *B, float *C, size_t n, size_t r);\
-void tblas_tensor_sd##op_name##_broadcast_left(const int16_t *A, const double *B, double *C, size_t n, size_t r);\
-void tblas_tensor_ib##op_name##_broadcast_left(const int32_t *A, const int8_t *B, int32_t *C, size_t n, size_t r);\
-void tblas_tensor_is##op_name##_broadcast_left(const int32_t *A, const int16_t *B, int32_t *C, size_t n, size_t r);\
-void tblas_tensor_ii##op_name##_broadcast_left(const int32_t *A, const int32_t *B, int32_t *C, size_t n, size_t r);\
-void tblas_tensor_il##op_name##_broadcast_left(const int32_t *A, const int64_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_if##op_name##_broadcast_left(const int32_t *A, const float *B, float *C, size_t n, size_t r);\
-void tblas_tensor_id##op_name##_broadcast_left(const int32_t *A, const double *B, double *C, size_t n, size_t r);\
-void tblas_tensor_lb##op_name##_broadcast_left(const int64_t *A, const int8_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_ls##op_name##_broadcast_left(const int64_t *A, const int16_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_li##op_name##_broadcast_left(const int64_t *A, const int32_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_ll##op_name##_broadcast_left(const int64_t *A, const int64_t *B, int64_t *C, size_t n, size_t r);\
-void tblas_tensor_lf##op_name##_broadcast_left(const int64_t *A, const float *B, float *C, size_t n, size_t r);\
-void tblas_tensor_ld##op_name##_broadcast_left(const int64_t *A, const double *B, double *C, size_t n, size_t r);\
-void tblas_tensor_fb##op_name##_broadcast_left(const float *A, const int8_t *B, float *C, size_t n, size_t r);\
-void tblas_tensor_fs##op_name##_broadcast_left(const float *A, const int16_t *B, float *C, size_t n, size_t r);\
-void tblas_tensor_fi##op_name##_broadcast_left(const float *A, const int32_t *B, float *C, size_t n, size_t r);\
-void tblas_tensor_fl##op_name##_broadcast_left(const float *A, const int64_t *B, float *C, size_t n, size_t r);\
-void tblas_tensor_ff##op_name##_broadcast_left(const float *A, const float *B, float *C, size_t n, size_t r);\
-void tblas_tensor_fd##op_name##_broadcast_left(const float *A, const double *B, double *C, size_t n, size_t r);\
-void tblas_tensor_db##op_name##_broadcast_left(const double *A, const int8_t *B, double *C, size_t n, size_t r);\
-void tblas_tensor_ds##op_name##_broadcast_left(const double *A, const int16_t *B, double *C, size_t n , size_t  r);\
-void tblas_tensor_di##op_name##_broadcast_left(const double *A, const int32_t *B, double *C, size_t n, size_t r);\
-void tblas_tensor_dl##op_name##_broadcast_left(const double *A, const int64_t *B, double *C, size_t n, size_t r);\
-void tblas_tensor_df##op_name##_broadcast_left(const double *A, const float *B, double *C, size_t n, size_t r);\
-void tblas_tensor_dd##op_name##_broadcast_left(const double *A, const double *B, double *C, size_t n, size_t r);\
+void tblas_tensor_bb##op_name##_broadcast_left(const int8_t *A, const int8_t *B, int8_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_bs##op_name##_broadcast_left(const int8_t *A, const int16_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_bi##op_name##_broadcast_left(const int8_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_bl##op_name##_broadcast_left(const int8_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_bf##op_name##_broadcast_left(const int8_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_bd##op_name##_broadcast_left(const int8_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_sb##op_name##_broadcast_left(const int16_t *A, const int8_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ss##op_name##_broadcast_left(const int16_t *A, const int16_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_si##op_name##_broadcast_left(const int16_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_sl##op_name##_broadcast_left(const int16_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_sf##op_name##_broadcast_left(const int16_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_sd##op_name##_broadcast_left(const int16_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ib##op_name##_broadcast_left(const int32_t *A, const int8_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_is##op_name##_broadcast_left(const int32_t *A, const int16_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ii##op_name##_broadcast_left(const int32_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_il##op_name##_broadcast_left(const int32_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_if##op_name##_broadcast_left(const int32_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_id##op_name##_broadcast_left(const int32_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_lb##op_name##_broadcast_left(const int64_t *A, const int8_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ls##op_name##_broadcast_left(const int64_t *A, const int16_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_li##op_name##_broadcast_left(const int64_t *A, const int32_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ll##op_name##_broadcast_left(const int64_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_lf##op_name##_broadcast_left(const int64_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ld##op_name##_broadcast_left(const int64_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_fb##op_name##_broadcast_left(const float *A, const int8_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_fs##op_name##_broadcast_left(const float *A, const int16_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_fi##op_name##_broadcast_left(const float *A, const int32_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_fl##op_name##_broadcast_left(const float *A, const int64_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ff##op_name##_broadcast_left(const float *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_fd##op_name##_broadcast_left(const float *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_db##op_name##_broadcast_left(const double *A, const int8_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_ds##op_name##_broadcast_left(const double *A, const int16_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_di##op_name##_broadcast_left(const double *A, const int32_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_dl##op_name##_broadcast_left(const double *A, const int64_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_df##op_name##_broadcast_left(const double *A, const float *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
+void tblas_tensor_dd##op_name##_broadcast_left(const double *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p);\
 
 #define BINARY_OP_FOR_ALL_TYPES_ALL_VARIANTS_PROTO(op_name)\
 BINARY_OP_FOR_ALL_TYPES_TENSOR_BY_SCALAR_INPLACE_PROTO(op_name)\
@@ -1053,222 +1053,222 @@ void tblas_tensor_dd##op_name##_broadcast_inplace(double *A, const double *B, si
 
 #define BINARY_OP_FOR_ALL_TYPES_TENSOR_BY_TENSOR_BROADCAST_IMPL(op_name)\
 /* Multiply tensor by tensor (element-wise, with broadcasting, not in-place, src=A, dst=C) */ \
-void tblas_tensor_bb##op_name##_broadcast_right(const int8_t *A, const int8_t *B, int8_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_bb##op_name##_broadcast_right(const int8_t *A, const int8_t *B, int8_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_bs##op_name##_broadcast_right(const int8_t *A, const int16_t *B, int16_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_bs##op_name##_broadcast_right(const int8_t *A, const int16_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_bi##op_name##_broadcast_right(const int8_t *A, const int32_t *B, int32_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_bi##op_name##_broadcast_right(const int8_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_bl##op_name##_broadcast_right(const int8_t *A, const int64_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_bl##op_name##_broadcast_right(const int8_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_bf##op_name##_broadcast_right(const int8_t *A, const float *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_bf##op_name##_broadcast_right(const int8_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_bd##op_name##_broadcast_right(const int8_t *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_bd##op_name##_broadcast_right(const int8_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_sb##op_name##_broadcast_right(const int16_t *A, const int8_t *B, int16_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_sb##op_name##_broadcast_right(const int16_t *A, const int8_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ss##op_name##_broadcast_right(const int16_t *A, const int16_t *B, int16_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_ss##op_name##_broadcast_right(const int16_t *A, const int16_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_si##op_name##_broadcast_right(const int16_t *A, const int32_t *B, int32_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_si##op_name##_broadcast_right(const int16_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_sl##op_name##_broadcast_right(const int16_t *A, const int64_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_sl##op_name##_broadcast_right(const int16_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_sf##op_name##_broadcast_right(const int16_t *A, const float *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_sf##op_name##_broadcast_right(const int16_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_sd##op_name##_broadcast_right(const int16_t *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_sd##op_name##_broadcast_right(const int16_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ib##op_name##_broadcast_right(const int32_t *A, const int8_t *B, int32_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_ib##op_name##_broadcast_right(const int32_t *A, const int8_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_is##op_name##_broadcast_right(const int32_t *A, const int16_t *B, int32_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_is##op_name##_broadcast_right(const int32_t *A, const int16_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ii##op_name##_broadcast_right(const int32_t *A, const int32_t *B, int32_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_ii##op_name##_broadcast_right(const int32_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_il##op_name##_broadcast_right(const int32_t *A, const int64_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_il##op_name##_broadcast_right(const int32_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_if##op_name##_broadcast_right(const int32_t *A, const float *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_if##op_name##_broadcast_right(const int32_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_id##op_name##_broadcast_right(const int32_t *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_id##op_name##_broadcast_right(const int32_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_lb##op_name##_broadcast_right(const int64_t *A, const int8_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_lb##op_name##_broadcast_right(const int64_t *A, const int8_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ls##op_name##_broadcast_right(const int64_t *A, const int16_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_ls##op_name##_broadcast_right(const int64_t *A, const int16_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_li##op_name##_broadcast_right(const int64_t *A, const int32_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_li##op_name##_broadcast_right(const int64_t *A, const int32_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ll##op_name##_broadcast_right(const int64_t *A, const int64_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_ll##op_name##_broadcast_right(const int64_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_lf##op_name##_broadcast_right(const int64_t *A, const float *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_lf##op_name##_broadcast_right(const int64_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ld##op_name##_broadcast_right(const int64_t *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_ld##op_name##_broadcast_right(const int64_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_fb##op_name##_broadcast_right(const float *A, const int8_t *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_fb##op_name##_broadcast_right(const float *A, const int8_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_fs##op_name##_broadcast_right(const float *A, const int16_t *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_fs##op_name##_broadcast_right(const float *A, const int16_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_fi##op_name##_broadcast_right(const float *A, const int32_t *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_fi##op_name##_broadcast_right(const float *A, const int32_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_fl##op_name##_broadcast_right(const float *A, const int64_t *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_fl##op_name##_broadcast_right(const float *A, const int64_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ff##op_name##_broadcast_right(const float *A, const float *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_ff##op_name##_broadcast_right(const float *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_fd##op_name##_broadcast_right(const float *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_fd##op_name##_broadcast_right(const float *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_db##op_name##_broadcast_right(const double *A, const int8_t *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_db##op_name##_broadcast_right(const double *A, const int8_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ds##op_name##_broadcast_right(const double *A, const int16_t *B, double *C, size_t n , size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_ds##op_name##_broadcast_right(const double *A, const int16_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_di##op_name##_broadcast_right(const double *A, const int32_t *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_di##op_name##_broadcast_right(const double *A, const int32_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_dl##op_name##_broadcast_right(const double *A, const int64_t *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_dl##op_name##_broadcast_right(const double *A, const int64_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_df##op_name##_broadcast_right(const double *A, const float *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_df##op_name##_broadcast_right(const double *A, const float *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_dd##op_name##_broadcast_right(const double *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, n, r);\
+void tblas_tensor_dd##op_name##_broadcast_right(const double *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_right(A, B, C, na, nb, nc, p);\
 }\
 \
-void tblas_tensor_bb##op_name##_broadcast_left(const int8_t *A, const int8_t *B, int8_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_bb##op_name##_broadcast_left(const int8_t *A, const int8_t *B, int8_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_bs##op_name##_broadcast_left(const int8_t *A, const int16_t *B, int16_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_bs##op_name##_broadcast_left(const int8_t *A, const int16_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_bi##op_name##_broadcast_left(const int8_t *A, const int32_t *B, int32_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_bi##op_name##_broadcast_left(const int8_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_bl##op_name##_broadcast_left(const int8_t *A, const int64_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_bl##op_name##_broadcast_left(const int8_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_bf##op_name##_broadcast_left(const int8_t *A, const float *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_bf##op_name##_broadcast_left(const int8_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_bd##op_name##_broadcast_left(const int8_t *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_bd##op_name##_broadcast_left(const int8_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_sb##op_name##_broadcast_left(const int16_t *A, const int8_t *B, int16_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_sb##op_name##_broadcast_left(const int16_t *A, const int8_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ss##op_name##_broadcast_left(const int16_t *A, const int16_t *B, int16_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_ss##op_name##_broadcast_left(const int16_t *A, const int16_t *B, int16_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_si##op_name##_broadcast_left(const int16_t *A, const int32_t *B, int32_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_si##op_name##_broadcast_left(const int16_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_sl##op_name##_broadcast_left(const int16_t *A, const int64_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_sl##op_name##_broadcast_left(const int16_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_sf##op_name##_broadcast_left(const int16_t *A, const float *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_sf##op_name##_broadcast_left(const int16_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_sd##op_name##_broadcast_left(const int16_t *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_sd##op_name##_broadcast_left(const int16_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ib##op_name##_broadcast_left(const int32_t *A, const int8_t *B, int32_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_ib##op_name##_broadcast_left(const int32_t *A, const int8_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_is##op_name##_broadcast_left(const int32_t *A, const int16_t *B, int32_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_is##op_name##_broadcast_left(const int32_t *A, const int16_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ii##op_name##_broadcast_left(const int32_t *A, const int32_t *B, int32_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_ii##op_name##_broadcast_left(const int32_t *A, const int32_t *B, int32_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_il##op_name##_broadcast_left(const int32_t *A, const int64_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_il##op_name##_broadcast_left(const int32_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_if##op_name##_broadcast_left(const int32_t *A, const float *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_if##op_name##_broadcast_left(const int32_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_id##op_name##_broadcast_left(const int32_t *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_id##op_name##_broadcast_left(const int32_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_lb##op_name##_broadcast_left(const int64_t *A, const int8_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_lb##op_name##_broadcast_left(const int64_t *A, const int8_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ls##op_name##_broadcast_left(const int64_t *A, const int16_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_ls##op_name##_broadcast_left(const int64_t *A, const int16_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_li##op_name##_broadcast_left(const int64_t *A, const int32_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_li##op_name##_broadcast_left(const int64_t *A, const int32_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ll##op_name##_broadcast_left(const int64_t *A, const int64_t *B, int64_t *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_ll##op_name##_broadcast_left(const int64_t *A, const int64_t *B, int64_t *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_lf##op_name##_broadcast_left(const int64_t *A, const float *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_lf##op_name##_broadcast_left(const int64_t *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ld##op_name##_broadcast_left(const int64_t *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_ld##op_name##_broadcast_left(const int64_t *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_fb##op_name##_broadcast_left(const float *A, const int8_t *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_fb##op_name##_broadcast_left(const float *A, const int8_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_fs##op_name##_broadcast_left(const float *A, const int16_t *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_fs##op_name##_broadcast_left(const float *A, const int16_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_fi##op_name##_broadcast_left(const float *A, const int32_t *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_fi##op_name##_broadcast_left(const float *A, const int32_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_fl##op_name##_broadcast_left(const float *A, const int64_t *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_fl##op_name##_broadcast_left(const float *A, const int64_t *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ff##op_name##_broadcast_left(const float *A, const float *B, float *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_ff##op_name##_broadcast_left(const float *A, const float *B, float *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_fd##op_name##_broadcast_left(const float *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_fd##op_name##_broadcast_left(const float *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_db##op_name##_broadcast_left(const double *A, const int8_t *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_db##op_name##_broadcast_left(const double *A, const int8_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_ds##op_name##_broadcast_left(const double *A, const int16_t *B, double *C, size_t n , size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_ds##op_name##_broadcast_left(const double *A, const int16_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_di##op_name##_broadcast_left(const double *A, const int32_t *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_di##op_name##_broadcast_left(const double *A, const int32_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_dl##op_name##_broadcast_left(const double *A, const int64_t *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_dl##op_name##_broadcast_left(const double *A, const int64_t *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_df##op_name##_broadcast_left(const double *A, const float *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_df##op_name##_broadcast_left(const double *A, const float *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
-void tblas_tensor_dd##op_name##_broadcast_left(const double *A, const double *B, double *C, size_t n, size_t r){\
-    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, n, r);\
+void tblas_tensor_dd##op_name##_broadcast_left(const double *A, const double *B, double *C, size_t na, size_t nb, size_t nc, size_t p){\
+    tblas_tensor_ge##op_name##_broadcast_left(A, B, C, na, nb, nc, p);\
 }\
 
 #define BINARY_OP_FOR_ALL_TYPES_ALL_VARIANTS_IMPL(op_name)\
