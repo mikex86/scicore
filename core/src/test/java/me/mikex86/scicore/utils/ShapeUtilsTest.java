@@ -1,6 +1,8 @@
 package me.mikex86.scicore.utils;
 
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -307,5 +309,89 @@ class ShapeUtilsTest {
                 Arguments.of(new long[]{1, 2, 3}, new long[]{2, 3, 4}),
                 Arguments.of(new long[]{3, 3, 4}, new long[]{1, 2, 3, 4})
         );
+    }
+
+
+    @Nested
+    public class BroadcastPeriod {
+
+        @Test
+        void getBroadcastPeriod_2x2by2x1_success() {
+            long[] shapeA = new long[]{2, 2};
+            long[] shapeB = new long[]{2, 1};
+            assertEquals(2, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+        }
+
+        @Test
+        void getBroadcastPeriod_2x2by1x1x2_success() {
+            long[] shapeA = new long[]{1, 1, 2};
+            long[] shapeB = new long[]   {2, 2};
+            assertEquals(1, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+        }
+
+        @Test
+        void getBroadcastPeriod_2x2by1x1_success() {
+            long[] shapeA = new long[]{2, 2};
+            long[] shapeB = new long[]{1, 1};
+            assertEquals(2, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+        }
+
+        @Test
+        void getBroadcastPeriod_2x2by1x2_success() {
+            long[] shapeA = new long[]{2, 2};
+            long[] shapeB = new long[]{1, 2};
+            assertEquals(1, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+        }
+
+        @Test
+        void getBroadcastPeriod_1x1x2by3x2_success() {
+            long[] shapeA = new long[]{1, 3, 1};
+            long[] shapeB = new long[]   {3, 2};
+            assertEquals(-2, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+        }
+
+        @Test
+        void getBroadcastPeriod_2x3by1x2x1_success() {
+            long[] shapeA = new long[]{1, 2, 1};
+            long[] shapeB = new long[]   {2, 3};
+            assertEquals(-3, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+        }
+
+        @Test
+        void getBroadcastPeriod_1x1by1x1_success() {
+            long[] shapeA = new long[]{1, 1};
+            long[] shapeB = new long[]{1, 1};
+            assertEquals(1, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+        }
+
+        @Test
+        void getBroadcastPeriod_3x2by1x1x1_success() {
+            long[] shapeA = new long[]{1, 1, 1};
+            long[] shapeB = new long[]   {3, 2};
+            assertEquals(-2, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+
+        }
+
+        @Test
+        void getBroadcastPeriod_2x3x2by1x3x2_success() {
+            long[] shapeA = new long[]{2, 3, 2};
+            long[] shapeB = new long[]{1, 3, 2};
+            assertEquals(1, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+        }
+
+        @Test
+        void getBroadcastPeriod_2x3x2by1x3x1_success() {
+            long[] shapeA = new long[]{2, 3, 2};
+            long[] shapeB = new long[]{1, 3, 1};
+            assertEquals(2, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+        }
+
+        @Test
+        void getBroadcastPeriod_1x2x3x2by1x1x3x1_success() {
+            long[] shapeA = new long[]{1, 2, 3, 2};
+            long[] shapeB = new long[]{1, 1, 3, 1};
+            assertEquals(2, ShapeUtils.getBroadcastPeriod(shapeA, shapeB));
+        }
+
     }
 }

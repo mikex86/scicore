@@ -1644,6 +1644,14 @@ class TensorTest {
         }
 
         @Test
+        void minus_test_2x2by2() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
+            ITensor b = sciCore.ndarray(new float[]{5, 6});
+            ITensor result = a.minus(b);
+            assertEquals(sciCore.matrix(new float[][]{{-4, -4}, {-2, -2}}), result);
+        }
+
+        @Test
         void minus_test_5x3x2_minus_3x2_2dBroadcast() {
             // (5, 3, 2) - (3, 2) = (5, 3, 2)
             ITensor a = sciCore.ndarray(new float[][][]{
