@@ -1,59 +1,41 @@
 package me.mikex86.scicore.backend.impl.genericcpu.jni;
 
 import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.OptionalInt;
 
 public class PlusJNI {
 
-    public static final int PLUS_DATA_TYPE_INT8 = 1;
-    public static final int PLUS_DATA_TYPE_INT16 = 2;
-    public static final int PLUS_DATA_TYPE_INT32 = 3;
-    public static final int PLUS_DATA_TYPE_INT64 = 4;
-    public static final int PLUS_DATA_TYPE_FLOAT32 = 5;
-    public static final int PLUS_DATA_TYPE_FLOAT64 = 6;
+    private static final int DATA_TYPE_INT8 = 1;
+    private static final int DATA_TYPE_INT16 = 2;
+    private static final int DATA_TYPE_INT32 = 3;
+    private static final int DATA_TYPE_INT64 = 4;
+    private static final int DATA_TYPE_FLOAT32 = 5;
+    private static final int DATA_TYPE_FLOAT64 = 6;
 
-    private static native void nplus(
-            long aPtr,
-            int aDataType,
-            long nElementsA,
-            long bPtr,
-            int bDataType,
-            long nElementsB,
-            long cPtr,
-            long nElementsC
-    );
+    private static native void nplus(long aPtr, long[] shapeA, long[] stridesA, int dataTypeA,
+                                         long bPtr, long[] shapeB, long[] stridesB, int dataTypeB,
+                                         long cPtr, long[] shapeC, long[] stridesC, int dataTypeC);
 
-    public static void plus(
-            long aPtr,
-            DataType aDataType,
-            long nElementsA,
-            long bPtr,
-            DataType bDataType,
-            long nElementsB,
-            long cPtr,
-            long nElementsC,
-            DataType cDataType
-    ) {
-        int aDataTypeInt = getDataTypeInt(aDataType).orElseThrow(() -> new IllegalArgumentException("Unsupported data type: " + aDataType));
-        int bDataTypeInt = getDataTypeInt(bDataType).orElseThrow(() -> new IllegalArgumentException("Invalid data type: " + nElementsB));
-        DataType resultType = DataType.getLarger(aDataType, bDataType);
-        Validator.assertTrue(cDataType == resultType, "Adding " + aDataType + " and " + bDataType + " results in " + resultType + " but the result tensor is of type " + cDataType);
-        nplus(aPtr, aDataTypeInt, nElementsA, bPtr, bDataTypeInt, nElementsB, cPtr, nElementsC);
+    public static void plus(long aPtr, long[] shapeA, long[] stridesA, DataType dataTypeA,
+                                long bPtr, long[] shapeB, long[] stridesB, DataType dataTypeB,
+                                long cPtr, long[] shapeC, long[] stridesC, DataType dataTypeC) {
+        nplus(
+                aPtr, shapeA, stridesA, dataTypeToInt(dataTypeA),
+                bPtr, shapeB, stridesB, dataTypeToInt(dataTypeB),
+                cPtr, shapeC, stridesC, dataTypeToInt(dataTypeC)
+        );
     }
 
-    @NotNull
-    public static OptionalInt getDataTypeInt(@NotNull DataType dataType) {
-        return switch (dataType) {
-            case INT8 -> OptionalInt.of(PLUS_DATA_TYPE_INT8);
-            case INT16 -> OptionalInt.of(PLUS_DATA_TYPE_INT16);
-            case INT32 -> OptionalInt.of(PLUS_DATA_TYPE_INT32);
-            case INT64 -> OptionalInt.of(PLUS_DATA_TYPE_INT64);
-            case FLOAT32 -> OptionalInt.of(PLUS_DATA_TYPE_FLOAT32);
-            case FLOAT64 -> OptionalInt.of(PLUS_DATA_TYPE_FLOAT64);
-            default -> OptionalInt.empty();
+    private static int dataTypeToInt(@NotNull DataType dataTypeA) {
+        return switch (dataTypeA) {
+            case INT8 -> DATA_TYPE_INT8;
+            case INT16 -> DATA_TYPE_INT16;
+            case INT32 -> DATA_TYPE_INT32;
+            case INT64 -> DATA_TYPE_INT64;
+            case FLOAT32 -> DATA_TYPE_FLOAT32;
+            case FLOAT64 -> DATA_TYPE_FLOAT64;
+            case BOOLEAN -> throw new IllegalArgumentException("Boolean data type is not supported");
         };
     }
+
 }

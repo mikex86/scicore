@@ -178,31 +178,6 @@ public class ShapeUtils {
     }
 
     /**
-     * In an operation A * B where A and B are two tensors, the broadcast period is the number of times
-     * an element of the tensor B must be repeated to match the shape of tensor A.
-     * If the period is negative, elements in A must be repeated to match the shape of B.
-     * In practice this means that an operation computing C[cIdx] = A[aIdx] * B[bIdx] can derive aIdx and bIdx
-     * from cIdx by dividing cIdx by the broadcast period.
-     * @param shapeA the shape of tensor A
-     * @param shapeB the shape of tensor B
-     * @return the broadcast period
-     */
-    public static long getBroadcastPeriod(long @NotNull [] shapeA, long @NotNull [] shapeB) {
-        if (shapeB.length > shapeA.length) {
-            throw new IllegalArgumentException("Shape A must be larger than shape B");
-        }
-        long lastDimA = shapeA[shapeA.length - 1];
-        long lastDimB = shapeB[shapeB.length - 1];
-        if (lastDimA > lastDimB) {
-            return lastDimA / lastDimB;
-        } else if (lastDimB > lastDimA) {
-            return -lastDimB / lastDimA;
-        } else {
-            return 1;
-        }
-    }
-
-    /**
      * Constrains the index in the specified shape. This means that every dimension of the index will be modulo-ed by the
      * length of said dimension as specified at shape[dimension].
      *

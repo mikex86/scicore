@@ -1,5 +1,5 @@
 #pragma once
 
-#include "foralltypes.h"
+#include "foralldatatypes.h"
 
-BINARY_OP_FOR_ALL_TYPES_ALL_VARIANTS_PROTO(minus)
+OPERATION_FOR_ALL_DATA_TYPES_PROTO(tblas_minus)

@@ -2,23 +2,24 @@ package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
-import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
-import me.mikex86.scicore.backend.impl.genericcpu.GenCPUTensor;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.DivideJNI;
+import me.mikex86.scicore.backend.impl.genericcpu.jni.MinusJNI;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
+import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
 public class GenCPUDivideOp implements IDifferentiableBinaryOperation {
 
     @NotNull
-    private final GenCPUBackend backend;
+    private final ISciCoreBackend backend;
 
-    public GenCPUDivideOp(@NotNull GenCPUBackend backend) {
+    public GenCPUDivideOp(@NotNull ISciCoreBackend backend) {
         this.backend = backend;
     }
 
@@ -26,54 +27,46 @@ public class GenCPUDivideOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
-
-        long aNumElements = ShapeUtils.getNumElements(shapeA);
-        long bNumElements = ShapeUtils.getNumElements(shapeB);
-
         long[] finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
-        DataType aDataType = a.getDataType();
-        DataType bDataType = b.getDataType();
-        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
 
-        long nResultElements = ShapeUtils.getNumElements(finalShape);
-        GenCPUTensor resultTensor = new GenCPUTensor(this.backend, resultDataType, finalShape);
+        long[] stridesA = a.getStrides();
+        long[] stridesB = b.getStrides();
 
-        DirectMemoryHandle aMemory = backend.getMemoryManager().ensureDirect(a);
-        DirectMemoryHandle bMemory = backend.getMemoryManager().ensureDirect(b);
-        DirectMemoryHandle resultMemory = resultTensor.getDataContainer().getMemoryHandle();
+        DataType ownDataType = a.getDataType();
+        DataType otherDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
+        ITensor result = backend.createTensor(resultDataType, finalShape);
+        long[] resultStrides = result.getStrides();
+
+        DirectMemoryHandle aMemoryHandle = a.getContentsAsDirectMemory();
+        DirectMemoryHandle bMemoryHandle = b.getContentsAsDirectMemory();
+        DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
 
         DivideJNI.divide(
-                aMemory.getNativePtr(),
-                aDataType,
-                aNumElements,
-                bMemory.getNativePtr(),
-                bDataType,
-                bNumElements,
-                resultMemory.getNativePtr(),
-                nResultElements,
-                resultDataType
-        );
+                aMemoryHandle.getNativePtr(), shapeA, stridesA, a.getDataType(),
+                bMemoryHandle.getNativePtr(), shapeB, stridesB, b.getDataType(),
+                resultMemoryHandle.getNativePtr(), finalShape, resultStrides, result.getDataType());
 
-        return resultTensor;
+
+        return result;
     }
 
     @Override
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
+        Validator.assertTrue(a.getDataType().isNumeric(), "A is not numeric");
+        Validator.assertTrue(b.getDataType().isNumeric(), "B is not numeric");
         long[] shapeA = a.getShape();
-        long[] finalShape = shapeA;
         long[] shapeB = b.getShape();
-        if (!ShapeUtils.equals(shapeA, shapeB)) {
-            finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
-        }
+        long[] finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
 
-        DataType dataTypeA = a.getDataType();
-        DataType dataTypeB = b.getDataType();
-        DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
+        DataType ownDataType = a.getDataType();
+        DataType otherDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
         return new LazyTensor(backend, finalShape, resultDataType, () -> perform(ctx, a, b));
     }
 
     @Override
-    public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradients, @NotNull IGraph.ITensorNodeWithGradient a, IGraph.@NotNull ITensorNodeWithGradient b) {
+    public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradients, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
         // R = A / B
         // dL/dR = upstream gradients
         ITensor A = a.getValue();

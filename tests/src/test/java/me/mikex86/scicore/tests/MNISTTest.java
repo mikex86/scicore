@@ -177,17 +177,17 @@ public class MNISTTest {
 
         MnistNet net = new MnistNet(sciCore);
         // set initial weights
-        {
-            ITensor fc1weight = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.weight_0.bin"));
-            ITensor fc1bias = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.bias_0.bin"));
-            net.fc1.getWeights().setContents(fc1weight);
-            Objects.requireNonNull(net.fc1.getBias()).setContents(fc1bias);
-
-            ITensor fc2weight = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.weight_0.bin"));
-            ITensor fc2bias = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.bias_0.bin"));
-            net.fc2.getWeights().setContents(fc2weight);
-            Objects.requireNonNull(net.fc2.getBias()).setContents(fc2bias);
-        }
+//        {
+//            ITensor fc1weight = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.weight_0.bin"));
+//            ITensor fc1bias = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.bias_0.bin"));
+//            net.fc1.getWeights().setContents(fc1weight);
+//            Objects.requireNonNull(net.fc1.getBias()).setContents(fc1bias);
+//
+//            ITensor fc2weight = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.weight_0.bin"));
+//            ITensor fc2bias = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.bias_0.bin"));
+//            net.fc2.getWeights().setContents(fc2weight);
+//            Objects.requireNonNull(net.fc2.getBias()).setContents(fc2bias);
+//        }
 
         long nSteps = 33_000;
         int nTestSteps = 10000;
@@ -204,33 +204,33 @@ public class MNISTTest {
                 ITensor Y = batch.getSecond();
 
                 ITensor Y_pred = net.forward(X);
-                // TODO: INVESTIGATE WHY THIS IS NOT WORKING WHEN USING reduceSum(1)
+
                 ITensor loss = (Y_pred.minus(Y)).pow(2).reduceSum(-1).divide(Y_pred.getNumberOfElements());
                 if (Float.isNaN(loss.elementAsFloat())) {
                     System.out.println("Loss is NaN");
                 }
-                if (step % 100 == 0) {
-                    ITensor actualWeightsFc1 = net.fc1.getWeights();
-                    ITensor actualBiasFc1 = Objects.requireNonNull(net.fc1.getBias());
-                    ITensor expectedWeightsFc1 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.weight_" + step + ".bin"));
-                    ITensor expectedBiasFc1 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.bias_" + step + ".bin"));
-                    ITensor actualWeightsFc2 = net.fc2.getWeights();
-                    ITensor actualBiasFc2 = Objects.requireNonNull(net.fc2.getBias());
-                    ITensor expectedWeightsFc2 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.weight_" + step + ".bin"));
-                    ITensor expectedBiasFc2 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.bias_" + step + ".bin"));
-
-                    ITensor diffWeightsFc1 = actualWeightsFc1.minus(expectedWeightsFc1).reduceSum(-1);
-                    ITensor diffBiasFc1 = actualBiasFc1.minus(expectedBiasFc1).reduceSum(-1);
-                    ITensor diffWeightsFc2 = actualWeightsFc2.minus(expectedWeightsFc2).reduceSum(-1);
-                    ITensor diffBiasFc2 = actualBiasFc2.minus(expectedBiasFc2).reduceSum(-1);
-
-                    System.out.println("Step: " + step);
-                    System.out.println("Loss: " + loss.elementAsFloat());
-                    System.out.println("Diff weights fc1: " + diffWeightsFc1.elementAsFloat());
-                    System.out.println("Diff bias fc1: " + diffBiasFc1.elementAsFloat());
-                    System.out.println("Diff weights fc2: " + diffWeightsFc2.elementAsFloat());
-                    System.out.println("Diff bias fc2: " + diffBiasFc2.elementAsFloat());
-                }
+//                if (step % 100 == 0) {
+//                    ITensor actualWeightsFc1 = net.fc1.getWeights();
+//                    ITensor actualBiasFc1 = Objects.requireNonNull(net.fc1.getBias());
+//                    ITensor expectedWeightsFc1 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.weight_" + step + ".bin"));
+//                    ITensor expectedBiasFc1 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.bias_" + step + ".bin"));
+//                    ITensor actualWeightsFc2 = net.fc2.getWeights();
+//                    ITensor actualBiasFc2 = Objects.requireNonNull(net.fc2.getBias());
+//                    ITensor expectedWeightsFc2 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.weight_" + step + ".bin"));
+//                    ITensor expectedBiasFc2 = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.bias_" + step + ".bin"));
+//
+//                    ITensor diffWeightsFc1 = actualWeightsFc1.minus(expectedWeightsFc1).reduceSum(-1);
+//                    ITensor diffBiasFc1 = actualBiasFc1.minus(expectedBiasFc1).reduceSum(-1);
+//                    ITensor diffWeightsFc2 = actualWeightsFc2.minus(expectedWeightsFc2).reduceSum(-1);
+//                    ITensor diffBiasFc2 = actualBiasFc2.minus(expectedBiasFc2).reduceSum(-1);
+//
+//                    System.out.println("Step: " + step);
+//                    System.out.println("Loss: " + loss.elementAsFloat());
+//                    System.out.println("Diff weights fc1: " + diffWeightsFc1.elementAsFloat());
+//                    System.out.println("Diff bias fc1: " + diffBiasFc1.elementAsFloat());
+//                    System.out.println("Diff weights fc2: " + diffWeightsFc2.elementAsFloat());
+//                    System.out.println("Diff bias fc2: " + diffBiasFc2.elementAsFloat());
+//                }
 //                if (step % 2000 == 0) {
 //                    long nCorrect = 0;
 //                    for (int i = 0; i < nTestSteps; i++) {

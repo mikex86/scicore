@@ -1,68 +1,22 @@
 #include "multiply.h"
-#include "forceinline.h"
-
-template<typename A, typename B>
-FORCE_INLINE void tblas_tensor_gemul_inplace(A *a, B b, size_t n) {
-    for (size_t i = 0; i < n; i++) {
-        a[i] *= b;
-    }
-}
+#include "shapeutils.h"
+#include <cstring>
 
 template<typename A, typename B, typename C>
-FORCE_INLINE void tblas_tensor_gemul(const A *a, B b, C *c, size_t n) {
-    for (size_t i = 0; i < n; i++) {
-        c[i] = a[i] * b;
-    }
+void tblas_multiply(const A *a, const B *b, C *c, size_t *shapeA, size_t *stridesA, size_t nDimsA, size_t *shapeB,
+                    size_t *stridesB, size_t nDimsB,
+                    size_t *shapeC, size_t *, size_t nDimsC) {
+    auto *outputIndex = new size_t[nDimsC];
+    memset(outputIndex, 0, sizeof(size_t) * nDimsC);
+
+    size_t cIndexFlat = 0;
+    do {
+        size_t aIndexFlat = getFlatIndexConstrained(outputIndex, shapeA, stridesA, nDimsA, nDimsC);
+        size_t bIndexFlat = getFlatIndexConstrained(outputIndex, shapeB, stridesB, nDimsB, nDimsC);
+        c[cIndexFlat] = a[aIndexFlat] * b[bIndexFlat];
+        cIndexFlat++;
+    } while (incrementIndex(outputIndex, shapeC, nDimsC));
+    delete[] outputIndex;
 }
 
-template<typename A, typename B, typename C>
-FORCE_INLINE void tblas_tensor_gemul(A a, const B *b, C *c, size_t n) {
-    for (size_t i = 0; i < n; i++) {
-        c[i] = a * b[i];
-    }
-}
-
-template<typename A, typename B>
-FORCE_INLINE void tblas_tensor_gemul_inplace(A *a, const B *b, size_t n) {
-    for (size_t i = 0; i < n; i++) {
-        a[i] *= b[i];
-    }
-}
-
-template<typename A, typename B, typename C>
-FORCE_INLINE void tblas_tensor_gemul(const A *a, const B *b, C *c, size_t n) {
-    for (size_t i = 0; i < n; i++) {
-        c[i] = a[i] * b[i];
-    }
-}
-
-template<typename A, typename B>
-FORCE_INLINE void tblas_tensor_gemul_broadcast_inplace(A *a, const B *b, size_t n, size_t r) {
-    for (size_t i = 0; i < n; i++) {
-        size_t j = i % r;
-        a[i] *= b[j];
-    }
-}
-
-template<typename A, typename B, typename C>
-FORCE_INLINE void tblas_tensor_gemul_broadcast_right(const A *a, const B *b, C *c, size_t na, size_t nb, size_t nc, size_t p) {
-    for (size_t i = 0; i < nc; i++) {
-        size_t aIdx = i % na;
-        size_t bIdx = (i / p) % nb;
-        c[i] = a[aIdx] * b[bIdx];
-    }
-}
-
-template<typename A, typename B, typename C>
-FORCE_INLINE void tblas_tensor_gemul_broadcast_left(const A *a, const B *b, C *c, size_t na, size_t nb, size_t nc, size_t p) {
-    for (size_t i = 0; i < nc; i++) {
-        size_t aIdx = (i / p) % na;
-        size_t bIdx = i % nb;
-        c[i] = a[aIdx] * b[bIdx];
-    }
-}
-
-BINARY_OP_FOR_ALL_TYPES_ALL_VARIANTS_IMPL(mul);
-
-
-#undef FORCE_INLINE
+OPERATION_FOR_ALL_DATA_TYPES_IMPL(tblas_multiply)

@@ -4,8 +4,8 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
-import me.mikex86.scicore.backend.impl.genericcpu.GenCPUTensor;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.MinusJNI;
+import me.mikex86.scicore.backend.impl.genericcpu.jni.PlusJNI;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
@@ -26,35 +26,27 @@ public class GenCPUMinusOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
-
-        long aNumElements = ShapeUtils.getNumElements(shapeA);
-        long bNumElements = ShapeUtils.getNumElements(shapeB);
-
         long[] finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
-        DataType aDataType = a.getDataType();
-        DataType bDataType = b.getDataType();
-        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
 
-        long nResultElements = ShapeUtils.getNumElements(finalShape);
-        GenCPUTensor resultTensor = new GenCPUTensor(this.backend, resultDataType, finalShape);
+        long[] stridesA = a.getStrides();
+        long[] stridesB = b.getStrides();
 
-        DirectMemoryHandle aMemory = backend.getMemoryManager().ensureDirect(a);
-        DirectMemoryHandle bMemory = backend.getMemoryManager().ensureDirect(b);
-        DirectMemoryHandle resultMemory = resultTensor.getDataContainer().getMemoryHandle();
+        DataType ownDataType = a.getDataType();
+        DataType otherDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
+        ITensor result = backend.createTensor(resultDataType, finalShape);
+        long[] resultStrides = result.getStrides();
+
+        DirectMemoryHandle aMemoryHandle = a.getContentsAsDirectMemory();
+        DirectMemoryHandle bMemoryHandle = b.getContentsAsDirectMemory();
+        DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
 
         MinusJNI.minus(
-                aMemory.getNativePtr(),
-                aDataType,
-                aNumElements,
-                bMemory.getNativePtr(),
-                bDataType,
-                bNumElements,
-                resultMemory.getNativePtr(),
-                nResultElements,
-                resultDataType
-        );
+                aMemoryHandle.getNativePtr(), shapeA, stridesA, a.getDataType(),
+                bMemoryHandle.getNativePtr(), shapeB, stridesB, b.getDataType(),
+                resultMemoryHandle.getNativePtr(), finalShape, resultStrides, result.getDataType());
 
-        return resultTensor;
+        return result;
     }
 
     @Override
@@ -65,7 +57,6 @@ public class GenCPUMinusOp implements IDifferentiableBinaryOperation {
         if (!ShapeUtils.equals(shapeA, shapeB)) {
             finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
         }
-
         DataType dataTypeA = a.getDataType();
         DataType dataTypeB = b.getDataType();
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
@@ -73,7 +64,7 @@ public class GenCPUMinusOp implements IDifferentiableBinaryOperation {
     }
 
     @Override
-    public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, IGraph.@NotNull ITensorNodeWithGradient a, IGraph.@NotNull ITensorNodeWithGradient b) {
+    public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
         // Note that the upstream gradient dL/dz where z is the output of the current node
         // is with respect to all parameters a(p11,p12,...p1n) and b(p21,p22,...p2n) where a and b are the
         // inputs to the current node.
@@ -98,11 +89,13 @@ public class GenCPUMinusOp implements IDifferentiableBinaryOperation {
 
             a.accumulateGradient(gradients);
         }
+
         if (b.requiresGradients()) {
             ITensor bValue = b.getValue();
 
             long[] shapeB = bValue.getShape();
-            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), b.getValue().getShape());
+
+            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), shapeB);
             gradients.fill(-1);
             gradients = gradients.multiply(upstreamGradient);
 

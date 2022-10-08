@@ -915,6 +915,34 @@ class TensorTest {
         Assertions.assertArrayEquals(shape, ndArray.getShape());
     }
 
+    @NotNull
+    static Stream<Object> testCreateInvalidNdArrayShapeData() {
+        return Stream.of(
+                new byte[][]{{1, 2}, {3}},
+                new byte[][]{{1, 2}, {3, 4, 5}},
+                new byte[][]{{1, 2}, {3, 4}, {5, 6, 7}},
+                new byte[][]{{1, 2}, {3, 4}, {5, 6}, {7, 8, 9}},
+                new short[][]{{1, 2}, {3}},
+                new short[][]{{1, 2}, {3, 4, 5}},
+                new short[][]{{1, 2}, {3, 4}, {5, 6, 7}},
+                new short[][]{{1, 2}, {3, 4}, {5, 6}, {7, 8, 9}},
+                new float[][]{{1, 2}, {3}},
+                new float[][]{{1, 2}, {3, 4, 5}},
+                new float[][]{{1, 2}, {3, 4}, {5, 6, 7}},
+                new float[][]{{1, 2}, {3, 4}, {5, 6}, {7, 8, 9}},
+                new double[][]{{1, 2}, {3}},
+                new double[][]{{1, 2}, {3, 4, 5}},
+                new double[][]{{1, 2}, {3, 4}, {5, 6, 7}},
+                new double[][]{{1, 2}, {3, 4}, {5, 6}, {7, 8, 9}}
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("testCreateInvalidNdArrayShapeData")
+    void testCreateInvalidNdArray_failure(Object javaArray) {
+        assertThrows(IllegalArgumentException.class, () -> sciCore.ndarray(javaArray));
+    }
+
     @Test
     void copy() {
         ITensor array = sciCore.array(new float[]{1.0f, 2.0f, 3.0f, 4.0f});
@@ -1377,10 +1405,10 @@ class TensorTest {
                     {{34.0f, 36.0f, 38.0f, 40.0f}, {36.0f, 38.0f, 40.0f, 42.0f}, {38.0f, 40.0f, 42.0f, 44.0f}}});
             ITensor sum = ndarray.reduceSum(-1);
             assertEquals(sciCore.scalar(10.0f + 12.0f + 14.0f + 16.0f + 12.0f + 14.0f + 16.0f + 18.0f + 14.0f + 16.0f + 18.0f + 20.0f
-                    + 16.0f + 18.0f + 20.0f + 22.0f + 18.0f + 20.0f + 22.0f + 24.0f + 20.0f + 22.0f + 24.0f + 26.0f
-                    + 22.0f + 24.0f + 26.0f + 28.0f + 24.0f + 26.0f + 28.0f + 30.0f + 26.0f + 28.0f + 30.0f + 32.0f
-                    + 28.0f + 30.0f + 32.0f + 34.0f + 30.0f + 32.0f + 34.0f + 36.0f + 32.0f + 34.0f + 36.0f + 38.0f
-                    + 34.0f + 36.0f + 38.0f + 40.0f + 36.0f + 38.0f + 40.0f + 42.0f + 38.0f + 40.0f + 42.0f + 44.0f), sum);
+                                        + 16.0f + 18.0f + 20.0f + 22.0f + 18.0f + 20.0f + 22.0f + 24.0f + 20.0f + 22.0f + 24.0f + 26.0f
+                                        + 22.0f + 24.0f + 26.0f + 28.0f + 24.0f + 26.0f + 28.0f + 30.0f + 26.0f + 28.0f + 30.0f + 32.0f
+                                        + 28.0f + 30.0f + 32.0f + 34.0f + 30.0f + 32.0f + 34.0f + 36.0f + 32.0f + 34.0f + 36.0f + 38.0f
+                                        + 34.0f + 36.0f + 38.0f + 40.0f + 36.0f + 38.0f + 40.0f + 42.0f + 38.0f + 40.0f + 42.0f + 44.0f), sum);
         }
 
         @Test
@@ -1394,10 +1422,10 @@ class TensorTest {
             ITensor sum = ndarray.reduceSum(-1, true);
             assertEquals(sciCore.ndarray(new float[][][]{{{
                     10.0f + 12.0f + 14.0f + 16.0f + 12.0f + 14.0f + 16.0f + 18.0f + 14.0f + 16.0f + 18.0f + 20.0f +
-                            16.0f + 18.0f + 20.0f + 22.0f + 18.0f + 20.0f + 22.0f + 24.0f + 20.0f + 22.0f + 24.0f + 26.0f +
-                            22.0f + 24.0f + 26.0f + 28.0f + 24.0f + 26.0f + 28.0f + 30.0f + 26.0f + 28.0f + 30.0f + 32.0f +
-                            28.0f + 30.0f + 32.0f + 34.0f + 30.0f + 32.0f + 34.0f + 36.0f + 32.0f + 34.0f + 36.0f + 38.0f +
-                            34.0f + 36.0f + 38.0f + 40.0f + 36.0f + 38.0f + 40.0f + 42.0f + 38.0f + 40.0f + 42.0f + 44.0f}}}), sum);
+                    16.0f + 18.0f + 20.0f + 22.0f + 18.0f + 20.0f + 22.0f + 24.0f + 20.0f + 22.0f + 24.0f + 26.0f +
+                    22.0f + 24.0f + 26.0f + 28.0f + 24.0f + 26.0f + 28.0f + 30.0f + 26.0f + 28.0f + 30.0f + 32.0f +
+                    28.0f + 30.0f + 32.0f + 34.0f + 30.0f + 32.0f + 34.0f + 36.0f + 32.0f + 34.0f + 36.0f + 38.0f +
+                    34.0f + 36.0f + 38.0f + 40.0f + 36.0f + 38.0f + 40.0f + 42.0f + 38.0f + 40.0f + 42.0f + 44.0f}}}), sum);
         }
 
         @Test
@@ -1508,7 +1536,7 @@ class TensorTest {
     class Plus {
 
         @Test
-        void plus_test_1x1_plus_1x1() {
+        void plus_test_1x1by1x1_success() {
             ITensor a = sciCore.matrix(new float[][]{{1.0f}});
             ITensor b = sciCore.matrix(new float[][]{{2.0f}});
             ITensor result = a.plus(b);
@@ -1516,7 +1544,7 @@ class TensorTest {
         }
 
         @Test
-        void plus_test_2x2by2x1_broadcast () {
+        void plus_test_2x2by2x1_broadcast_success() {
             ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
             ITensor b = sciCore.matrix(new float[][]{{5}, {6}});
             ITensor result = a.plus(b);
@@ -1524,7 +1552,7 @@ class TensorTest {
         }
 
         @Test
-        void plus_test_2x2by2x1x1_broadcast() {
+        void plus_test_2x2by2x1x1_broadcast_success() {
             ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
             ITensor b = sciCore.ndarray(new float[][][]{{{5}}, {{6}}});
             ITensor result = a.plus(b);
@@ -1532,7 +1560,7 @@ class TensorTest {
         }
 
         @Test
-        void plus_test_2x2x1x1_broadcast() {
+        void plus_test_2by2x1x1_broadcast_success() {
             ITensor a = sciCore.array(new float[]{1, 2});
             ITensor b = sciCore.ndarray(new float[][][]{{{5}}, {{6}}});
             ITensor result = a.plus(b);
@@ -1540,17 +1568,25 @@ class TensorTest {
         }
 
         @Test
-        void plus_test_2x2by1x1x2_broadcast() {
+        void plus_test_2x2by2x1x2_broadcast_success() {
             ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
-            ITensor b = sciCore.ndarray(new float[][][]{{{5, 6}}, {{7, 8}}});
+            ITensor b = sciCore.ndarray(new float[][][]{{{6, 8}}, {{11, 13}}});
             ITensor result = a.plus(b);
             assertEquals(sciCore.ndarray(new float[][][]{
-                    {{6, 8}, {8, 10}},
-                    {{8, 10}, {10, 12}}}), result);
+                    {{7, 10}, {9, 12}},
+                    {{12, 15}, {14, 17}}}), result);
         }
 
         @Test
-        void plus_tensor_2x3by1x2x1_broadcast() {
+        void plus_test_2x3by2x1x2x1x3_broadcast_success() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
+            ITensor b = sciCore.ndarray(new float[][][][][]{{{{{7, 11, 15}}, {{16, 19, 20}}}}, {{{{21, 22, 24}}, {{27, 28, 30}}}}});
+            ITensor result = a.plus(b);
+            assertEquals(sciCore.ndarray(new float[][][][][]{{{{{8, 13, 18}, {11, 16, 21}}, {{17, 21, 23}, {20, 24, 26}}}}, {{{{22, 24, 27}, {25, 27, 30}}, {{28, 30, 33}, {31, 33, 36}}}}}), result);
+        }
+
+        @Test
+        void plus_tensor_2x3by1x2x1_broadcast_success() {
             ITensor a = sciCore.matrix(new float[][]{{1, 2, 3}, {4, 5, 6}});
             ITensor b = sciCore.ndarray(new float[][][]{{{5}, {6}}});
             ITensor result = a.plus(b);
@@ -1560,7 +1596,7 @@ class TensorTest {
         }
 
         @Test
-        void plus_test_3x2_plus_1x1() {
+        void plus_test_3x2by1x1_success() {
             ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}});
             ITensor b = sciCore.matrix(new float[][]{{2.0f}});
             ITensor result = a.plus(b);
@@ -1568,7 +1604,7 @@ class TensorTest {
         }
 
         @Test
-        void plus_test_5x3x2_plus_3x2_2dBroadcast() {
+        void plus_test_5x3x2by3x2_2d_broadcast_success() {
             // (5, 3, 2) + (3, 2) = (5, 3, 2)
             ITensor a = sciCore.ndarray(new float[][][]{
                     {{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}},
@@ -1588,7 +1624,7 @@ class TensorTest {
         }
 
         @Test
-        void plus_test_2x3x4_plus_3x3x4_broadcastImpossible_failure() {
+        void plus_test_2x3x4by3x3x4_broadcastImpossible_failure() {
             // (2, 3, 4) + (3, 3, 4)
             ITensor a = sciCore.ndarray(new float[][][]{
                     {{1.0f, 2.0f, 3.0f, 4.0f}, {5.0f, 6.0f, 7.0f, 8.0f}, {9.0f, 10.0f, 11.0f, 12.0f}},
@@ -1601,7 +1637,7 @@ class TensorTest {
         }
 
         @Test
-        void plus_test_3d_plus_3d_broadcast_firstDimIsOne() {
+        void plus_test_3dby3d_broadcast_firstDimIsOne_success() {
             // (2, 3, 2) + (1, 3, 2) = (2, 3, 2)
             ITensor a = sciCore.ndarray(new float[][][]{
                     {{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}},
@@ -1620,7 +1656,7 @@ class TensorTest {
     @Nested
     class MinusTest {
         @Test
-        void minus_test_1x1_minus_1x1() {
+        void minus_test_1x1by1x1_success() {
             ITensor a = sciCore.matrix(new float[][]{{1.0f}});
             ITensor b = sciCore.matrix(new float[][]{{2.0f}});
             ITensor result = a.minus(b);
@@ -1628,7 +1664,7 @@ class TensorTest {
         }
 
         @Test
-        void minus_test_2x2_Minus_2x2() {
+        void minus_test_2x2by2x2_success() {
             ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f}, {3.0f, 4.0f}});
             ITensor b = sciCore.matrix(new float[][]{{2.0f, 3.0f}, {4.0f, 5.0f}});
             ITensor result = a.minus(b);
@@ -1636,7 +1672,7 @@ class TensorTest {
         }
 
         @Test
-        void minus_test_2x2by2x1() {
+        void minus_test_2x2by2x1_success() {
             ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
             ITensor b = sciCore.matrix(new float[][]{{5}, {6}});
             ITensor result = a.minus(b);
@@ -1644,7 +1680,7 @@ class TensorTest {
         }
 
         @Test
-        void minus_test_2x2by2() {
+        void minus_test_2x2by2_success() {
             ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}});
             ITensor b = sciCore.ndarray(new float[]{5, 6});
             ITensor result = a.minus(b);
@@ -1652,7 +1688,7 @@ class TensorTest {
         }
 
         @Test
-        void minus_test_5x3x2_minus_3x2_2dBroadcast() {
+        void minus_test_5x3x2by3x2_2d_broadcast_success() {
             // (5, 3, 2) - (3, 2) = (5, 3, 2)
             ITensor a = sciCore.ndarray(new float[][][]{
                     {{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}},
@@ -1672,7 +1708,7 @@ class TensorTest {
         }
 
         @Test
-        void minus_test_2x3x4_minus_3x3x4_broadcastImpossible_failure() {
+        void minus_test_2x3x4by3x3x4_broadcastImpossible_failure() {
             // (2, 3, 4) - (3, 3, 4)
             ITensor a = sciCore.ndarray(new float[][][]{
                     {{1.0f, 2.0f, 3.0f, 4.0f}, {5.0f, 6.0f, 7.0f, 8.0f}, {9.0f, 10.0f, 11.0f, 12.0f}},
@@ -1685,7 +1721,7 @@ class TensorTest {
         }
 
         @Test
-        void minus_test_3d_minus_3d_broadcast_firstDimIsOne() {
+        void minus_test_3d_minus_3d_broadcast_firstDimIsOne_success() {
             // (2, 3, 2) - (1, 3, 2) = (2, 3, 2)
             ITensor a = sciCore.ndarray(new float[][][]{
                     {{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}},
@@ -1724,7 +1760,7 @@ class TensorTest {
         @Test
         void multiply_test_tensorByScalar_success() {
             ITensor a = sciCore.matrix(new float[][]{{2, 3}});
-            ITensor b = sciCore.scalar(10);
+            ITensor b = sciCore.scalar(10f);
 
             ITensor c = a.multiply(b);
             assertEquals(20, c.getFloat(0, 0), EPSILON);
@@ -1751,6 +1787,127 @@ class TensorTest {
                     {{8.0f, 18.0f}, {30.0f, 44.0f}}
             }), c);
         }
+
+        @Test
+        void multiply_test_1x1by1x1_success() {
+            ITensor a = sciCore.matrix(new float[][]{{1.0f}});
+            ITensor b = sciCore.matrix(new float[][]{{2.0f}});
+            ITensor c = a.multiply(b);
+            assertEquals(sciCore.matrix(new float[][]{{2.0f}}), c);
+        }
+
+        @Test
+        void multiply_test_2x2by2x1_broadcast_success() {
+            ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f}, {3.0f, 4.0f}});
+            ITensor b = sciCore.matrix(new float[][]{{2.0f}, {3.0f}});
+            ITensor result = a.multiply(b);
+            assertEquals(sciCore.matrix(new float[][]{{2, 4}, {9, 12}}), result);
+        }
+
+        @Test
+        void multiply_test_2x2by2x1x1_broadcast_success() {
+            ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f}, {3.0f, 4.0f}});
+            ITensor b = sciCore.ndarray(new float[][][]{{{2.0f}}, {{3.0f}}});
+            ITensor result = a.multiply(b);
+            assertEquals(sciCore.ndarray(new float[][][]{{{2, 4}, {6, 8}}, {{3, 6}, {9, 12}}}), result);
+        }
+
+        @Test
+        void multiply_test_1x2x2by2x1x1_broadcast_success() {
+            ITensor a = sciCore.ndarray(new float[][][]{{{1.0f, 2.0f}}, {{3.0f, 4.0f}}});
+            ITensor b = sciCore.ndarray(new float[][][]{{{2.0f}}, {{3.0f}}});
+            ITensor result = a.multiply(b);
+            assertEquals(sciCore.ndarray(new float[][][]{{{2, 4}}, {{9, 12}}}), result);
+        }
+
+        @Test
+        void plus_test_2by2x1x1_broadcast_success() {
+            ITensor a = sciCore.array(new float[]{1.0f, 2.0f});
+            ITensor b = sciCore.ndarray(new float[][][]{{{2.0f}}, {{3.0f}}});
+            ITensor result = a.multiply(b);
+            assertEquals(sciCore.ndarray(new float[][][]{{{2, 4}}, {{3, 6}}}), result);
+        }
+
+        @Test
+        void multiply_test_2x2by2x1x2_broadcast_success() {
+            ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f}, {3.0f, 4.0f}});
+            ITensor b = sciCore.ndarray(new float[][][]{{{2.0f, 3.0f}}, {{3.0f, 4.0f}}});
+            ITensor result = a.multiply(b);
+            assertEquals(sciCore.ndarray(new float[][][]{{{2.0f, 6.0f}, {6.0f, 12.0f}}, {{3.0f, 8.0f}, {9.0f, 16.0f}}}), result);
+        }
+
+        @Test
+        void multiply_test_2x3by2x1x2x1x3_broadcast_success() {
+            ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}});
+            ITensor b = sciCore.ndarray(new float[][][][][]{{{{{7, 11, 15}}, {{16, 19, 20}}}}, {{{{21, 22, 24}}, {{27, 28, 30}}}}});
+            ITensor result = a.multiply(b);
+            assertEquals(sciCore.ndarray(new float[][][][][]{{{{{7.0f, 22.0f, 45.0f}, {28.0f, 55.0f, 90.0f}}, {{16.0f, 38.0f, 60.0f}, {64.0f, 95.0f, 120.0f}}}}, {{{{21.0f, 44.0f, 72.0f}, {84.0f, 110.0f, 144.0f}}, {{27.0f, 56.0f, 90.0f}, {108.0f, 140.0f, 180.0f}}}}}), result);
+        }
+
+        @Test
+        void multiply_tensor_2x3by1x2x1_broadcast_success() {
+            ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}});
+            ITensor b = sciCore.ndarray(new float[][][]{{{5}, {6}}});
+            ITensor result = a.multiply(b);
+            assertEquals(sciCore.ndarray(new float[][][]{{{5.0f, 10.0f, 15.0f}, {24.0f, 30.0f, 36.0f}}}), result);
+        }
+
+        @Test
+        void multiply_test_3x2by1x1_success() {
+            ITensor a = sciCore.matrix(new float[][]{{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}});
+            ITensor b = sciCore.matrix(new float[][]{{7.0f}});
+            ITensor result = a.multiply(b);
+            assertEquals(sciCore.matrix(new float[][]{{7.0f, 14.0f}, {21.0f, 28.0f}, {35.0f, 42.0f}}), result);
+        }
+
+        @Test
+        void multiply_test_5x3x2by3x2_2d_broadcast_success() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}},
+                    {{7.0f, 8.0f}, {9.0f, 10.0f}, {11.0f, 12.0f}},
+                    {{13.0f, 14.0f}, {15.0f, 16.0f}, {17.0f, 18.0f}},
+                    {{19.0f, 20.0f}, {21.0f, 22.0f}, {23.0f, 24.0f}},
+                    {{25.0f, 26.0f}, {27.0f, 28.0f}, {29.0f, 30.0f}}
+            });
+            ITensor b = sciCore.ndarray(new float[][]{{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}});
+            ITensor c = a.multiply(b);
+            assertEquals(sciCore.ndarray(new float[][][]{
+                    {{1.0f, 4.0f}, {9.0f, 16.0f}, {25.0f, 36.0f}},
+                    {{7.0f, 16.0f}, {27.0f, 40.0f}, {55.0f, 72.0f}},
+                    {{13.0f, 28.0f}, {45.0f, 64.0f}, {85.0f, 108.0f}},
+                    {{19.0f, 40.0f}, {63.0f, 88.0f}, {115.0f, 144.0f}},
+                    {{25.0f, 52.0f}, {81.0f, 112.0f}, {145.0f, 180.0f}}
+            }), c);
+        }
+
+        @Test
+        void multiply_test_2x3x4by3x3x4_broadcastImpossible_failure() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{1.0f, 2.0f, 3.0f, 4.0f}, {5.0f, 6.0f, 7.0f, 8.0f}, {9.0f, 10.0f, 11.0f, 12.0f}},
+                    {{13.0f, 14.0f, 15.0f, 16.0f}, {17.0f, 18.0f, 19.0f, 20.0f}, {21.0f, 22.0f, 23.0f, 24.0f}}});
+            ITensor b = sciCore.ndarray(new float[][][]{
+                    {{1.0f, 2.0f, 3.0f, 4.0f}, {5.0f, 6.0f, 7.0f, 8.0f}, {9.0f, 10.0f, 11.0f, 12.0f}},
+                    {{13.0f, 14.0f, 15.0f, 16.0f}, {17.0f, 18.0f, 19.0f, 20.0f}, {21.0f, 22.0f, 23.0f, 24.0f}},
+                    {{25.0f, 26.0f, 27.0f, 28.0f}, {29.0f, 30.0f, 31.0f, 32.0f}, {33.0f, 34.0f, 35.0f, 36.0f}}});
+            assertThrows(IllegalArgumentException.class, () -> a.multiply(b));
+        }
+
+        @Test
+        void multiply_test_3dby3d_broadcast_firstDimIsOne_success() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}},
+                    {{7.0f, 8.0f}, {9.0f, 10.0f}, {11.0f, 12.0f}},
+            });
+            ITensor b = sciCore.ndarray(new float[][][]{
+                    {{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}},
+            });
+            ITensor c = a.multiply(b);
+            assertEquals(sciCore.ndarray(new float[][][]{
+                    {{1.0f, 4.0f}, {9.0f, 16.0f}, {25.0f, 36.0f}},
+                    {{7.0f, 16.0f}, {27.0f, 40.0f}, {55.0f, 72.0f}}
+            }), c);
+        }
+
     }
 
 

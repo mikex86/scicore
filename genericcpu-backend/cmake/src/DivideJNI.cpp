@@ -1,57 +1,13 @@
 #include "DivideJNI.h"
-#include "divide.h"
 #include "jnihelper.h"
+#include <divide.h>
+#include <cstdint>
 
-static void throwDivideByZeroException(JNIEnv * jniEnv) {
-    jclass exceptionClass = jniEnv->FindClass("java/lang/ArithmeticException");
-    jniEnv->ThrowNew(exceptionClass, "Divide by zero");
-}
+#define DATA_TYPE_INT8 1
+#define DATA_TYPE_INT16 2
+#define DATA_TYPE_INT32 3
+#define DATA_TYPE_INT64 4
+#define DATA_TYPE_FLOAT 5
+#define DATA_TYPE_DOUBLE 6
 
-BINARY_OP_JNI_WRAPPER_FUNC_FOR_ALL_TYPES_ALL_VARIANTS(Java_me_mikex86_scicore_backend_impl_genericcpu_jni_DivideJNI_ndivide, divide, {
-    switch (bDataType) {
-        case DATA_TYPE_INT8: {
-            auto *b = (int8_t *) bPtr;
-            for (int i = 0; i < nElementsB; i++) {
-                if (b[i] == 0) {
-                    throwDivideByZeroException(jniEnv);
-                    return;
-                }
-            }
-            break;
-        }
-        case DATA_TYPE_INT16: {
-            auto *b = (int16_t *) bPtr;
-            for (int i = 0; i < nElementsB; i++) {
-                if (b[i] == 0) {
-                    throwDivideByZeroException(jniEnv);
-                    return;
-                }
-            }
-            break;
-        }
-        case DATA_TYPE_INT32: {
-            auto *b = (int32_t *) bPtr;
-            for (int i = 0; i < nElementsB; i++) {
-                if (b[i] == 0) {
-                    throwDivideByZeroException(jniEnv);
-                    return;
-                }
-            }
-            break;
-        }
-        case DATA_TYPE_INT64: {
-            auto *b = (int64_t *) bPtr;
-            for (int i = 0; i < nElementsB; i++) {
-                if (b[i] == 0) {
-                    throwDivideByZeroException(jniEnv);
-                    return;
-                }
-            }
-            break;
-        }
-        default: {
-            break;
-        }
-        // Allowed for floats
-    }
-});
+OPERATION_JNI_WRAPPER(Java_me_mikex86_scicore_backend_impl_genericcpu_jni_DivideJNI_ndivide, tblas_divide)

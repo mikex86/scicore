@@ -29,12 +29,12 @@ public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
 
         long[] stridesA = a.getStrides();
         long[] stridesB = b.getStrides();
-        long[] stridesOut = ShapeUtils.makeStrides(finalShape);
 
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
         ITensor result = backend.createTensor(resultDataType, finalShape);
+        long[] resultStrides = result.getStrides();
 
         long[] outputIndex = new long[finalShape.length];
         long[] indexA = new long[shapeA.length];
@@ -52,7 +52,7 @@ public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
             ShapeUtils.constrainIndex(indexA, shapeA);
             ShapeUtils.constrainIndex(indexB, shapeB);
 
-            long outputIndexFlat = ShapeUtils.getFlatIndex(outputIndex, stridesOut);
+            long outputIndexFlat = ShapeUtils.getFlatIndex(outputIndex, resultStrides);
             long indexAFlat = ShapeUtils.getFlatIndex(indexA, stridesA);
             long indexBFlat = ShapeUtils.getFlatIndex(indexB, stridesB);
 

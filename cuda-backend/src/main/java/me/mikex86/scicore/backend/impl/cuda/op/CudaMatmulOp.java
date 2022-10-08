@@ -77,9 +77,6 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         CudaTensor result = new CudaTensor(this.backend, resultDataType, resultShape);
         CudaMemoryHandle resultMemoryHandle = result.getDataContainer().getDeviceMemoryHandle();
 
-
-        // TODO: CHECK IF SHAPE FITS INTO INT32
-
         int m = Math.toIntExact(opShapeA[0]),
                 n = Math.toIntExact(opShapeB[1]),
                 k = Math.toIntExact(opShapeA[1]);

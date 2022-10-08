@@ -1,602 +1,90 @@
 #pragma once
 
 #include <jni.h>
-#include <algorithm>
 
-#define DATA_TYPE_INT8 1
-#define DATA_TYPE_INT16 2
-#define DATA_TYPE_INT32 3
-#define DATA_TYPE_INT64 4
-#define DATA_TYPE_FLOAT32 5
-#define DATA_TYPE_FLOAT64 6
-
-
-#define BINARY_OP_JNI_WRAPPER_FUNC_FOR_ALL_TYPES_ALL_VARIANTS(java_func_name, op_name, validation_code) \
-JNIEXPORT void JNICALL java_func_name(JNIEnv *jniEnv, jclass, jlong aPtr, jint aDataType, jlong nElementsA, jlong bPtr, jint bDataType, jlong nElementsB, jlong cPtr, jlong nElementsC) { \
-    validation_code\
-    try {                                                                              \
-        if (aDataType == DATA_TYPE_INT8 && bDataType == DATA_TYPE_INT8) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_bb##op_name((int8_t *) aPtr, *(int8_t *) bPtr, (int8_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_bb##op_name(*(int8_t *) aPtr, (int8_t *) bPtr, (int8_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_bb##op_name((int8_t *) aPtr, (int8_t *) bPtr, (int8_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_bb##op_name##_broadcast_right((int8_t *) aPtr, (int8_t *) bPtr, (int8_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_bb##op_name##_broadcast_left((int8_t *) aPtr, (int8_t *) bPtr, (int8_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT8 && bDataType == DATA_TYPE_INT16) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_bs##op_name((int8_t *) aPtr, *(int16_t *) bPtr, (int16_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_bs##op_name(*(int8_t *) aPtr, (int16_t *) bPtr, (int16_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_bs##op_name((int8_t *) aPtr, (int16_t *) bPtr, (int16_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_bs##op_name##_broadcast_right((int8_t *) aPtr, (int16_t *) bPtr, (int16_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_bs##op_name##_broadcast_left((int8_t *) aPtr, (int16_t *) bPtr, (int16_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT8 && bDataType == DATA_TYPE_INT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_bi##op_name((int8_t *) aPtr, *(int32_t *) bPtr, (int32_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_bi##op_name(*(int8_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_bi##op_name((int8_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_bi##op_name##_broadcast_right((int8_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_bi##op_name##_broadcast_left((int8_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT8 && bDataType == DATA_TYPE_INT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_bl##op_name((int8_t *) aPtr, *(int64_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_bl##op_name(*(int8_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_bl##op_name((int8_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_bl##op_name##_broadcast_right((int8_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_bl##op_name##_broadcast_left((int8_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT8 && bDataType == DATA_TYPE_FLOAT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_bf##op_name((int8_t *) aPtr, *(float *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_bf##op_name(*(int8_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_bf##op_name((int8_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_bf##op_name##_broadcast_right((int8_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_bf##op_name##_broadcast_left((int8_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT8 && bDataType == DATA_TYPE_FLOAT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_bd##op_name((int8_t *) aPtr, *(double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_bd##op_name(*(int8_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_bd##op_name((int8_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_bd##op_name##_broadcast_right((int8_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_bd##op_name##_broadcast_left((int8_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT16 && bDataType == DATA_TYPE_INT8) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_sb##op_name((int16_t *) aPtr, *(int8_t *) bPtr, (int16_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_sb##op_name(*(int16_t *) aPtr, (int8_t *) bPtr, (int16_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_sb##op_name((int16_t *) aPtr, (int8_t *) bPtr, (int16_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_sb##op_name##_broadcast_right((int16_t *) aPtr, (int8_t *) bPtr, (int16_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_sb##op_name##_broadcast_left((int16_t *) aPtr, (int8_t *) bPtr, (int16_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT16 && bDataType == DATA_TYPE_INT16) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_ss##op_name((int16_t *) aPtr, *(int16_t *) bPtr, (int16_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_ss##op_name(*(int16_t *) aPtr, (int16_t *) bPtr, (int16_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_ss##op_name((int16_t *) aPtr, (int16_t *) bPtr, (int16_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_ss##op_name##_broadcast_right((int16_t *) aPtr, (int16_t *) bPtr, (int16_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_ss##op_name##_broadcast_left((int16_t *) aPtr, (int16_t *) bPtr, (int16_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT16 && bDataType == DATA_TYPE_INT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_si##op_name((int16_t *) aPtr, *(int32_t *) bPtr, (int32_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_si##op_name(*(int16_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_si##op_name((int16_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_si##op_name##_broadcast_right((int16_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_si##op_name##_broadcast_left((int16_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT16 && bDataType == DATA_TYPE_INT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_sl##op_name((int16_t *) aPtr, *(int64_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_sl##op_name(*(int16_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_sl##op_name((int16_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_sl##op_name##_broadcast_right((int16_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_sl##op_name##_broadcast_left((int16_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT16 && bDataType == DATA_TYPE_FLOAT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_sf##op_name((int16_t *) aPtr, *(float *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_sf##op_name(*(int16_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_sf##op_name((int16_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_sf##op_name##_broadcast_right((int16_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_sf##op_name##_broadcast_left((int16_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT16 && bDataType == DATA_TYPE_FLOAT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_sd##op_name((int16_t *) aPtr, *(double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_sd##op_name(*(int16_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_sd##op_name((int16_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_sd##op_name##_broadcast_right((int16_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_sd##op_name##_broadcast_left((int16_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT32 && bDataType == DATA_TYPE_INT8) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_ib##op_name((int32_t *) aPtr, *(int8_t *) bPtr, (int32_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_ib##op_name(*(int32_t *) aPtr, (int8_t *) bPtr, (int32_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_ib##op_name((int32_t *) aPtr, (int8_t *) bPtr, (int32_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_ib##op_name##_broadcast_right((int32_t *) aPtr, (int8_t *) bPtr, (int32_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_ib##op_name##_broadcast_left((int32_t *) aPtr, (int8_t *) bPtr, (int32_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT32 && bDataType == DATA_TYPE_INT16) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_is##op_name((int32_t *) aPtr, *(int16_t *) bPtr, (int32_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_is##op_name(*(int32_t *) aPtr, (int16_t *) bPtr, (int32_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_is##op_name((int32_t *) aPtr, (int16_t *) bPtr, (int32_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_is##op_name##_broadcast_right((int32_t *) aPtr, (int16_t *) bPtr, (int32_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_is##op_name##_broadcast_left((int32_t *) aPtr, (int16_t *) bPtr, (int32_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT32 && bDataType == DATA_TYPE_INT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_ii##op_name((int32_t *) aPtr, *(int32_t *) bPtr, (int32_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_ii##op_name(*(int32_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_ii##op_name((int32_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_ii##op_name##_broadcast_right((int32_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_ii##op_name##_broadcast_left((int32_t *) aPtr, (int32_t *) bPtr, (int32_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT32 && bDataType == DATA_TYPE_INT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_il##op_name((int32_t *) aPtr, *(int64_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_il##op_name(*(int32_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_il##op_name((int32_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_il##op_name##_broadcast_right((int32_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_il##op_name##_broadcast_left((int32_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT32 && bDataType == DATA_TYPE_FLOAT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_if##op_name((int32_t *) aPtr, *(float *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_if##op_name(*(int32_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_if##op_name((int32_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_if##op_name##_broadcast_right((int32_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_if##op_name##_broadcast_left((int32_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT32 && bDataType == DATA_TYPE_FLOAT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_id##op_name((int32_t *) aPtr, *(double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_id##op_name(*(int32_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_id##op_name((int32_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_id##op_name##_broadcast_right((int32_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_id##op_name##_broadcast_left((int32_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT64 && bDataType == DATA_TYPE_INT8) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_lb##op_name((int64_t *) aPtr, *(int8_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_lb##op_name(*(int64_t *) aPtr, (int8_t *) bPtr, (int64_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_lb##op_name((int64_t *) aPtr, (int8_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_lb##op_name##_broadcast_right((int64_t *) aPtr, (int8_t *) bPtr, (int64_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_lb##op_name##_broadcast_left((int64_t *) aPtr, (int8_t *) bPtr, (int64_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT64 && bDataType == DATA_TYPE_INT16) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_ls##op_name((int64_t *) aPtr, *(int16_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_ls##op_name(*(int64_t *) aPtr, (int16_t *) bPtr, (int64_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_ls##op_name((int64_t *) aPtr, (int16_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_ls##op_name##_broadcast_right((int64_t *) aPtr, (int16_t *) bPtr, (int64_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_ls##op_name##_broadcast_left((int64_t *) aPtr, (int16_t *) bPtr, (int64_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT64 && bDataType == DATA_TYPE_INT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_li##op_name((int64_t *) aPtr, *(int32_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_li##op_name(*(int64_t *) aPtr, (int32_t *) bPtr, (int64_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_li##op_name((int64_t *) aPtr, (int32_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_li##op_name##_broadcast_right((int64_t *) aPtr, (int32_t *) bPtr, (int64_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_li##op_name##_broadcast_left((int64_t *) aPtr, (int32_t *) bPtr, (int64_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT64 && bDataType == DATA_TYPE_INT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_ll##op_name((int64_t *) aPtr, *(int64_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_ll##op_name(*(int64_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_ll##op_name((int64_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_ll##op_name##_broadcast_right((int64_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_ll##op_name##_broadcast_left((int64_t *) aPtr, (int64_t *) bPtr, (int64_t *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT64 && bDataType == DATA_TYPE_FLOAT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_lf##op_name((int64_t *) aPtr, *(float *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_lf##op_name(*(int64_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_lf##op_name((int64_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_lf##op_name##_broadcast_right((int64_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_lf##op_name##_broadcast_left((int64_t *) aPtr, (float *) bPtr, (float *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_INT64 && bDataType == DATA_TYPE_FLOAT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_ld##op_name((int64_t *) aPtr, *(double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_ld##op_name(*(int64_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_ld##op_name((int64_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_ld##op_name##_broadcast_right((int64_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_ld##op_name##_broadcast_left((int64_t *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT32 && bDataType == DATA_TYPE_INT8) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_fb##op_name((float *) aPtr, *(int8_t *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_fb##op_name(*(float *) aPtr, (int8_t *) bPtr, (float *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_fb##op_name((float *) aPtr, (int8_t *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_fb##op_name##_broadcast_right((float *) aPtr, (int8_t *) bPtr, (float *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_fb##op_name##_broadcast_left((float *) aPtr, (int8_t *) bPtr, (float *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT32 && bDataType == DATA_TYPE_INT16) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_fs##op_name((float *) aPtr, *(int16_t *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_fs##op_name(*(float *) aPtr, (int16_t *) bPtr, (float *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_fs##op_name((float *) aPtr, (int16_t *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_fs##op_name##_broadcast_right((float *) aPtr, (int16_t *) bPtr, (float *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_fs##op_name##_broadcast_left((float *) aPtr, (int16_t *) bPtr, (float *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT32 && bDataType == DATA_TYPE_INT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_fi##op_name((float *) aPtr, *(int32_t *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_fi##op_name(*(float *) aPtr, (int32_t *) bPtr, (float *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_fi##op_name((float *) aPtr, (int32_t *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_fi##op_name##_broadcast_right((float *) aPtr, (int32_t *) bPtr, (float *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_fi##op_name##_broadcast_left((float *) aPtr, (int32_t *) bPtr, (float *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT32 && bDataType == DATA_TYPE_INT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_fl##op_name((float *) aPtr, *(int64_t *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_fl##op_name(*(float *) aPtr, (int64_t *) bPtr, (float *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_fl##op_name((float *) aPtr, (int64_t *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_fl##op_name##_broadcast_right((float *) aPtr, (int64_t *) bPtr, (float *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_fl##op_name##_broadcast_left((float *) aPtr, (int64_t *) bPtr, (float *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT32 && bDataType == DATA_TYPE_FLOAT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_ff##op_name((float *) aPtr, *(float *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_ff##op_name(*(float *) aPtr, (float *) bPtr, (float *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_ff##op_name((float *) aPtr, (float *) bPtr, (float *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_ff##op_name##_broadcast_right((float *) aPtr, (float *) bPtr, (float *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_ff##op_name##_broadcast_left((float *) aPtr, (float *) bPtr, (float *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT32 && bDataType == DATA_TYPE_FLOAT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_fd##op_name((float *) aPtr, *(double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_fd##op_name(*(float *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_fd##op_name((float *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_fd##op_name##_broadcast_right((float *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_fd##op_name##_broadcast_left((float *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT64 && bDataType == DATA_TYPE_INT8) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_db##op_name((double *) aPtr, *(int8_t *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_db##op_name(*(double *) aPtr, (int8_t *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_db##op_name((double *) aPtr, (int8_t *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_db##op_name##_broadcast_right((double *) aPtr, (int8_t *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_db##op_name##_broadcast_left((double *) aPtr, (int8_t *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT64 && bDataType == DATA_TYPE_INT16) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_ds##op_name((double *) aPtr, *(int16_t *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_ds##op_name(*(double *) aPtr, (int16_t *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_ds##op_name((double *) aPtr, (int16_t *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_ds##op_name##_broadcast_right((double *) aPtr, (int16_t *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_ds##op_name##_broadcast_left((double *) aPtr, (int16_t *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT64 && bDataType == DATA_TYPE_INT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_di##op_name((double *) aPtr, *(int32_t *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_di##op_name(*(double *) aPtr, (int32_t *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_di##op_name((double *) aPtr, (int32_t *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_di##op_name##_broadcast_right((double *) aPtr, (int32_t *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_di##op_name##_broadcast_left((double *) aPtr, (int32_t *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT64 && bDataType == DATA_TYPE_INT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_dl##op_name((double *) aPtr, *(int64_t *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_dl##op_name(*(double *) aPtr, (int64_t *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_dl##op_name((double *) aPtr, (int64_t *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_dl##op_name##_broadcast_right((double *) aPtr, (int64_t *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_dl##op_name##_broadcast_left((double *) aPtr, (int64_t *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT64 && bDataType == DATA_TYPE_FLOAT32) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_df##op_name((double *) aPtr, *(float *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_df##op_name(*(double *) aPtr, (float *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_df##op_name((double *) aPtr, (float *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_df##op_name##_broadcast_right((double *) aPtr, (float *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_df##op_name##_broadcast_left((double *) aPtr, (float *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else if (aDataType == DATA_TYPE_FLOAT64 && bDataType == DATA_TYPE_FLOAT64) {\
-            if (nElementsC < std::max(nElementsA, nElementsB)) {\
-                jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                                 "C array is too small");\
-            }\
-            if (nElementsB == 1) {\
-                tblas_tensor_dd##op_name((double *) aPtr, *(double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA == 1) {\
-                tblas_tensor_dd##op_name(*(double *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB);\
-            } else if (nElementsA == nElementsB) {\
-                tblas_tensor_dd##op_name((double *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA);\
-            } else if (nElementsA > nElementsB) {\
-                tblas_tensor_dd##op_name##_broadcast_right((double *) aPtr, (double *) bPtr, (double *) cPtr, nElementsA, nElementsB);\
-            } else if (nElementsB > nElementsA) {\
-                tblas_tensor_dd##op_name##_broadcast_left((double *) aPtr, (double *) bPtr, (double *) cPtr, nElementsB, nElementsA);\
-            }\
-        } else {\
-            jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"),\
-                             "Unsupported data type");\
+#define OPERATION_JNI_WRAPPER(jniMethodName, operationFunction) \
+JNIEXPORT void JNICALL jniMethodName(JNIEnv *jniEnv, jclass,\
+                                                                          jlong aPtr, jlongArray shapeAArr,\
+                                                                          jlongArray stridesAArr, jint dataTypeA,\
+                                                                          jlong bPtr, jlongArray shapeBArr,\
+                                                                          jlongArray stridesBArr, jint dataTypeB,\
+                                                                          jlong cPtr, jlongArray shapeCArr, jlongArray stridesCArr,\
+                                                                          jint dateTypeC) {\
+    auto nDimsA = (size_t) jniEnv->GetArrayLength(shapeAArr);\
+    auto nDimsB = (size_t) jniEnv->GetArrayLength(shapeBArr);\
+    auto nDimsC = (size_t) jniEnv->GetArrayLength(shapeCArr);\
+    auto *shapeA = new size_t[nDimsA];\
+    auto *shapeB = new size_t[nDimsB];\
+    auto *shapeC = new size_t[nDimsC];\
+    auto *stridesA = new size_t[nDimsA];\
+    auto *stridesB = new size_t[nDimsB];\
+    auto *stridesC = new size_t[nDimsC];\
+    {\
+        auto *shapeALongArray = jniEnv->GetLongArrayElements(shapeAArr, nullptr);\
+        auto *shapeBLongArray = jniEnv->GetLongArrayElements(shapeBArr, nullptr);\
+        auto *shapeCLongArray = jniEnv->GetLongArrayElements(shapeCArr, nullptr);\
+        for (size_t i = 0; i < nDimsA; i++) {\
+            shapeA[i] = (size_t) shapeALongArray[i];\
         }\
-    } catch (...) {\
-        jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalStateException"),\
-                         "Failed to perform operation");\
+        for (size_t i = 0; i < nDimsB; i++) {\
+            shapeB[i] = (size_t) shapeBLongArray[i];\
+        }\
+        for (size_t i = 0; i < nDimsC; i++) {\
+            shapeC[i] = (size_t) shapeCLongArray[i];\
+        }\
+        jniEnv->ReleaseLongArrayElements(shapeAArr, shapeALongArray, JNI_ABORT);\
+        jniEnv->ReleaseLongArrayElements(shapeBArr, shapeBLongArray, JNI_ABORT);\
+        jniEnv->ReleaseLongArrayElements(shapeCArr, shapeCLongArray, JNI_ABORT);\
+        auto *stridesALongArray = jniEnv->GetLongArrayElements(stridesAArr, nullptr);\
+        auto *stridesBLongArray = jniEnv->GetLongArrayElements(stridesBArr, nullptr);\
+        auto *stridesCLongArray = jniEnv->GetLongArrayElements(stridesCArr, nullptr);\
+        for (size_t i = 0; i < nDimsA; i++) {\
+            stridesA[i] = (size_t) stridesALongArray[i];\
+        }\
+        for (size_t i = 0; i < nDimsB; i++) {\
+            stridesB[i] = (size_t) stridesBLongArray[i];\
+        }\
+        for (size_t i = 0; i < nDimsC; i++) {\
+            stridesC[i] = (size_t) stridesCLongArray[i];\
+        }\
+        jniEnv->ReleaseLongArrayElements(stridesAArr, stridesALongArray, JNI_ABORT);\
+        jniEnv->ReleaseLongArrayElements(stridesBArr, stridesBLongArray, JNI_ABORT);\
+        jniEnv->ReleaseLongArrayElements(stridesCArr, stridesCLongArray, JNI_ABORT);\
     }\
+    if (dataTypeA == DATA_TYPE_INT8 && dataTypeB == DATA_TYPE_INT8) {\
+        auto *a = (int8_t *) aPtr;\
+        auto *b = (int8_t *) bPtr;\
+        auto *c = (int8_t *) cPtr;\
+        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT16 && dataTypeB == DATA_TYPE_INT16) {\
+        auto *a = (int16_t *) aPtr;\
+        auto *b = (int16_t *) bPtr;\
+        auto *c = (int16_t *) cPtr;\
+        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT32 && dataTypeB == DATA_TYPE_INT32) {\
+        auto *a = (int32_t *) aPtr;\
+        auto *b = (int32_t *) bPtr;\
+        auto *c = (int32_t *) cPtr;\
+        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT64 && dataTypeB == DATA_TYPE_INT64) {\
+        auto *a = (int64_t *) aPtr;\
+        auto *b = (int64_t *) bPtr;\
+        auto *c = (int64_t *) cPtr;\
+        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT && dataTypeB == DATA_TYPE_FLOAT) {\
+        auto *a = (float *) aPtr;\
+        auto *b = (float *) bPtr;\
+        auto *c = (float *) cPtr;\
+        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_DOUBLE && dataTypeB == DATA_TYPE_DOUBLE) {\
+        auto *a = (double *) aPtr;\
+        auto *b = (double *) bPtr;\
+        auto *c = (double *) cPtr;\
+        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else {\
+        jclass exceptionClass = jniEnv->FindClass("java/lang/IllegalArgumentException");\
+        jniEnv->ThrowNew(exceptionClass, "Unsupported data type");\
+    }\
+    delete[] shapeA;\
+    delete[] shapeB;\
 }

@@ -3,6 +3,7 @@ package me.mikex86.scicore.backend.impl.cuda.kernel;
 import jcuda.driver.CUfunction;
 import jcuda.driver.CUmodule;
 import jcuda.driver.CUstream;
+import jcuda.nvrtc.nvrtcProgram;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.InputStream;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static jcuda.driver.JCudaDriver.*;
+import static jcuda.nvrtc.JNvrtc.*;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 
 public class CudaKernel {
@@ -32,6 +34,17 @@ public class CudaKernel {
             cuModuleGetFunction(cuFunction, cuModule, functionName);
             cuFunctions.put(functionName, cuFunction);
         }
+    }
+
+    @NotNull
+    public static CudaKernel jitCompile(@NotNull String cudaCode, @NotNull List<String> functionNames) {
+        nvrtcProgram program = new nvrtcProgram();
+        cuCheck(nvrtcCreateProgram(program, cudaCode, null, 0, null, null));
+        cuCheck(nvrtcCompileProgram(program, 0, null));
+        String[] ptxCode = new String[1];
+        cuCheck(nvrtcGetPTX(program, ptxCode));
+        cuCheck(nvrtcDestroyProgram(program));
+        return new CudaKernel(ptxCode[0], functionNames);
     }
 
     @NotNull

@@ -3,9 +3,11 @@ package me.mikex86.scicore.backend.impl.genericcpu.op;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
-import me.mikex86.scicore.backend.impl.genericcpu.GenCPUTensor;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.MultiplyJNI;
+import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
+import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
@@ -26,35 +28,27 @@ public class GenCPUMultiplyOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
-
-        long aNumElements = ShapeUtils.getNumElements(shapeA);
-        long bNumElements = ShapeUtils.getNumElements(shapeB);
-
         long[] finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
-        DataType aDataType = a.getDataType();
-        DataType bDataType = b.getDataType();
-        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
 
-        long nResultElements = ShapeUtils.getNumElements(finalShape);
-        GenCPUTensor resultTensor = new GenCPUTensor(this.backend, resultDataType, finalShape);
+        long[] stridesA = a.getStrides();
+        long[] stridesB = b.getStrides();
 
-        DirectMemoryHandle aMemory = backend.getMemoryManager().ensureDirect(a);
-        DirectMemoryHandle bMemory = backend.getMemoryManager().ensureDirect(b);
-        DirectMemoryHandle resultMemory = resultTensor.getDataContainer().getMemoryHandle();
+        DataType ownDataType = a.getDataType();
+        DataType otherDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
+        ITensor result = backend.createTensor(resultDataType, finalShape);
+        long[] resultStrides = result.getStrides();
+
+        DirectMemoryHandle aMemoryHandle = a.getContentsAsDirectMemory();
+        DirectMemoryHandle bMemoryHandle = b.getContentsAsDirectMemory();
+        DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
 
         MultiplyJNI.multiply(
-                aMemory.getNativePtr(),
-                aDataType,
-                aNumElements,
-                bMemory.getNativePtr(),
-                bDataType,
-                bNumElements,
-                resultMemory.getNativePtr(),
-                nResultElements,
-                resultDataType
-        );
+                aMemoryHandle.getNativePtr(), shapeA, stridesA, a.getDataType(),
+                bMemoryHandle.getNativePtr(), shapeB, stridesB, b.getDataType(),
+                resultMemoryHandle.getNativePtr(), finalShape, resultStrides, result.getDataType());
 
-        return resultTensor;
+        return result;
     }
 
     @Override
@@ -73,7 +67,7 @@ public class GenCPUMultiplyOp implements IDifferentiableBinaryOperation {
     }
 
     @Override
-    public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, IGraph.@NotNull ITensorNodeWithGradient b) {
+    public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
         if (a.requiresGradients()) {
             ITensor aValue = a.getValue();
 
@@ -109,10 +103,5 @@ public class GenCPUMultiplyOp implements IDifferentiableBinaryOperation {
 
             b.accumulateGradient(gradients);
         }
-    }
-
-    @NotNull
-    public GenCPUBackend getBackend() {
-        return backend;
     }
 }
