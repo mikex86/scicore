@@ -1,23 +1,25 @@
-package me.mikex86.scicore.backend.impl.jvm.op;
+package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
+import me.mikex86.scicore.backend.impl.genericcpu.jni.ExpJNI;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableUnaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-public class JvmExpOp implements IDifferentiableUnaryOperation {
+public class GenCPUExpOp implements IDifferentiableUnaryOperation {
 
     @NotNull
-    private final JvmBackend backend;
+    private final GenCPUBackend backend;
 
-    public JvmExpOp(@NotNull JvmBackend backend) {
+    public GenCPUExpOp(@NotNull GenCPUBackend backend) {
         this.backend = backend;
     }
 
@@ -27,17 +29,9 @@ public class JvmExpOp implements IDifferentiableUnaryOperation {
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
         ITensor result = backend.createTensor(dataType, shape);
-        if (dataType.isFloatingPoint()) {
-            for (long i = 0; i < nElements; i++) {
-                double value = input.getAsDoubleFlat(i);
-                result.setByDoubleFlat(Math.exp(value), i);
-            }
-        } else {
-            for (long i = 0; i < nElements; i++) {
-                long value = input.getAsLongFlat(i);
-                result.setByLongFlat((long) Math.exp(value), i);
-            }
-        }
+        DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
+        DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
+        ExpJNI.exp(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
         ctx.saveForBackward("exp", result);
         return result;
     }

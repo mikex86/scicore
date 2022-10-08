@@ -13,6 +13,7 @@ public class MatmulJNI {
 
     public static final int OP_NONE = 0;
     public static final int OP_TRANSPOSE = 1;
+
     public static final int MATMUL_DATA_TYPE_INT8 = 1;
     public static final int MATMUL_DATA_TYPE_INT16 = 2;
     public static final int MATMUL_DATA_TYPE_INT32 = 3;

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#define OPERATION_FOR_ALL_DATA_TYPES_PROTO(operation_name) \
+#define BINARY_OPERATION_FOR_ALL_DATA_TYPES_PROTO(operation_name) \
 void operation_name(const int8_t *a, const int8_t *b, int8_t *c,\
                     size_t *shapeA, size_t *stridesA, size_t nDimsA,\
                     size_t *shapeB, size_t *stridesB, size_t nDimsB,\
@@ -28,7 +28,7 @@ void operation_name(const double *a, const double *b, double *c,\
                     size_t *shapeB, size_t *stridesB, size_t nDimsB,\
                     size_t *shapeC, size_t *stridesC, size_t nDimsC);\
 
-#define OPERATION_FOR_ALL_DATA_TYPES_IMPL(operation_name) \
+#define BINARY_OPERATION_FOR_ALL_DATA_TYPES_IMPL(operation_name) \
 void operation_name(const int8_t *a, const int8_t *b, int8_t *c, size_t *shapeA, size_t *stridesA, size_t nDimsA,\
                     size_t *shapeB, size_t *stridesB, size_t nDimsB, size_t *shapeC, size_t *stridesC, size_t nDimsC) {\
     operation_name<int8_t, int8_t, int8_t>(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC,\
@@ -60,4 +60,33 @@ void operation_name(const double *a, const double *b, double *c, size_t *shapeA,
     operation_name<double, double, double>(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC,\
             stridesC,\
             nDimsC);\
-}\
+}                                                                \
+
+
+#define UNARY_OPERATION_FOR_ALL_DATA_TYPES_PROTO(operation_name) \
+void operation_name(const int8_t *a, int8_t *c, size_t nElements); \
+void operation_name(const int16_t *a, int16_t *c, size_t nElements); \
+void operation_name(const int32_t *a, int32_t *c, size_t nElements); \
+void operation_name(const int64_t *a, int64_t *c, size_t nElements); \
+void operation_name(const float *a, float *c, size_t nElements); \
+void operation_name(const double *a, double *c, size_t nElements); \
+
+#define UNARY_OPERATION_FOR_ALL_DATA_TYPES_IMPL(operation_name) \
+void operation_name(const int8_t *a, int8_t *c, size_t nElements) {\
+    operation_name<int8_t>(a, c, nElements);\
+} \
+void operation_name(const int16_t *a, int16_t *c, size_t nElements) {\
+    operation_name<int16_t>(a, c, nElements);\
+} \
+void operation_name(const int32_t *a, int32_t *c, size_t nElements) {\
+    operation_name<int32_t>(a, c, nElements);\
+} \
+void operation_name(const int64_t *a, int64_t *c, size_t nElements) {\
+    operation_name<int64_t>(a, c, nElements);\
+} \
+void operation_name(const float *a, float *c, size_t nElements) {\
+    operation_name<float>(a, c, nElements);\
+} \
+void operation_name(const double *a, double *c, size_t nElements) {\
+    operation_name<double>(a, c, nElements);\
+}

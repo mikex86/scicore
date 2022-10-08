@@ -19,4 +19,4 @@ void tblas_multiply(const A *a, const B *b, C *c, size_t *shapeA, size_t *stride
     delete[] outputIndex;
 }
 
-OPERATION_FOR_ALL_DATA_TYPES_IMPL(tblas_multiply)
+BINARY_OPERATION_FOR_ALL_DATA_TYPES_IMPL(tblas_multiply)

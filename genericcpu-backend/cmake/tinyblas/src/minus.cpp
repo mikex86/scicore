@@ -19,4 +19,4 @@ void tblas_minus(const A *a, const B *b, C *c, size_t *shapeA, size_t *stridesA,
     delete[] outputIndex;
 }
 
-OPERATION_FOR_ALL_DATA_TYPES_IMPL(tblas_minus)
+BINARY_OPERATION_FOR_ALL_DATA_TYPES_IMPL(tblas_minus)

@@ -7,7 +7,7 @@
 #define USE_TINYBLAS
 #endif
 
-#include <tinyblas.h>
+#include <matmul.h>
 
 #define OP_NONE 0
 #define OP_TRANSPOSE 1

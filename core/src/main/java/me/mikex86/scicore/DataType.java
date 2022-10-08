@@ -107,32 +107,4 @@ public enum DataType {
     public long getSizeOf(long nElements) {
         return (nElements * bits + 7) / 8;
     }
-
-    @NotNull
-    public String getJavaType() {
-        return switch (this) {
-            case INT8 -> "byte";
-            case INT16 -> "short";
-            case INT32 -> "int";
-            case INT64 -> "long";
-            case FLOAT32 -> "float";
-            case FLOAT64 -> "double";
-            case BOOLEAN -> "boolean";
-            default -> throw new IllegalStateException("Unexpected value: " + this);
-        };
-    }
-
-    @NotNull
-    public String getCudaType() {
-        return switch (this) {
-            case INT8 -> "char";
-            case INT16 -> "short";
-            case INT32 -> "int";
-            case INT64 -> "long";
-            case FLOAT32 -> "float";
-            case FLOAT64 -> "double";
-            case BOOLEAN -> "bool";
-            default -> throw new IllegalStateException("Unexpected value: " + this);
-        };
-    }
 }

@@ -4,6 +4,7 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.DivideJNI;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.MinusJNI;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
@@ -17,9 +18,9 @@ import org.jetbrains.annotations.NotNull;
 public class GenCPUDivideOp implements IDifferentiableBinaryOperation {
 
     @NotNull
-    private final ISciCoreBackend backend;
+    private final GenCPUBackend backend;
 
-    public GenCPUDivideOp(@NotNull ISciCoreBackend backend) {
+    public GenCPUDivideOp(@NotNull GenCPUBackend backend) {
         this.backend = backend;
     }
 
