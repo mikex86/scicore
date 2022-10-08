@@ -1941,4 +1941,45 @@ class TensorTest {
             assertEquals(sciCore.array(new long[]{0, 2}), max2);
         }
     }
+
+    @Nested
+    class Pow {
+
+        @Test
+        void test_pow_2d() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {2, 1, 0}, {1, 0, 3}
+            });
+            ITensor pow = a.pow(2f);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {4, 1, 0}, {1, 0, 9}
+            }), pow);
+        }
+
+        @Test
+        void test_pow_3d() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{2, 1, 0}, {1, 0, 3}},
+                    {{2, 1, 0}, {1, 0, 3}}
+            });
+            ITensor pow = a.pow(2f);
+            assertEquals(sciCore.ndarray(new float[][][]{
+                    {{4, 1, 0}, {1, 0, 9}},
+                    {{4, 1, 0}, {1, 0, 9}}
+            }), pow);
+        }
+
+        @Test
+        void test_pow_4d() {
+            ITensor a = sciCore.ndarray(new float[][][][]{
+                    {{{2, 1, 0}, {1, 0, 3}}},
+                    {{{2, 1, 0}, {1, 0, 3}}}
+            });
+            ITensor pow = a.pow(2f);
+            assertEquals(sciCore.ndarray(new float[][][][]{
+                    {{{4, 1, 0}, {1, 0, 9}}},
+                    {{{4, 1, 0}, {1, 0, 9}}}
+            }), pow);
+        }
+    }
 }

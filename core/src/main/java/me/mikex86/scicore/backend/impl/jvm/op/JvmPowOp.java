@@ -11,12 +11,12 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
-public class JvmPowerOp implements IDifferentiableBinaryOperation {
+public class JvmPowOp implements IDifferentiableBinaryOperation {
 
     @NotNull
     private final ISciCoreBackend backend;
 
-    public JvmPowerOp(@NotNull ISciCoreBackend backend) {
+    public JvmPowOp(@NotNull ISciCoreBackend backend) {
         this.backend = backend;
     }
 

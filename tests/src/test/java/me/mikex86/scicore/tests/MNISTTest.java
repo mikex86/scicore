@@ -205,7 +205,7 @@ public class MNISTTest {
 
                 ITensor Y_pred = net.forward(X);
 
-                ITensor loss = (Y_pred.minus(Y)).pow(2).reduceSum(-1).divide(Y_pred.getNumberOfElements());
+                ITensor loss = (Y_pred.minus(Y)).pow((float)2).reduceSum(-1).divide((float)Y_pred.getNumberOfElements());
                 if (Float.isNaN(loss.elementAsFloat())) {
                     System.out.println("Loss is NaN");
                 }
