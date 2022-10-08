@@ -25,7 +25,7 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
         long[] shape = input.getShape();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
-        ITensor result = new JvmTensor(this.backend, dataType, shape);
+        ITensor result = this.backend.createTensor(dataType, shape);
         if (dataType.isFloatingPoint()) {
             for (long i = 0; i < nElements; i++) {
                 double value = input.getAsDoubleFlat(i);

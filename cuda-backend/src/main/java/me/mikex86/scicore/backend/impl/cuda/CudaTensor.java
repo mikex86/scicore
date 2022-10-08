@@ -237,11 +237,6 @@ public class CudaTensor extends AbstractTensor {
     }
 
     @Override
-    public @NotNull ITensorIterator iterator() {
-        return new DefaultTensorIterator(this);
-    }
-
-    @Override
     public @NotNull ISciCoreBackend getSciCoreBackend() {
         return backend;
     }

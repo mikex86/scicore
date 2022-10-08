@@ -921,11 +921,6 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public @NotNull ITensorIterator iterator() {
-        return new DefaultTensorIterator(this);
-    }
-
-    @Override
     public @NotNull ISciCoreBackend getSciCoreBackend() {
         return this.backend;
     }

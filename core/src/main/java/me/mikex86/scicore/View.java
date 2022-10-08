@@ -295,11 +295,6 @@ public class View extends AbstractTensor {
     }
 
     @Override
-    public @NotNull ITensorIterator iterator() {
-        return new DefaultTensorIterator(this);
-    }
-
-    @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof ITensor other)) {
             return false;

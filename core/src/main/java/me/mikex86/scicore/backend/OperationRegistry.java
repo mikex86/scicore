@@ -1,5 +1,6 @@
 package me.mikex86.scicore.backend;
 
+import me.mikex86.scicore.backend.except.UnimplementedOperationException;
 import me.mikex86.scicore.op.IOperation;
 import me.mikex86.scicore.op.OperationType;
 import org.apache.logging.log4j.LogManager;
@@ -42,10 +43,10 @@ public class OperationRegistry {
                 LOGGER.debug("Operation {} found in backend {}", operationType, backend.getClass().getSimpleName());
                 return operation;
             } else if (!fallthrough) {
-                throw new IllegalArgumentException("Operation " + operationType + " not found in backend " + backend.getClass().getSimpleName());
+                throw new UnimplementedOperationException("Operation " + operationType + " not found in backend " + backend.getClass().getSimpleName());
             }
         }
-        throw new IllegalArgumentException("Operation not found implemented in any layer. Layers: [ " + backendStack.stream().map(b -> b.getClass().getSimpleName()).collect(Collectors.joining(" ")) + "]");
+        throw new UnimplementedOperationException("Operation not found implemented in any layer. Layers: [ " + backendStack.stream().map(b -> b.getClass().getSimpleName()).collect(Collectors.joining(" ")) + "]");
     }
 
     public void disableFallthrough() {

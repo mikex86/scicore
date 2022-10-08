@@ -987,6 +987,14 @@ class TensorTest {
                     \t[[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
                     \t [16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0]])""", matrix.toString());
         }
+
+        @Test
+        void toString_test_view() {
+            ITensor matrix = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}});
+            ITensor view = matrix.getReshapedView(new long[]{3, 2}, new long[]{1, 3});
+            String className = view.getClass().getSimpleName();
+            assertEquals(className + "(dtype=FLOAT32, shape=[3, 2], data=[[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]])", view.toString());
+        }
     }
 
     @Test
@@ -1981,5 +1989,30 @@ class TensorTest {
                     {{{4, 1, 0}, {1, 0, 9}}}
             }), pow);
         }
+    }
+
+    @Nested
+    class Transpose {
+
+        @Test
+        void transpose_2d() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {2, 1, 0}, {1, 7, 3}
+            });
+            ITensor transpose = a.transpose();
+            assertEquals(sciCore.matrix(new float[][]{
+                    {2, 1}, {1, 7}, {0, 3}
+            }), transpose);
+        }
+
+        @Test
+        void transpose_3d_failure() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{2, 1, 0}, {1, 0, 3}},
+                    {{2, 1, 0}, {1, 0, 3}}
+            });
+            assertThrows(IllegalArgumentException.class, a::transpose);
+        }
+
     }
 }

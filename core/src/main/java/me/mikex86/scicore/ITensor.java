@@ -21,6 +21,12 @@ public interface ITensor extends IValue {
 
     @NotNull ITensor getView(long @NotNull ... indices);
 
+    @NotNull ITensor getReshapedView(long @NotNull [] shape, long @NotNull [] strides);
+
+    default @NotNull ITensor getReshapedView(long @NotNull [] shape) {
+        return getReshapedView(shape, ShapeUtils.makeStrides(shape));
+    }
+
     byte getByteFlat(long flatIndex);
 
     default byte getAsByteFlat(long flatIndex) {
@@ -564,8 +570,6 @@ public interface ITensor extends IValue {
 
     @Override
     boolean equals(Object other);
-
-    @NotNull ITensorIterator iterator();
 
     @NotNull ISciCoreBackend getSciCoreBackend();
 

@@ -33,6 +33,15 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
+    public @NotNull ITensor getReshapedView(long @NotNull [] shape, long @NotNull [] strides) {
+        long nElements = ShapeUtils.getNumElements(shape);
+        if (nElements != numElements) {
+            throw new IllegalArgumentException("cannot reshape tensor with " + numElements + " elements to shape " + Arrays.toString(shape));
+        }
+        return new View(this, shape, 0, strides);
+    }
+
+    @Override
     public long getNumberOfElements() {
         return this.numElements;
     }
@@ -663,27 +672,20 @@ public abstract class AbstractTensor implements ITensor {
         if (!ShapeUtils.equals(shape, other.getShape())) {
             return false;
         }
-        long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = getDataType();
-        if (dataType != other.getDataType()) {
-            return false;
-        }
+        long[] index = new long[shape.length];
         if (dataType.isFloatingPoint()) {
-            for (long i = 0; i < nElements; i++) {
-                double a = getAsDoubleFlat(i);
-                double b = other.getAsDoubleFlat(i);
-                if (Math.abs(a - b) > EPSILON) {
+            do {
+                if (Math.abs(getAsDouble(index) - other.getAsDouble(index)) > EPSILON) {
                     return false;
                 }
-            }
+            } while (ShapeUtils.incrementIndex(index, shape));
         } else {
-            for (long i = 0; i < nElements; i++) {
-                long a = getAsLongFlat(i);
-                long b = other.getAsLongFlat(i);
-                if (a != b) {
+            do {
+                if (getAsLong(index) != other.getAsLong(index)) {
                     return false;
                 }
-            }
+            } while (ShapeUtils.incrementIndex(index, shape));
         }
         return true;
     }
@@ -721,49 +723,84 @@ public abstract class AbstractTensor implements ITensor {
             }
         }
         sb.ensureCapacity(sb.length() + (int) nElements * 10);
-        ITensorIterator iterator = iterator();
-        int nElementsInLine = 0;
-        while (iterator.hasNext()) {
-            long nStartingDimensions = iterator.getNumStartingDimensions();
-            long nEndingDimensions = iterator.getNumEndingDimensions();
+        long[] index = new long[shape.length];
+        boolean hasNext;
+        long nElementsInDimension = 0;
+        int nStartingDimensions;
+        int nEndingDimensions;
+
+        do {
+            hasNext = false;
+            nEndingDimensions = 0;
+
+            // print tab, if new line
             if (isNewLine) {
-                sb.append("\t");
+                sb.append('\t');
             }
-            if (isNewLine) {
-                for (int i = 0; i < shape.length - nStartingDimensions; i++) {
-                    sb.append(" ");
+
+            // get starting dimensions
+            {
+                nStartingDimensions = 0;
+                for (int dim = index.length - 1; dim >= 0; dim--) {
+                    if (index[dim] == 0) {
+                        nStartingDimensions++;
+                    } else {
+                        break;
+                    }
                 }
             }
-            for (long i = 0; i < nStartingDimensions; i++) {
-                sb.append("[");
+            // print spaces to align with elements of previous line
+            if (isNewLine) {
+                sb.append(" ".repeat(Math.max(0, index.length - nStartingDimensions)));
             }
-            switch (iterator.getDataType()) {
-                case INT8 -> sb.append(iterator.getByte());
-                case INT16 -> sb.append(iterator.getShort());
-                case INT32 -> sb.append(iterator.getInt());
-                case INT64 -> sb.append(iterator.getLong());
-                case FLOAT32 -> sb.append(formatFloat(iterator.getFloat()));
-                case FLOAT64 -> sb.append(formatFloat(iterator.getDouble()));
-                case BOOLEAN -> sb.append(iterator.getBoolean());
+            // print starting brackets
+            sb.append("[".repeat(Math.max(0, nStartingDimensions)));
+
+            isNewLine = false;
+
+
+            // print element
+            switch (getDataType()) {
+                case INT8 -> sb.append(getByte(index));
+                case INT16 -> sb.append(getShort(index));
+                case INT32 -> sb.append(getInt(index));
+                case INT64 -> sb.append(getLong(index));
+                case FLOAT32 -> sb.append(formatFloat(getFloat(index)));
+                case FLOAT64 -> sb.append(formatFloat(getDouble(index)));
+                case BOOLEAN -> sb.append(getBoolean(index));
             }
-            for (long i = 0; i < nEndingDimensions; i++) {
-                sb.append("]");
+            nElementsInDimension++;
+
+            // increment index
+            for (int dim = index.length - 1; dim >= 0; dim--) {
+                if (index[dim] < shape[dim] - 1) {
+                    index[dim]++;
+                    hasNext = true;
+                    break;
+                }
+                index[dim] = 0;
+                nEndingDimensions++;
             }
-            nElementsInLine++;
-            iterator.moveNext();
-            if (!iterator.hasNext()) {
-                continue;
+
+            // ending dimensions
+            sb.append("]".repeat(Math.max(0, nEndingDimensions)));
+
+            if (hasNext) {
+                sb.append(",");
+                if (nElementsInDimension >= 15) {
+                    sb.append('\n');
+                    isNewLine = true;
+                }
+                if (!isNewLine) {
+                    sb.append(' ');
+                }
             }
-            sb.append(",");
-            if (nEndingDimensions > 0 && nElementsInLine >= 15) {
-                sb.append("\n");
-                isNewLine = true;
-                nElementsInLine = 0;
-            } else {
-                sb.append(" ");
-                isNewLine = false;
+
+            if (nEndingDimensions > 0) {
+                nElementsInDimension = 0;
             }
-        }
+
+        } while (hasNext);
         sb.append(")");
         return sb.toString();
     }

@@ -32,6 +32,7 @@ Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *jn
                                                                      jlong cPtr,
                                                                      jint cType,
                                                                      jint ldc) {
+    // TODO: MAKE matmul RESPECT STRIDES
     if (aType == MATMUL_DATA_TYPE_FLOAT32 && bType == MATMUL_DATA_TYPE_FLOAT32 && cType == MATMUL_DATA_TYPE_FLOAT32) {
 #ifdef USE_TINYBLAS
         tblas_sgemm(TblasRowMajor,

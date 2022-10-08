@@ -235,11 +235,6 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     }
 
     @Override
-    public @NotNull ITensorIterator iterator() {
-        return result().iterator();
-    }
-
-    @Override
     public @NotNull ISciCoreBackend getSciCoreBackend() {
         return this.sciCoreBackend;
     }

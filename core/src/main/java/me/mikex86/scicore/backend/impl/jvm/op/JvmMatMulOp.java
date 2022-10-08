@@ -46,7 +46,7 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         DataType bDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(aDataType, bDataType);
 
-        ITensor result = new JvmTensor(this.backend, resultDataType, resultShape);
+        ITensor result = this.backend.createTensor(resultDataType, resultShape);
 
         if (resultDataType.isFloatingPoint()) {
             for (int i = 0; i < resultShape[0]; i++) {
