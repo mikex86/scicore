@@ -61,7 +61,7 @@ Tensors of higher ranks will only be denoted in array notation, such as `[[[1, 2
 ### Indexing
 Indexing into a tensor will be denoted as $T_{i_1i_2 \space \dots \space i_n }$ where n is the number of dimensions to index into. When all dimensions are indexed into, meaning $n$ is equal to the rank of the tensor, the result is a scalar value, otherwise the result is another tensor of rank $n - k$ where $k$ is the number of dimensions indexed into.
 
-## Implementing a Tensor
+## Implementing the Tensor data structure
 While java has built-in support for multidimensional arrays, they are unsuitable for purposes of deep learning in a multitude of ways.
 Firstly, given that java is a strongly typed language, the type of the elements of the array and the dimensionality of the array must be specified explicitly, making arrays unwieldy given that functions processing tensors should be able to operate largely independenly of the data type and dimensionality of the input tensor.
 
@@ -84,7 +84,7 @@ The following graphic illustrates the strides of a tensor with the shape $(3, 4)
 Note how iterating 4 elements in the flat array corresponds to iterating 1 element in the first dimension,
 and iterating 1 element in the flat array corresponds to iterating 1 element in the second (scalar-level) dimension.
 
-![Strides](strides_visualization.svg)
+![Strides](figures/strides_visualization.svg)
 
 Strides are derived from the shape of the tensor, and are calculated as follows:
 
@@ -141,7 +141,7 @@ public class GenCPUDataContainer {
         this.memoryHandle = memoryManager.calloc(nBytes);
     ...
     public int getInt32Flat(long flatIndex) {
-        long finalPtr = memoryHandle.getNativePtr() + flatIndex * Integer.BYTES;
+        long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         return MemoryUtil.memGetInt(finalPtr);
     }
     ...
@@ -172,6 +172,157 @@ public class GenCPUDataContainer {
     ...
 ```
 
+## Mathematical operations on tensors
+
+To perform mathematical operations on tensors, we have to implement a well-defined operator that takes one or more tensors as operands and returns a tensor as a result.
+Operators are categorized by the number of operands they accept into unary, binary, etc. operators.
+
+### Unary operators
+For unary operators, the result tensor is of the same shape as the operand tensor, and the result of the operation can thus be computed by iterating over the elements of the operand tensor in an element-wise fashion and performing the operation on each element, while respecting the strides of the operand tensor.
+
+As an example, we take the `exp` operator, which takes a tensor as an operand and returns a tensor with the same shape as the operand, where each element is the $e^x$ of the corresponding element in the operand tensor.
+
+```java
+public class JvmExpOp ... {
+    ...
+    public ITensor perform(Graph.IOperationContext ctx, ITensor input) {
+        long[] shape = input.getShape();
+        long[] strides = input.getStrides();
+        long nElements = ShapeUtils.getNumElements(shape);
+        DataType dataType = input.getDataType();
+        ITensor result = backend.createTensor(dataType, shape);
+        for (long i = 0; i < nElements; i++) {
+            double value = input.getAsDoubleFlat(i);
+            result.setByDoubleFlat(Math.exp(value), i);
+        }
+        result = result.getReshapedView(shape, strides);
+        ...
+        return result;
+    }
+    ...
+}
+```
+Note that the strides of the operand tensor are not used to iterate over the elements of the tensor, keeping the implementation simple and fast.
+The result is then reinterpreted with the strides of the operand tensor, so that the result tensor has the same strides as the operand tensor.
+This way, element order across dimensions is preserved. This comes at the cost of not reordering the elements in the underlying storage of the tensor to a potentially more cache-friendly order, which could slow down subsequent operations performed on the resulting tensor.
+
+An alternative solution would be to iterate over elements of the operand tensor in the order of the strides, and thus reordering the elements in the result tensor in the process. Note that the cache-friendliness of the result tensor comes at the cost of the operation itself being cache-unfriendly, when application of strides results in sequential or non-spatially contiguous access to the elements of the operand tensor in the underlying storage memory.
+
+
+### Binary operators
+To perform binary operations on tensors, such as addition, multiplication, etc., we need a robust way to handle the operands differing in shape.
+In the trivial case, where both operands have the same shape, the operation can be performed element-wise, and the result is a tensor with the same shape as the operands.
+However, when the operands differ in shape, we need a way to handle the mismatch.
+Broadcasting is a concept that is used to handle this case.
+
+#### Broadcasting
+Broadcasting is a concept that allows tensors of different shapes to be used in binary operations.
+To motivate the need for broadcasting, consider the following example:
+
+```java
+ITensor a = sciCore.array(new float[]{1, 2, 3, 4, 5});
+ITensor b = sciCore.scalar(2f);
+
+ITensor c = a.multiply(b);
+```
+
+The result of the multiplication $C = A * B$ is a tensor with the same shape as $A$, where each element is the product of the corresponding element in $A$ and $B$.
+But note that the shape of $B$ is a scalar, while the shape of $A$ is a vector.
+Figuratively speaking, we can imagine the scalar $B$ being stretched to the shape of $A$ to match the shape of $A$.
+
+<p align="center">
+    <img src="figures/broadcasting_scalar_stretch.svg" alt="Neural Network" width="450vh"/>
+</p>
+While we could define tensor by scalar multiplication as its own case - which is certanly something to consider for optimization purposes, it is more convenient to view it as a special case of tensor by tensor multiplication under application of the broadcasting rules.
+
+In the general case, the broadcasting rules are as follows:
+The dimensions of the shape of both operands are compared from the last dimension (the rightmost dimension) to the first dimension (the leftmost dimension).
+Dimensions are compared in pairs, and the following rules are applied:
+1. If both dimensions are equal, the dimension in the output shape stays the same.
+2. If one of the dimensions is 1, the dimension in the output shape is the same as the dimension in the other operand respectively.
+3. If no pair can be constructed because one of the operands has lower rank than the other, the lower ranked operand is prepended with dimensions of size 1 until the ranks match.
+
+The following code snippet implements the broadcasting rules to compute the shape of the resulting tensor of a binary operation:
+```java
+public static long[] broadcastShapes(long[] shapeA, long[] shapeB) {
+    long[] broadcastShape = new long[shapeA.length];
+    for (int i = 0; i < shapeA.length; i++) {
+        long elementA = shapeA[shapeA.length - 1 - i];
+        long elementB = i < shapeB.length ? shapeB[shapeB.length - 1 - i] : 1;
+        long dimSize;
+        if (elementA == elementB || elementB == 1) {
+            dimSize = elementA;
+        } else if (elementA == 1) {
+            dimSize = elementB;
+        } else {
+            throw new IllegalArgumentException(
+                    "Shapes are not broadcast-able: shapeA: " 
+                    + ShapeUtils.toString(shapeA) +
+                    ", shapeB: " + ShapeUtils.toString(shapeB)
+            );
+        }
+        broadcastShape[broadcastShape.length - 1 - i] = dimSize;
+    }
+    return broadcastShape;
+}
+```
+When a dimension is stretched to match the shape of the other operand, the elements of said dimensions are repeated to fill the dimension.
+Note that if we were to actually make copies of the elements, the operation would be very memory wasteful, as the same information would be stored multiple times.
+As can be seen in the above figure, the tensor $B$ is expanded to match the shape of $A$ by repeating the elements of $B$ along the first dimension, which would involve making
+four additional copies of the element $2$. While not fatal for small tensors, this would be a very wasteful operation for large tensors.
+Instead, we can "virtually extend" the shape of $B$ to the desired shape.
+
+##### Virtually extended Tensors
+Virtually extended tensors can be implemented in a multitude of ways.
+Firstly, we can set the stride of a stretched dimension to zero. This way, advancing to the next element in the stretched dimension will result in the same element being accessed.
+However, n-dimensional general index computation is a comparitively expensive operation, and we would like to avoid it as much as possible.
+Thus we want to derive specialized solutions for indexing problems whenever possible.
+We will thus introduce the terminology of "index constraining", meaning to restrict possible indices to a subset of the full dimension space.
+In the case of stretched dimensions, we can constrain the indices of a stretched dimension to an index range of size 1.
+The following code snippet implements the index calculation to map the `outputIndex`, which is a dimensional index into the result tensor of the operation, to the corresponding index in the operand tensor, which should be employed for element-whise operation.
+```cpp
+size_t getFlatIndexConstrained(const size_t *outputIndex,
+                                const size_t *shape, const size_t *strides,
+                                size_t nDims, size_t nDimsOut) {
+    assert(nDims <= nDimsOut);
+    size_t nNewDims = nDimsOut - nDims;
+    size_t flatIndex = 0;
+    for (size_t dim = 0; dim < nDims; dim++) {
+        size_t stride = strides[dim];
+        flatIndex += (outputIndex[dim + nNewDims] % shape[dim]) * stride;
+    }
+    return flatIndex;
+}
+```
+
+Eg. in the binary multiplication operation, the method is used as follows:
+```cpp
+template<typename A, typename B, typename C>
+void tblas_multiply(const A *a, const B *b, C *c,
+                    size_t *shapeA, size_t *stridesA, size_t nDimsA,
+                    size_t *shapeB, size_t *stridesB, size_t nDimsB,
+                    size_t *shapeC, size_t *stridesC, size_t nDimsC) {
+    auto *outputIndex = new size_t[nDimsC];
+    memset(outputIndex, 0, sizeof(size_t) * nDimsC);
+
+    size_t cIndexFlat = 0;
+    do {
+        size_t aIndexFlat = getFlatIndexConstrained(
+                                outputIndex,
+                                shapeA, stridesA, nDimsA,
+                                nDimsC
+                            );
+        size_t bIndexFlat = getFlatIndexConstrained(
+                                outputIndex,
+                                shapeB, `stridesB, nDimsB,
+                                nDimsC
+                            );
+        c[cIndexFlat] = a[aIndexFlat] * b[bIndexFlat];
+        cIndexFlat++;
+    } while (incrementIndex(outputIndex, shapeC, nDimsC));
+    delete[] outputIndex;
+}
+```
 
 # Neural Networks
 Neural networks are a class of machine learning models inspired by the human brain.
@@ -194,7 +345,7 @@ Generally, artificial neural networks consist of an input layer, one or more hid
 The input layer is composed of neurons that take in the input data that the network should work with, and the output layer is composed of neurons hold the prediction and thus the output of the network. The hidden layers are the set of neurons that perform the actual computation of the network.
 
 <p align="center">
-    <img src="neural_network.svg" alt="Neural Network" width="300vh"/>
+    <img src="figures/neural_network.svg" alt="Neural Network" width="300vh"/>
 </p>
 
 The number of hidden layers and the number of neurons in each layer are hyperparameters of the network, and are chosen based on the problem at hand.
@@ -235,9 +386,15 @@ public class Linear implements IModule {
     ...
 
         float k = (float) (1.0 / Math.sqrt(inputSize));
-        this.weights = sciCore.uniform(dataType, outputSize, inputSize).multiply(2 * k).minus(k);
+        this.weights = sciCore
+            .uniform(dataType, outputSize, inputSize)
+            .multiply(2 * k)
+            .minus(k);
         if (useBias) {
-            this.bias = sciCore.uniform(dataType, outputSize).multiply(2 * k).minus(k);
+            this.bias = sciCore
+                .uniform(dataType, outputSize)
+                .multiply(2 * k)
+                .minus(k);
         } else {
             this.bias = null;
         }
@@ -299,7 +456,10 @@ The following code snippet shows how matrix multiplication is implemented in on 
 public class CudaMatmulOp implements IDifferentiableBinaryOperation {
     ...
     @Override
-    public ITensor perform(Graph.IOperationContext ctx, ITensor a, ITensor b) {
+    public ITensor perform(
+        Graph.IOperationContext ctx,
+        ITensor a, ITensor b
+    ) {
         ...
         cublasCheck(cublasGemmEx_new(
                     CudaBackend.getCublasHandle(),

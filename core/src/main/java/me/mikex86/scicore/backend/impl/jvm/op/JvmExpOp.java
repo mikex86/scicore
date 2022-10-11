@@ -24,20 +24,15 @@ public class JvmExpOp implements IDifferentiableUnaryOperation {
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
         long[] shape = input.getShape();
+        long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
         ITensor result = backend.createTensor(dataType, shape);
-        if (dataType.isFloatingPoint()) {
-            for (long i = 0; i < nElements; i++) {
-                double value = input.getAsDoubleFlat(i);
-                result.setByDoubleFlat(Math.exp(value), i);
-            }
-        } else {
-            for (long i = 0; i < nElements; i++) {
-                long value = input.getAsLongFlat(i);
-                result.setByLongFlat((long) Math.exp(value), i);
-            }
+        for (long i = 0; i < nElements; i++) {
+            double value = input.getAsDoubleFlat(i);
+            result.setByDoubleFlat(Math.exp(value), i);
         }
+        result = result.getReshapedView(shape, strides);
         ctx.saveForBackward("exp", result);
         return result;
     }

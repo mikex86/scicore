@@ -34,6 +34,7 @@ public class JvmTransposeOp implements IDifferentiableUnaryOperation {
         long[] resultIndex = new long[resultShape.length];
         long[] inputIndex = new long[shape.length];
 
+        // TODO: USE STRIDES SWAP
         if (dataType.isFloatingPoint()) {
             for (int i = 0; i < resultShape[0]; i++) {
                 for (int j = 0; j < resultShape[1]; j++) {

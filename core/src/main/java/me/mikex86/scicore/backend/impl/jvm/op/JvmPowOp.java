@@ -29,20 +29,12 @@ public class JvmPowOp implements IDifferentiableBinaryOperation {
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
 
         ITensor result = backend.createTensor(resultDataType, shapeA);
-        long nElements = ShapeUtils.getNumElements(shapeA);
-        for (long i = 0; i < nElements; i++) {
-            if (resultDataType.isFloatingPoint()) {
-                double exponent = b.elementAsDouble();
-                double aV = a.getAsDoubleFlat(i);
-                double resultVal = Math.pow(aV, exponent);
-                result.setByDoubleFlat(resultVal, i);
-            } else {
-                long exponent = b.elementAsLong();
-                long aV = a.getAsLongFlat(i);
-                long resultVal = (long) Math.pow(aV, exponent);
-                result.setByLongFlat(resultVal, i);
-            }
-        }
+        long[] index = new long[shapeA.length];
+        double exponent = b.getAsDouble();
+        do {
+            double value = a.getAsDouble(index);
+            result.setByDouble(Math.pow(value, exponent), index);
+        } while (ShapeUtils.incrementIndex(index, shapeA));
         return result;
     }
 

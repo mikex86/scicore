@@ -15,8 +15,7 @@ FORCE_INLINE bool incrementIndex(size_t *outputIndex, const size_t *shape, size_
     return false;
 }
 
-FORCE_INLINE size_t
-getFlatIndexConstrained(const size_t *outputIndex, const size_t *shape, const size_t *strides, size_t nDims, size_t nDimsOut) {
+FORCE_INLINE size_t getFlatIndexConstrained(const size_t *outputIndex, const size_t *shape, const size_t *strides, size_t nDims, size_t nDimsOut) {
     assert(nDims <= nDimsOut);
     size_t nNewDims = nDimsOut - nDims;
     size_t flatIndex = 0;

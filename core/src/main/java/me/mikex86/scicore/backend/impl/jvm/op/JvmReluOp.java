@@ -52,7 +52,7 @@ public class JvmReluOp implements IDifferentiableUnaryOperation {
             long[] shape = inputTensor.getShape();
             long nElements = ShapeUtils.getNumElements(shape);
             DataType dataType = inputTensor.getDataType();
-            ITensor gradient = new JvmTensor(this.backend, dataType, shape);
+            ITensor gradient = this.backend.createTensor(dataType, shape);
             if (dataType.isFloatingPoint()) {
                 for (long i = 0; i < nElements; i++) {
                     double value = inputTensor.getAsDoubleFlat(i);

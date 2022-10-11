@@ -30,13 +30,16 @@ public class JvmCastOp implements IDifferentiableSingleParametricOperation<Integ
         if (dataTypeOpt.isEmpty()) {
             throw new IllegalArgumentException("Invalid data type ordinal: " + dataTypeOrdinal);
         }
+        long[] shape = input.getShape();
+        long[] strides = input.getStrides();
         DataType dataType = dataTypeOpt.get();
-        JvmTensor result = new JvmTensor(this.backend, dataType, input.getShape());
+        ITensor result = this.backend.createTensor(dataType, shape);
         long numElements = input.getNumberOfElements();
         // TODO: This is not just horrible, but also slow
         for (int i = 0; i < numElements; i++) {
             result.setByDoubleFlat(input.getAsDoubleFlat(i), i);
         }
+        result = result.getReshapedView(shape, strides);
         return result;
     }
 

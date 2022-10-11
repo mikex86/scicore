@@ -143,7 +143,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
 
     @Override
     public @NotNull ITensor copy() {
-        ITensor copy = new JvmTensor(backend, getDataType(), getShape());
+        ITensor copy = this.backend.createTensor(this.dataContainer.getDataType(), this.dataContainer.getShape());
         copy.setContents(this);
         return copy;
     }

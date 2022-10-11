@@ -23,6 +23,7 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
         long[] shape = input.getShape();
+        long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
         ITensor result = this.backend.createTensor(dataType, shape);
@@ -39,6 +40,7 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
                 result.setByLongFlat(sigmoid, i);
             }
         }
+        result = result.getReshapedView(strides);
         ctx.saveForBackward("sigmoid", result);
         return result;
     }
