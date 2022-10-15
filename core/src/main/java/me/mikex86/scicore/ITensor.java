@@ -641,4 +641,10 @@ public interface ITensor extends IValue {
     }
 
     @NotNull ITensor cast(@NotNull DataType dataType);
+
+    /**
+     * @param tensor the tensor to check
+     * @return true, if the tensor is the same instance as this tensor. Lazy tensors that wrap the same tensor are not considered equal.
+     */
+    boolean isSame(@NotNull ITensor tensor);
 }

@@ -295,37 +295,6 @@ public class View extends AbstractTensor {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof ITensor other)) {
-            return false;
-        }
-        long[] shape = getShape();
-        if (!ShapeUtils.equals(shape, other.getShape())) {
-            return false;
-        }
-        long nElements = getNumberOfElements();
-        boolean oneIsFloatingPoint = getDataType().isFloatingPoint() || other.getDataType().isFloatingPoint();
-        if (oneIsFloatingPoint) {
-            for (long i = 0; i < nElements; i++) {
-                double a = getAsDoubleFlat(i);
-                double b = other.getAsDoubleFlat(i);
-                if (Math.abs(a - b) > EPSILON) {
-                    return false;
-                }
-            }
-        } else {
-            for (long i = 0; i < nElements; i++) {
-                long a = getAsLongFlat(i);
-                long b = getAsLongFlat(i);
-                if (a != b) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    @Override
     public @NotNull ISciCoreBackend getSciCoreBackend() {
         return this.viewed.getSciCoreBackend();
     }

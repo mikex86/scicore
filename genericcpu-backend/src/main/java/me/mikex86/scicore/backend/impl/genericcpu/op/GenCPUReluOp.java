@@ -1,44 +1,35 @@
-package me.mikex86.scicore.backend.impl.jvm.op;
+package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
-import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
-import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
+import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
+import me.mikex86.scicore.backend.impl.genericcpu.jni.ReluJNI;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.op.Graph;
 import me.mikex86.scicore.op.IDifferentiableUnaryOperation;
 import me.mikex86.scicore.op.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-public class JvmReluOp implements IDifferentiableUnaryOperation {
+public class GenCPUReluOp implements IDifferentiableUnaryOperation {
 
     @NotNull
-    private final JvmBackend backend;
+    private final GenCPUBackend backend;
 
-    public JvmReluOp(@NotNull JvmBackend backend) {
+    public GenCPUReluOp(@NotNull GenCPUBackend backend) {
         this.backend = backend;
     }
 
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
         long[] shape = input.getShape();
-        long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
         ITensor result = this.backend.createTensor(dataType, shape);
-        if (dataType.isFloatingPoint()) {
-            for (long i = 0; i < nElements; i++) {
-                double value = input.getAsDoubleFlat(i);
-                result.setByDoubleFlat(Math.max(value, 0), i);
-            }
-        } else {
-            for (long i = 0; i < nElements; i++) {
-                long value = input.getAsLongFlat(i);
-                result.setByLongFlat(Math.max(value, 0), i);
-            }
-        }
-        result = result.getReshapedView(shape, strides);
+        DirectMemoryHandle inputHandle = input.getContentsAsDirectMemory();
+        DirectMemoryHandle resultHandle = result.getContentsAsDirectMemory();
+        ReluJNI.relu(inputHandle.getNativePtr(), resultHandle.getNativePtr(), nElements, dataType);
         return result;
     }
 
@@ -55,17 +46,9 @@ public class JvmReluOp implements IDifferentiableUnaryOperation {
             long nElements = ShapeUtils.getNumElements(shape);
             DataType dataType = inputTensor.getDataType();
             ITensor gradient = this.backend.createTensor(dataType, shape);
-            if (dataType.isFloatingPoint()) {
-                for (long i = 0; i < nElements; i++) {
-                    double value = inputTensor.getAsDoubleFlat(i);
-                    gradient.setByDoubleFlat(value > 0 ? 1 : 0, i);
-                }
-            } else {
-                for (long i = 0; i < nElements; i++) {
-                    long value = inputTensor.getAsLongFlat(i);
-                    gradient.setByLongFlat(value > 0 ? 1 : 0, i);
-                }
-            }
+            DirectMemoryHandle inputHandle = inputTensor.getContentsAsDirectMemory();
+            DirectMemoryHandle gradientHandle = gradient.getContentsAsDirectMemory();
+            ReluJNI.reluGradients(inputHandle.getNativePtr(), gradientHandle.getNativePtr(), nElements, dataType);
             input.accumulateGradient(gradient.multiply(upstreamGradient));
         }
     }

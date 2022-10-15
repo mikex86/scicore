@@ -3,7 +3,7 @@ project(scicore_genericcpu)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_library(scicore_genericcpu SHARED src/MatmulJNI.cpp src/MultiplyJNI.cpp src/PlusJNI.cpp src/MinusJNI.cpp src/DivideJNI.cpp src/ExpJNI.cpp src/PowJNI.cpp)
+add_library(scicore_genericcpu SHARED src/MatmulJNI.cpp src/MultiplyJNI.cpp src/PlusJNI.cpp src/MinusJNI.cpp src/DivideJNI.cpp src/ExpJNI.cpp src/PowJNI.cpp src/ReluJNI.cpp)
 
 # Find JNI
 set(JAVA_AWT_LIBRARY NotNeeded)

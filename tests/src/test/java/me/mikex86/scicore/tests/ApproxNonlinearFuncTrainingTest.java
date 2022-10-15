@@ -115,14 +115,15 @@ public class ApproxNonlinearFuncTrainingTest {
     private final JPlot plot = new JPlot();
 
     private void plotPrediction(@NotNull BobNet bobNet) {
-        float[] modelPredictionY = new float[1024];
-        float[] realY = new float[1024];
+        int nPoints = 100;
+        float[] modelPredictionY = new float[nPoints];
+        float[] realY = new float[nPoints];
         float intervalStart = 0, intervalEnd = 1;
-        ITensor X = sciCore.arange(intervalStart, intervalEnd, 0.001f, new long[]{1024, 1}, DataType.FLOAT32);
+        ITensor X = sciCore.arange(intervalStart, intervalEnd, (intervalEnd - intervalStart) / (float) (nPoints - 1), new long[]{nPoints, 1}, DataType.FLOAT32);
         ITensor YPred = bobNet.forward(X);
-        for (int i = 0; i < 1024; i++) {
+        for (int i = 0; i < nPoints; i++) {
             modelPredictionY[i] = YPred.getFloat(i, 0);
-            float x = i / 1024f;
+            float x = i / (float) nPoints;
             float y = 2 * (x * x) + 0.5f;
             realY[i] = y;
         }

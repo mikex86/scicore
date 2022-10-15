@@ -114,7 +114,7 @@ public class Graph implements IGraph {
     }
 
     @NotNull
-    public Optional<ITensor> getGradient(@NotNull ITensor tensor) {
+    public Optional<ITensor>  getGradient(@NotNull ITensor tensor) {
         Optional<IGraphNode> node = getNodeForTensor(tensor);
         return OptionalUtils.cast(node, ITensorNodeWithGradient.class).map(ITensorNodeWithGradient::getGradient);
     }
@@ -127,7 +127,7 @@ public class Graph implements IGraph {
         while (!nodesToVisit.isEmpty()) {
             IGraphNode node = nodesToVisit.poll();
             if (node instanceof ITensorNode tensorNode) {
-                if (tensorNode.getValue().equals(tensor)) {
+                if (tensorNode.getValue().isSame(tensor)) {
                     return Optional.of(node);
                 }
             }

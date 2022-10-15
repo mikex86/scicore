@@ -1,6 +1,7 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.op.IDerivedTensor;
 import me.mikex86.scicore.op.IGraphRecorder;
 import me.mikex86.scicore.op.OperationType;
 import me.mikex86.scicore.op.OptionBundle;
@@ -35,7 +36,7 @@ public abstract class AbstractTensor implements ITensor {
     @Override
     public @NotNull ITensor getReshapedView(long @NotNull [] shape, long @NotNull [] strides) {
         long nElements = ShapeUtils.getNumElements(shape);
-        if (nElements != numElements) {
+        if (nElements > numElements) {
             throw new IllegalArgumentException("cannot reshape tensor with " + numElements + " elements to shape " + Arrays.toString(shape));
         }
         return new View(this, shape, 0, strides);
@@ -657,6 +658,21 @@ public abstract class AbstractTensor implements ITensor {
             dataTypeScalar.setIntFlat(dataType.ordinal(), 0);
         }
         return operationRecorder.recordOperation(OperationType.CAST, this, dataTypeScalar);
+    }
+
+    @Override
+    public boolean isSame(@NotNull ITensor tensor) {
+        if (this == tensor) {
+            return true;
+        }
+        ITensor self = this;
+        if (self instanceof IDerivedTensor derivedTensor) {
+            self = derivedTensor.result();
+        }
+        if (tensor instanceof IDerivedTensor derivedTensor) {
+            return self == derivedTensor.result();
+        }
+        return false;
     }
 
     @Override
