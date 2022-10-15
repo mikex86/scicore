@@ -2,13 +2,11 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
-import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
-import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IDifferentiableUnaryOperation;
-import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
+import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
 
 public class JvmTransposeOp implements IDifferentiableUnaryOperation {

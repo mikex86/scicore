@@ -3,8 +3,8 @@ package me.mikex86.scicore.graphviz;
 import me.mikex86.matplotlib.graphviz.GraphRenderPlan;
 import me.mikex86.matplotlib.graphviz.GraphVisualizer;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 

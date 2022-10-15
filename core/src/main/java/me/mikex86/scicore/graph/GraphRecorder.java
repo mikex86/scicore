@@ -1,8 +1,10 @@
-package me.mikex86.scicore.op;
+package me.mikex86.scicore.graph;
 
+import me.mikex86.scicore.IDerivedTensor;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.OperationRegistry;
+import me.mikex86.scicore.graph.op.IOperation;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;

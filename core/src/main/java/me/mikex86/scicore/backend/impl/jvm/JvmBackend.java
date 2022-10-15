@@ -4,8 +4,8 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.op.*;
-import me.mikex86.scicore.op.IOperation;
-import me.mikex86.scicore.op.OperationType;
+import me.mikex86.scicore.graph.op.IOperation;
+import me.mikex86.scicore.graph.OperationType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;

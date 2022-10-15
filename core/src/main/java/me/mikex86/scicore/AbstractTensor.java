@@ -1,10 +1,9 @@
 package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.op.IDerivedTensor;
-import me.mikex86.scicore.op.IGraphRecorder;
-import me.mikex86.scicore.op.OperationType;
-import me.mikex86.scicore.op.OptionBundle;
+import me.mikex86.scicore.graph.IGraphRecorder;
+import me.mikex86.scicore.graph.OperationType;
+import me.mikex86.scicore.graph.OptionBundle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -123,7 +122,7 @@ public abstract class AbstractTensor implements ITensor {
     public ITensor matmul(@NotNull ITensor other) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.MATMUL, this, other);
+        return operationRecorder.recordOperation(OperationType.MATMUL, backend, this, other);
     }
 
     @Override
@@ -140,6 +139,7 @@ public abstract class AbstractTensor implements ITensor {
             transposeOtherTensor.setBooleanFlat(transposeOther, 0);
         }
         return operationRecorder.recordOperation(OperationType.MATMUL, OptionBundle.of(
+                backend,
                 Map.of(
                         "transposeA", transposeSelfTensor,
                         "transposeB", transposeOtherTensor
@@ -152,7 +152,7 @@ public abstract class AbstractTensor implements ITensor {
     public ITensor divide(@NotNull ITensor other) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.DIVIDE, this, other);
+        return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, other);
     }
 
     @Override
@@ -164,7 +164,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.DIVIDE, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
     }
 
     @Override
@@ -176,7 +176,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.DIVIDE, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
     }
 
     @Override
@@ -188,7 +188,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.DIVIDE, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
     }
 
     @Override
@@ -200,7 +200,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
             valueScalar.setLongFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.DIVIDE, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
     }
 
     @Override
@@ -212,7 +212,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
             valueScalar.setFloatFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.DIVIDE, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
     }
 
     @Override
@@ -224,7 +224,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
             valueScalar.setDoubleFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.DIVIDE, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
     }
 
     @Override
@@ -236,7 +236,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
     }
 
     @Override
@@ -248,7 +248,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
     }
 
     @Override
@@ -260,7 +260,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
     }
 
     @Override
@@ -272,7 +272,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
             valueScalar.setLongFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
     }
 
     @Override
@@ -284,7 +284,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
             valueScalar.setFloatFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
     }
 
     @Override
@@ -296,7 +296,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
             valueScalar.setDoubleFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.PLUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
     }
 
     @Override
@@ -304,7 +304,7 @@ public abstract class AbstractTensor implements ITensor {
     public ITensor plus(@NotNull ITensor other) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.PLUS, this, other);
+        return operationRecorder.recordOperation(OperationType.PLUS, backend, this, other);
     }
 
 
@@ -317,7 +317,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
     }
 
     @Override
@@ -329,7 +329,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
     }
 
     @Override
@@ -341,7 +341,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
     }
 
     @Override
@@ -353,7 +353,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
             valueScalar.setLongFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
     }
 
     @Override
@@ -365,7 +365,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
             valueScalar.setFloatFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
     }
 
     @Override
@@ -377,7 +377,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
             valueScalar.setDoubleFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MINUS, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
     }
 
     @Override
@@ -385,7 +385,7 @@ public abstract class AbstractTensor implements ITensor {
     public ITensor minus(@NotNull ITensor other) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.MINUS, this, other);
+        return operationRecorder.recordOperation(OperationType.MINUS, backend, this, other);
     }
 
     @Override
@@ -393,7 +393,7 @@ public abstract class AbstractTensor implements ITensor {
     public ITensor exp() {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.EXP, this);
+        return operationRecorder.recordOperation(OperationType.EXP, backend, this);
     }
 
     @Override
@@ -425,7 +425,7 @@ public abstract class AbstractTensor implements ITensor {
             keepDimensionsScalar = backend.createTensor(DataType.BOOLEAN, new long[]{1});
             keepDimensionsScalar.setBooleanFlat(keepDimensions, 0);
         }
-        return operationRecorder.recordOperation(OperationType.REDUCE_SUM, this, dimensionScalar, keepDimensionsScalar);
+        return operationRecorder.recordOperation(OperationType.REDUCE_SUM, backend, this, dimensionScalar, keepDimensionsScalar);
     }
 
     @Override
@@ -434,7 +434,7 @@ public abstract class AbstractTensor implements ITensor {
         // TODO: OPTIMIZE TRANSPOSE AS TRANSPOSED VIEW
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.TRANSPOSE, this);
+        return operationRecorder.recordOperation(OperationType.TRANSPOSE, backend, this);
     }
 
     @Override
@@ -446,7 +446,7 @@ public abstract class AbstractTensor implements ITensor {
             exponentScalar = backend.createTensor(DataType.INT8, new long[]{1});
             exponentScalar.setIntFlat(exponent, 0);
         }
-        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+        return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
     }
 
     @Override
@@ -458,7 +458,7 @@ public abstract class AbstractTensor implements ITensor {
             exponentScalar = backend.createTensor(DataType.INT16, new long[]{1});
             exponentScalar.setIntFlat(exponent, 0);
         }
-        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+        return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
     }
 
     @Override
@@ -470,7 +470,7 @@ public abstract class AbstractTensor implements ITensor {
             exponentScalar = backend.createTensor(DataType.INT32, new long[]{1});
             exponentScalar.setIntFlat(exponent, 0);
         }
-        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+        return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
     }
 
     @Override
@@ -482,7 +482,7 @@ public abstract class AbstractTensor implements ITensor {
             exponentScalar = backend.createTensor(DataType.INT64, new long[]{1});
             exponentScalar.setLongFlat(exponent, 0);
         }
-        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+        return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
     }
 
     @Override
@@ -494,7 +494,7 @@ public abstract class AbstractTensor implements ITensor {
             exponentScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
             exponentScalar.setFloatFlat(exponent, 0);
         }
-        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+        return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
     }
 
     @Override
@@ -506,7 +506,7 @@ public abstract class AbstractTensor implements ITensor {
             exponentScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
             exponentScalar.setDoubleFlat(exponent, 0);
         }
-        return operationRecorder.recordOperation(OperationType.POW, this, exponentScalar);
+        return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
     }
 
     @Override
@@ -514,14 +514,14 @@ public abstract class AbstractTensor implements ITensor {
         Validator.assertTrue(exponent.isScalar(), "Exponent must be scalar"); // TODO: Support non-scalar exponent
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.POW, this, exponent);
+        return operationRecorder.recordOperation(OperationType.POW, backend, this, exponent);
     }
 
     @Override
     public @NotNull ITensor multiply(@NotNull ITensor other) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, other);
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, other);
     }
 
     @Override
@@ -533,7 +533,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
     }
 
     @Override
@@ -545,7 +545,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
     }
 
     @Override
@@ -557,7 +557,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
             valueScalar.setIntFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
     }
 
     @Override
@@ -569,7 +569,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
             valueScalar.setLongFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
     }
 
     @Override
@@ -581,7 +581,7 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
             valueScalar.setFloatFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
     }
 
     @Override
@@ -593,21 +593,21 @@ public abstract class AbstractTensor implements ITensor {
             valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
             valueScalar.setDoubleFlat(value, 0);
         }
-        return operationRecorder.recordOperation(OperationType.MULTIPLY, this, valueScalar);
+        return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
     }
 
     @Override
     public @NotNull ITensor relu() {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.RELU, this);
+        return operationRecorder.recordOperation(OperationType.RELU, backend, this);
     }
 
     @Override
     public @NotNull ITensor sigmoid() {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.SIGMOID, this);
+        return operationRecorder.recordOperation(OperationType.SIGMOID, backend, this);
     }
 
     @Override
@@ -619,7 +619,7 @@ public abstract class AbstractTensor implements ITensor {
             dimensionScalar = backend.createTensor(DataType.INT32, new long[]{1});
             dimensionScalar.setIntFlat(dimension, 0);
         }
-        return operationRecorder.recordOperation(OperationType.ARGMAX, this, dimensionScalar);
+        return operationRecorder.recordOperation(OperationType.ARGMAX, backend, this, dimensionScalar);
     }
 
     @Override
@@ -657,7 +657,7 @@ public abstract class AbstractTensor implements ITensor {
             dataTypeScalar = backend.createTensor(DataType.INT32, new long[]{1});
             dataTypeScalar.setIntFlat(dataType.ordinal(), 0);
         }
-        return operationRecorder.recordOperation(OperationType.CAST, this, dataTypeScalar);
+        return operationRecorder.recordOperation(OperationType.CAST, backend, this, dataTypeScalar);
     }
 
     @Override

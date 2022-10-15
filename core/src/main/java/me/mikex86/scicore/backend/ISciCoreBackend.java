@@ -2,10 +2,10 @@ package me.mikex86.scicore.backend;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.op.*;
+import me.mikex86.scicore.graph.*;
+import me.mikex86.scicore.graph.op.IOperation;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface ISciCoreBackend {

@@ -1,8 +1,8 @@
 package me.mikex86.scicore.backend;
 
 import me.mikex86.scicore.backend.except.UnimplementedOperationException;
-import me.mikex86.scicore.op.IOperation;
-import me.mikex86.scicore.op.OperationType;
+import me.mikex86.scicore.graph.op.IOperation;
+import me.mikex86.scicore.graph.OperationType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;

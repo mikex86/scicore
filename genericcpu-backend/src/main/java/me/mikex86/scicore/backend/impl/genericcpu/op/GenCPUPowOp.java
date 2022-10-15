@@ -3,13 +3,12 @@ package me.mikex86.scicore.backend.impl.genericcpu.op;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
-import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.PowJNI;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
-import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
+import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -105,7 +104,7 @@ public class GenCPUPowOp implements IDifferentiableBinaryOperation {
                     localGradients.setByLongFlat((long) (resultVal * Math.log(aV)), i); // dP/dB = A ^ B * ln(A)
                 }
             }
-            ITensor globalGradients = upstreamGradient.matmul(localGradients.transpose()); // dL/dB = dL/dP * dP/dB
+            ITensor globalGradients = upstreamGradient.matmul(localGradients, false, true); // dL/dB = dL/dP * dP/dB
             b.accumulateGradient(globalGradients);
         }
     }

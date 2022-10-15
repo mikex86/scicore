@@ -1,8 +1,10 @@
-package me.mikex86.scicore.op;
+package me.mikex86.scicore.graph;
 
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.OperationRegistry;
+import me.mikex86.scicore.graph.op.IDifferentiableOperation;
+import me.mikex86.scicore.graph.op.IOperation;
 import me.mikex86.scicore.utils.OptionalUtils;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;

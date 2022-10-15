@@ -2,8 +2,6 @@ package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.op.IDerivedTensor;
-import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +34,7 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
         this.resultShape = resultShape;
         this.resultDataType = resultDataType;
         this.resultSupplier = resultSupplier;
-        this.lazyResult = resultSupplier.get();
+        this.lazyResult = null;
         this.sciCoreBackend = backend;
     }
 

@@ -2,15 +2,13 @@ package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.DivideJNI;
-import me.mikex86.scicore.backend.impl.genericcpu.jni.MinusJNI;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
-import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
+import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -89,8 +87,8 @@ public class GenCPUDivideOp implements IDifferentiableBinaryOperation {
             // dL/dB = dL/dR * -A * (1/B^2)
             ITensor dRdB = backend.createTensor(B.getDataType(), B.getShape());
             dRdB.fill(1);
-            dRdB = dRdB.divide(B.pow(2));
-            dRdB = A.multiply(-1).multiply(dRdB);
+            dRdB = dRdB.divide(B.pow(2f));
+            dRdB = A.multiply(-1f).multiply(dRdB);
             b.accumulateGradient(upstreamGradients.multiply(dRdB));
         }
     }

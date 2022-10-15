@@ -6,8 +6,8 @@ import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.backend.impl.genericcpu.op.*;
 import me.mikex86.scicore.nativelib.LibraryLoader;
-import me.mikex86.scicore.op.IOperation;
-import me.mikex86.scicore.op.OperationType;
+import me.mikex86.scicore.graph.op.IOperation;
+import me.mikex86.scicore.graph.OperationType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -28,6 +28,7 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.RELU, new GenCPUReluOp(this));
         operationTable.put(OperationType.POW, new GenCPUPowOp(this));
         operationTable.put(OperationType.TRANSPOSE, new GenCPUTransposeOp(this));
+        operationTable.put(OperationType.CAST, new GenCPUCastOp(this));
     }
 
     static {

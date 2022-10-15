@@ -4,15 +4,13 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
-import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IDifferentiableSingleParametricOperation;
-import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.op.IDifferentiableSingleParametricOperation;
+import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Locale;
 
 public class JvmArgmaxOp implements IDifferentiableSingleParametricOperation<Integer> {
 

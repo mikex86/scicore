@@ -11,7 +11,7 @@ import me.mikex86.scicore.nn.layers.ReLU;
 import me.mikex86.scicore.nn.layers.Softmax;
 import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
-import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.tongfei.progressbar.ProgressBar;
@@ -73,7 +73,7 @@ public class MNISTTest {
         }
     }
 
-    private static final int BATCH_SIZE = 64;
+    private static final int BATCH_SIZE = 1;
 
     private static class MnistNet implements IModule {
 

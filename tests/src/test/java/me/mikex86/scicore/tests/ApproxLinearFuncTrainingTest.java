@@ -10,7 +10,7 @@ import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
 import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
-import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;

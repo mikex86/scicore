@@ -11,11 +11,10 @@ import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernelLaunchConfig;
 import me.mikex86.scicore.backend.impl.cuda.kernel.KernelNameUtility;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryHandle;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.memory.IMemoryHandle;
-import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
-import me.mikex86.scicore.op.IGraph;
-import me.mikex86.scicore.op.OptionBundle;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
+import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.graph.OptionBundle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -87,6 +86,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         CudaMemoryHandle aMemoryHandle = backend.getCudaMemoryManager().ensureOnDevice(a);
         CudaMemoryHandle bMemoryHandle = backend.getCudaMemoryManager().ensureOnDevice(b);
 
+        // TODO: MAKE THIS RESPECT STRIDES
         if (a.getDataType() == DataType.FLOAT32 && b.getDataType() == DataType.FLOAT32) {
             // float32 by float32 multiplication
             // Swap A and B because cublasSgemm expects column-major matrices, and we have row-major.

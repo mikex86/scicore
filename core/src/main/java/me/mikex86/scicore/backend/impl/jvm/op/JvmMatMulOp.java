@@ -2,14 +2,12 @@ package me.mikex86.scicore.backend.impl.jvm.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
-import me.mikex86.scicore.backend.impl.jvm.JvmTensor;
 import me.mikex86.scicore.LazyTensor;
-import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
-import me.mikex86.scicore.op.IGraph;
-import me.mikex86.scicore.op.OptionBundle;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
+import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.graph.OptionBundle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -27,11 +25,22 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
+        long[] stridesA = a.getStrides();
+        long[] stridesB = b.getStrides();
         Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
         Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
+        assert stridesA.length == 2;
+        assert stridesB.length == 2;
         OptionBundle options = ctx.getOptionBundle();
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
+        if (!(stridesA[0] == shapeA[1] && stridesA[1] == 1)) {
+            throw new IllegalArgumentException("Invalid strides for matrix A"); // TODO: Support strides
+        }
+        if (!(stridesB[0] == shapeB[1] && stridesB[1] == 1)) {
+            throw new IllegalArgumentException("Invalid strides for matrix B"); // TODO: Support strides
+        }
+
         if (transposeA) {
             shapeA = new long[]{shapeA[1], shapeA[0]};
         }
@@ -48,29 +57,19 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
 
         ITensor result = this.backend.createTensor(resultDataType, resultShape);
 
-        if (resultDataType.isFloatingPoint()) {
-            for (int i = 0; i < resultShape[0]; i++) {
-                for (int k = 0; k < shapeA[1]; k++) {
-                    for (int j = 0; j < resultShape[1]; j++) {
-                        double aValue = transposeA ? a.getAsDoubleFlat(k * resultShape[0] + i) : a.getAsDoubleFlat(i * shapeA[1] + k);
-                        double bValue = transposeB ? b.getAsDoubleFlat(j * shapeB[0] + k) : b.getAsDoubleFlat(k * resultShape[1] + j);
-                        double resultValue = result.getAsDoubleFlat(i * resultShape[1] + j);
-                        result.setByDoubleFlat(resultValue + aValue * bValue, i * resultShape[1] + j);
-                    }
-                }
-            }
-        } else {
-            for (int i = 0; i < resultShape[0]; i++) {
-                for (int k = 0; k < shapeA[1]; k++) {
-                    for (int j = 0; j < resultShape[1]; j++) {
-                        long aValue = transposeA ? a.getAsLongFlat(k * resultShape[0] + i) : a.getAsLongFlat(i * shapeA[1] + k);
-                        long bValue = transposeB ? b.getAsLongFlat(j * shapeB[0] + k) : b.getAsLongFlat(k * resultShape[1] + j);
-                        long resultValue = result.getAsLongFlat(i * resultShape[1] + j);
-                        result.setByLongFlat(resultValue + aValue * bValue, i * resultShape[1] + j);
-                    }
-                }
-            }
-        }
+        long m = shapeA[0],
+                n = shapeB[1],
+                k = shapeA[1];
+
+        long lda = stridesA[0];
+        long ldb = stridesB[0];
+
+        matmul(transposeA, transposeB,
+                m, n, k,
+                a, lda,
+                b, ldb,
+                result, n
+        );
 
         return result;
     }
@@ -127,6 +126,52 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         if (b.requiresGradients()) {
             ITensor dLdX = a.getValue().transpose().matmul(upstreamGradient);
             b.accumulateGradient(dLdX);
+        }
+    }
+
+    private static void matmul(
+            boolean transposeA,
+            boolean transposeB,
+            long m, long n, long k,
+            ITensor a,
+            long lda,
+            ITensor b,
+            long ldb,
+            ITensor result,
+            long ldc
+    ) {
+        if (result.getDataType().isFloatingPoint()) {
+            for (long row = 0; row < m; row++) {
+                for (long inner = 0; inner < k; inner++) {
+                    for (long col = 0; col < n; col++) {
+                        long aIdx = transposeA ?
+                                inner * lda + row :
+                                row * lda + inner;
+                        long bIdx = transposeB ?
+                                col * ldb + inner :
+                                inner * ldb + col;
+                        long cIdx = row * ldc + col;
+                        double c = result.getAsDoubleFlat(cIdx);
+                        result.setByDoubleFlat(c + a.getAsDoubleFlat(aIdx) * b.getAsDoubleFlat(bIdx), cIdx);
+                    }
+                }
+            }
+        } else {
+            for (long row = 0; row < m; row++) {
+                for (long inner = 0; inner < k; inner++) {
+                    for (long col = 0; col < n; col++) {
+                        long aIdx = transposeA ?
+                                inner * lda + row :
+                                row * lda + inner;
+                        long bIdx = transposeB ?
+                                col * ldb + inner :
+                                inner * ldb + col;
+                        long cIdx = row * ldc + col;
+                        long c = result.getAsLongFlat(cIdx);
+                        result.setByLongFlat(c + a.getAsLongFlat(aIdx) * b.getAsLongFlat(bIdx), cIdx);
+                    }
+                }
+            }
         }
     }
 }

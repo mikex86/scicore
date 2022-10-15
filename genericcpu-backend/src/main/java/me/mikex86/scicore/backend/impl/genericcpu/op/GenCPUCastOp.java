@@ -1,9 +1,9 @@
-package me.mikex86.scicore.backend.impl.jvm.op;
+package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
-import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
+import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.op.IDifferentiableSingleParametricOperation;
 import me.mikex86.scicore.graph.IGraph;
@@ -13,12 +13,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
-public class JvmCastOp implements IDifferentiableSingleParametricOperation<Integer> {
+public class GenCPUCastOp implements IDifferentiableSingleParametricOperation<Integer> {
 
     @NotNull
-    private final JvmBackend backend;
+    private final GenCPUBackend backend;
 
-    public JvmCastOp(@NotNull JvmBackend backend) {
+    public GenCPUCastOp(@NotNull GenCPUBackend backend) {
         this.backend = backend;
     }
 
@@ -34,7 +34,7 @@ public class JvmCastOp implements IDifferentiableSingleParametricOperation<Integ
         DataType dataType = dataTypeOpt.get();
         ITensor result = this.backend.createTensor(dataType, shape);
         long numElements = input.getNumberOfElements();
-        // TODO: This is not just horrible, but also slow
+        // TODO: efficiently cast in native code
         for (int i = 0; i < numElements; i++) {
             result.setByDoubleFlat(input.getAsDoubleFlat(i), i);
         }

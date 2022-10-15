@@ -6,16 +6,14 @@ import me.mikex86.scicore.backend.OperationRegistry;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.memory.DirectMemoryManager;
-import me.mikex86.scicore.op.GraphRecorder;
-import me.mikex86.scicore.op.IGraph;
-import me.mikex86.scicore.op.IGraphRecorder;
+import me.mikex86.scicore.graph.GraphRecorder;
+import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.graph.IGraphRecorder;
 import me.mikex86.scicore.utils.ArrayUtils;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.nio.*;
-import java.util.Objects;
 import java.util.Random;
 
 public class SciCore implements ISciCore {

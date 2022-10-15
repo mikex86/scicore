@@ -2,7 +2,7 @@ package me.mikex86.scicore.nn.optim;
 
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;

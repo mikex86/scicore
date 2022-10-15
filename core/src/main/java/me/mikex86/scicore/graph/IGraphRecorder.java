@@ -1,4 +1,4 @@
-package me.mikex86.scicore.op;
+package me.mikex86.scicore.graph;
 
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
@@ -8,8 +8,8 @@ public interface IGraphRecorder {
 
     @NotNull ITensor recordOperation(@NotNull OperationType operation, @NotNull OptionBundle optionBundle, @NotNull ITensor... inputs);
 
-    default @NotNull ITensor recordOperation(@NotNull OperationType operation, @NotNull ITensor... inputs) {
-        return recordOperation(operation, OptionBundle.empty(), inputs);
+    default @NotNull ITensor recordOperation(@NotNull OperationType operation, @NotNull ISciCoreBackend backend, @NotNull ITensor... inputs) {
+        return recordOperation(operation, OptionBundle.newEmpty(backend), inputs);
     }
 
     /**

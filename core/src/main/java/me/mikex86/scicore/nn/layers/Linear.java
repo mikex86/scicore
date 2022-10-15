@@ -45,7 +45,7 @@ public class Linear implements IModule {
         if (inputShape[1] != inputSize) {
             throw new IllegalArgumentException("Input size must match the input size of the layer");
         }
-        ITensor x = input.matmul(weights.transpose());
+        ITensor x = input.matmul(weights, false, true);
         if (bias != null) {
             x = x.plus(bias);
         }

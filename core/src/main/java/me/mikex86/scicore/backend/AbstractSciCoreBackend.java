@@ -1,9 +1,9 @@
 package me.mikex86.scicore.backend;
 
 import me.mikex86.scicore.memory.DirectMemoryManager;
-import me.mikex86.scicore.op.IGraphRecorder;
-import me.mikex86.scicore.op.IOperation;
-import me.mikex86.scicore.op.OperationType;
+import me.mikex86.scicore.graph.IGraphRecorder;
+import me.mikex86.scicore.graph.op.IOperation;
+import me.mikex86.scicore.graph.OperationType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

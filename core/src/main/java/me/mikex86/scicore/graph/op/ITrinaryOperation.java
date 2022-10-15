@@ -1,6 +1,7 @@
-package me.mikex86.scicore.op;
+package me.mikex86.scicore.graph.op;
 
 import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 

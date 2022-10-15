@@ -4,12 +4,11 @@ import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
-import me.mikex86.scicore.backend.impl.genericcpu.jni.MultiplyJNI;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.PlusJNI;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.op.Graph;
-import me.mikex86.scicore.op.IDifferentiableBinaryOperation;
-import me.mikex86.scicore.op.IGraph;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
+import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 

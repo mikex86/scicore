@@ -1,6 +1,5 @@
-package me.mikex86.scicore.op;
+package me.mikex86.scicore;
 
-import me.mikex86.scicore.ITensor;
 import org.jetbrains.annotations.NotNull;
 
 /**
