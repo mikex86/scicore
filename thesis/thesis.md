@@ -372,7 +372,9 @@ $$
 
 In modern deep learning frameworks, neural networks are typically represented as so-called "modules", which implement the so-called "forward pass", which is a function that takes the input data and propagates it through the network and returns the final output of the network. The deeplearning framework usually also provides modules for common neural network layers, such as a fully-connected layer. This allows the user to easily build complex neural networks by combining these modules by passing the output of one module as the input to another module in the forward pass.
 A fully-connected layer is usually refered to as a `Dense` or `Linear` layer.
-The `Linear` layer is such a module, and thus it implements the `forward` method, which takes the input data and returns the output of the layer. The `forward` method of the `Linear` layer is a simple matrix multiplication, equivalent to the mathematical definition above. The weights and bias are initialized uniformly between $\mathcal{U}(-\sqrt{k}, \sqrt{k})$ where $k=\frac{n}{in\_features}$. Note that the usage of a bias is optional and can be disabled by setting the `bias` parameter to `false`.
+The `Linear` layer is such a module, and thus it implements the `forward` method, which takes the input data and returns the output of the layer. The `forward` method of the `Linear` layer is a simple matrix multiplication, equivalent to the mathematical definition above. The weights and bias are initialized uniformly between $\mathcal{U}(-\sqrt{k}, \sqrt{k})$ where $k=\frac{n}{in\_features}$. This is the so-called Xavier initialization, which a "commonly used heuristic" to initialize weights in neural networks. *(Xavier Glorot, Yoshua Bengio - 2010)* It aims to keep the variance of the activations of the layer constant, which is desirable as it prevents the activations from exploding or vanishing. But note that even though this is commonly used heuristic, it is only that - a heuristic and not a mathematically proven method. In fact, simple testing reveals, that only after a few layers the variance of the activations can shrink drastically, to the point where lack floating point precision destabilizes gradient descent and the network fails to train. We will discuss gradient descent in further detail in a later chapter.
+
+Note that the usage of a bias is optional and can be disabled by setting the `bias` parameter to `false`.
 The following snippet shows releveant parts of the implementation of the `Linear` module.
 
 ```java
@@ -511,9 +513,294 @@ For this purpose, we introduce a metric called "loss" which shall represent the 
 In general the loss can be thought of as the divergence between the output of the network and the desired output. Thus, a low loss is desirable. There are many possible methods to compute the loss, and the choice of loss function is highly problem-dependent. A very common loss function, but also very simple loss function, is the mean squared error (MSE) loss, which is defined as follows:
 
 $$
-L = \frac{1}{N} \sum_{i=1}^N (y_i - \hat{y}_i)^2
+J(\hat{y}_i, y_i) = \frac{1}{N} \sum_{i=1}^N (y_i - \hat{y}_i)^2
 $$
-where $y_i$ is the desired output and $\hat{y}_i$ is the output of the network for the $i$-th example and N is the number of examples in the training dataset.
+where $y_i$ is the desired output and $\hat{y}_i$ is the output of the network for the $i$-th example and N is the number of examples in the training dataset. The loss function is also sometimes denoted as $L$.
 
-Another common loss function is the cross-entropy loss, which is defined as follows:
+## Gradient descent
+Given that the loss function $J(\hat{y}_i, y_i)$ is a function of $\hat{y}_i$, which in turn is a function of the model $m(x, W)$, we can for a specific example $x$ caluclate the partial derivative of the loss function with respect to the parameters $W$ of the model. This is called the gradient of the loss function with respect to the parameters of the model.
+Given the gradient of the loss function with respect to a specific parameter $W_i$, we can update the parameter $W_i$ in the direction of the negative gradient, which will decrease the loss function. This is called gradient descent:
+$$
+W_i = W_i - \alpha \frac{\partial J}{\partial W_i}
+$$
+where $\alpha$ is the learning rate, which determines the size of the step in the direction of the negative gradient. While increasing the learning rate will result in larger steps, the training process may become unstable and the loss may not converge to a local minimum. Due to the non-convex nature of the loss function, the loss may not converge to a global minimum, but only to a local minimum. While this might seem to be a problem at first, converging to the absolute global minimum is not always desirable and in fact may result in a model that fails to generalize beyond examples found in the training data.
 
+## Backpropagation
+Backpropagation is an algorithm to find the gradients to all parameters $W_1, W_2, ... W_n$ of the model $m(W)$ that we want to optimize. The algorithm is simply an implementation of the rules of calculus, and in particular it provides an intuitive interpretation of the chain rule. The chain rule states that the following:
+$$
+\frac{\partial dL}{\partial dx} = \frac{\partial dL}{\partial dz} \frac{\partial dz}{\partial dx}
+$$
+where $L$ is the function we are partially differentiating (eg. the loss function), $z$ is the output of an function $f(x)$ and $x$ is the variable we are partially differentiating with respect to.
+An interpretation of this formula common in the field of deep learning is that the chain rule simply states that the following:
+$$
+global gradient = upstream gradient * local gradient
+$$
+In this interpretation, the function to differentiate is represented as a directed acyclic graph (DAG) of individual differentiable operations, to which the chain rule is then recursively applied. In this interpretation our loss function $L$ can be viewed as the root node of the graph of operations and thus the origin, where the recursive differentiation alogirithm starts from.
+
+The following figure visualizes this interpretation of the chain rule applied to a well-defined binary operator:
+
+![upstream and local gradients](figures/upstream-local-gradient.svg)
+
+In this figure, we see a well-defined differentiable binary operator $f(x, y)$ which computes an output $z$. The output $z$ is an intermediary or the final value of the forward pass. To differentiate this operation, wee need the gradients "up until this operation" - the upstream gradients $\frac{\partial L}{\partial z}$. Then we proceed by computing the local gradients for both inputs $x$ and $y$. The local gradients only tell us how the output of $z$ is influenced by the input $x$ or $y$. The upstream gradients tell us how the output of $z$ is influenced by the loss function $L$. The product of the local and upstream gradients is the gradient of the loss function with respect to the input $x$ or $y$. Note that $x$ and $y$ can be functions themselves. In this case the gradients we computed are referred to as "downstream gradients" and become the "upstream gradients" for the next operation in the chain that computed the given input variable. 
+
+Note that normally we will determine whether differentiating in respect to a given input of the operation is even necessary given what paramters we want to differentiate with respect to.
+Software capable of differentiating such arbitrary graphs of operations is referred to as "Autograd engines" and are the backbone of modern deep learning frameworks.
+
+### Scalar-level autograd
+We will now explore implementing a simple scalar-based autograd engine. Note that this simple autograd engine is not part of SciCore, as this approach is not suitable for efficient differentiation of large neural networks.
+Later, we will explore autograd where the "atoms" of differentiations are not the individual scalars, but rather the tensors that are the inputs to tensor-based operations.
+The code for this section can be found on GitHub: https://github.com/mikex86/scalargrad
+
+First, we will define a simple `Value` class to represent the scalar values that we will use as computational atoms.
+
+```java
+public class Value {
+    private final double v;
+    private double grad;
+    ...
+    public Value(double v) {
+        this.v = v;
+        this.grad = 0;
+    }
+    ...
+}
+```
+Now we will define a simple `Operation` interface that will represent the operations that we will perform on the `Value` objects. The `Operation` interface will have a method `perform` that will compute the output of the operation given its inputs and a method `backward` that will compute the gradients of the operation with respect to its inputs given the output value that the operation computed in the forward pass. The gradient of said value is the upstream gradient $\frac{\partial L}{\partial z}$.
+
+```java
+public interface Operation {
+
+    Value perform(List<Value> inputs);
+
+    void backward(Value output, List<Value> inputs);
+
+}
+```
+
+The first operation we will implement is the multiplication operation. This operation will take two inputs and is thus a BinaryOperation, which redefines the `perform`
+method to take two `Value` inputs.
+
+```java
+public class MultiplyOp implements BinaryOperation {
+
+    @Override
+    public Value perform(Value a, Value b) {
+        return new Value(a.getValue() * b.getValue());
+    }
+
+    ...
+}
+```
+
+The second operation we will implement is the pow operation.
+
+```java
+public class PowOp implements BinaryOperation {
+
+    @Override
+    public Value perform(Value a, Value b) {
+        return new Value(Math.pow(a.getValue(), b.getValue()));
+    }
+
+    ...
+}
+```
+
+Now we will implement the `Graph` class that will represent the computational graph of operations. The graph will consist of `Node` objects, which reference each other in a directed acyclic fashion. `Node` objects will store `Value` objects, which is the value of the node. This can either be the output of an `Operation`, or simply a declared value.
+
+```java
+public class Graph {
+
+    private final Node rootNode;
+
+    public Graph(Node rootNode) {
+        this.rootNode = rootNode;
+    }
+    ...
+}
+```
+
+There are two types of `Node` objects: `OperationNode` and `ValueDeclarationNode`. The `OperationNode` will store an `Operation` object, the list of input `Node` objects, and the output `Value` object. The `ValueDeclarationNode` will only store a `Value` object.
+
+```java
+public static class OperationNode extends Node {
+
+    private final Operation operation;
+    private final List<Node> inputNodes;
+
+    public OperationNode(Operation operation, List<Node> inputNodes, Value output) {
+       super(output);
+        this.operation = operation;
+        this.inputNodes = inputNodes;
+    }
+    ...
+}
+```
+
+```java
+public static class ValueDeclarationNode extends Node {
+
+    public ValueDeclarationNode(Value value) {
+        super(value);
+    }
+    ...
+}
+```
+
+We will now define a mechanism to record `Operations` on the fly into a graph.
+This `GraphRecorder` will be a singleton object that will record all operations performed on `Value` objects. The `GraphRecorder` will store the a mapping from `Value` objects to their associated `Node` objects in the graph. 
+
+```java
+public class GraphRecorder {
+
+    private final Map<Value, Graph.Node> valueToNodeMap = new HashMap<>();
+
+    public Value recordOperation(Operation operation, List<Value> inputs) {
+        Value output = operation.perform(inputs);
+
+        List<Graph.Node> inputNodes = new ArrayList<>();
+
+        // look up which operations computed the values that we see as inputs
+        for (Value inputValue : inputs) {
+            Graph.Node inputNode = valueToNodeMap.get(inputValue);
+            if (inputNode == null) {
+                // if we don't have a node for this value, it means that it is a value declaration
+                inputNode = new Graph.ValueDeclarationNode(inputValue);
+            }
+            inputNodes.add(inputNode);
+        }
+
+        Graph.Node node = new Graph.OperationNode(operation, inputNodes, output);
+        valueToNodeMap.put(output, node);
+
+        return output;
+    }
+
+    public Graph endRecording(Value rootValue) {
+        return new Graph(
+            Optional.ofNullable(valueToNodeMap.get(rootValue))
+                .orElseThrow(() ->
+                    new IllegalArgumentException("Value not contained in graph!")
+                )
+            );
+    }
+}
+```
+
+The `GraphRecorder` will be used in the `Value` class to record operations performed on said `Value` objects.
+
+```java
+public class Value {
+    ...
+    public Value multiply(Value b) {
+        return graphRecorder.recordOperation(new MultiplyOp(), List.of(this, b));
+    }
+
+    public Value pow(Value value) {
+        return graphRecorder.recordOperation(new PowerOp(), List.of(this, value));
+    }
+    ...
+}
+```
+
+These handy methods will allow us to write code of the following fashion:
+```java
+Value a = new Value(2);
+Value b = new Value(4);
+
+Value c = a.multiply(b);
+```
+
+We will now implement the `backward` method in the `Graph` class. This method will perform the backward pass of the graph, computing the gradients of all the `Value` objects in the graph. Note that normally one would only want to compute the gradients of a subset of the `Value` objects in the graph, where it is explicitly required, which is a feature that we will not implement here for the sake of simplicity.
+
+In the following code snippet, we recursively apply the chain rule by first computing the downstream gradients of the input nodes of the currently traversed operation and recursively ascending the graph to all nodes the operation depends on. Computed downstream gradients will become the upstream gradients of the next operation in the recursion.
+
+```java
+public class Graph {
+    ...
+    public void backward() {
+        Value rootNodeValue = rootNode.getValue();
+        rootNodeValue.accumulateGrad(1); // dL/dL = 1
+        backward(rootNode);
+    }
+
+    private void backward(Node node) {
+        if (node instanceof OperationNode operationNode) {
+            Operation operation = operationNode.getOperation();
+            List<Value> inputValues = new ArrayList<>();
+            for (Node inputNode : operationNode.getInputNodes()) {
+                inputValues.add(inputNode.getValue());
+            }
+            Value operationOutput = operationNode.getValue();
+            operation.backward(operationOutput, inputValues);
+
+            for (Node inputNode : operationNode.getInputNodes()) {
+                backward(inputNode);
+            }
+        }
+    }
+    ...
+}
+```
+
+Now we will implement the `backward` method for all of our operations:
+
+```java
+public class MultiplyOp {
+    ...
+    @Override
+    public void backward(Value c, Value a, Value b) {
+        double upstreamGradient = c.getGrad();
+        a.accumulateGrad(upstreamGradient * b.getValue());
+        b.accumulateGrad(upstreamGradient * a.getValue());
+    }
+}
+```
+
+```java
+public class PowOp {
+    ...
+    @Override
+    public void backward(Value c, Value a, Value b) {
+        double upstreamGradient = c.getGrad();
+        // Power rule: d/dx (x^y) = y * x^(y-1)
+        a.accumulateGrad(upstreamGradient * b.getValue() * Math.pow(a.getValue(), b.getValue() - 1));
+        // Exponentiation rule: d/dy (x^y) = x^y * ln(x)
+        b.accumulateGrad(upstreamGradient * Math.pow(a.getValue(), b.getValue()) * Math.log(a.getValue()));
+    }
+}
+```
+
+We will now test the capabilities of our autograd engine with the following example:
+
+```java
+public class Main {
+    public static void main(String[] args) {
+        Value a = new Value(2);
+        Value b = new Value(4);
+
+        Value c = a.multiply(b);
+
+        Value d = new Value(2);
+        Value e = c.pow(d);
+
+        e.backward();
+
+        System.out.println("a = " + a);
+        System.out.println("b = " + b);
+        System.out.println("c = " + c);
+        System.out.println("d = " + d);
+        System.out.println("e = " + e);
+    }
+}
+```
+
+The output of this program is as follows:
+
+```
+a = Value{v=2.0, grad=64.0}
+b = Value{v=4.0, grad=32.0}
+c = Value{v=8.0, grad=16.0}
+d = Value{v=2.0, grad=133.0842586675095}
+e = Value{v=64.0, grad=1.0}
+```

@@ -1330,7 +1330,7 @@ class TensorTest {
         }
     }
 
-
+    @Nested
     class Softmax {
         @Test
         void softmax_test_dim1() {

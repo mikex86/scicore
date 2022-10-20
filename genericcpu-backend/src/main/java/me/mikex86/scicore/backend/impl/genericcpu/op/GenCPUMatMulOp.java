@@ -163,7 +163,7 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                 //     dL/dW = G @ X.T      # no virtual transpose occurred, because X here is what was actually used in the forward pass
 
                 // interpretation: never transpose G, transpose X if transposeB == false
-                 dLdW = upstreamGradient.matmul(b.getValue(), false, !transposeB);
+                dLdW = upstreamGradient.matmul(b.getValue(), false, !transposeB);
             } else {
                 // Normally, if this were a transpose op node, this would compute the upstream gradients for
                 // a transpose op, which would transpose it again as part of its gradient computation.

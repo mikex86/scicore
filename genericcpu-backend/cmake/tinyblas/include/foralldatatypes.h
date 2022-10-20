@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 
 #define BINARY_OPERATION_FOR_ALL_DATA_TYPES_PROTO(operation_name) \
 void operation_name(const int8_t *a, const int8_t *b, int8_t *c,\
