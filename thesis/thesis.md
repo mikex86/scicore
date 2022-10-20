@@ -332,7 +332,8 @@ The human brain is composed of neurons, which are interconnected and communicate
 We can create a primitive model of a neuron by defining a function that takes a set of inputs and returns a single output. The most common model model of a neuron sums these inputs and applies a non-linear function to the sum, called the activation function $g(x)$. Generally, any non-linear function can be used as an activation function, but in practice functions are chosen that have desirable properties, such as how easy it is to calculate the derivative of the function, or how it transforms the real number line $\mathbb{R}$.
 The output of such a neuron is called the activation of the neuron, and is denoted as $a$.
 Generally, the activation of a neuron is defined as:
-$$a = g(\sum_{i=1}^{n} w_i x_i + b)
+$$
+a = g(\sum_{i=1}^{n} w_i x_i + b)
 $$
 where $w_i$ is the weight of the $i$-th input, $x_i$ is the $i$-th input, and $b$ is the bias of the neuron.
 Each input can be thought of as a connection from another neuron, and the weight scales the influence of that connection to the output activation of the neuron. The bias can be thought of as a constant input to the neuron used to shift the activation of the neuron.
@@ -352,7 +353,8 @@ Generally, the more complex the problem, the more hidden layers and neurons are 
 
 The general activation for a multi-layer neural network is defined as:
 
-$$a_j^{[l]} = g^{[l]}(\sum_{k=1}^{n^{[l-1]}} w_{jk}^{[l]} a_k^{[l-1]} + b_j^{[l]})
+$$
+a_j^{[l]} = g^{[l]}(\sum_{k=1}^{n^{[l-1]}} w_{jk}^{[l]} a_k^{[l-1]} + b_j^{[l]})
 $$
 
 where $a_j^{[l]}$ is the activation of the $l$-th layer of the $j$-th neuron, $g^{[l]}$ is the activation function of the $l$-th layer, $w^{[l]}$ is the weight matrix of the $l$-th layer, $b_j^{[l]}$ is the bias of the 
@@ -361,7 +363,8 @@ The weight matrix is organized such that the weight at $w_jk$ is the weight of t
 
 An astude observer might notice that this is mathematcally equivalent to the definition of a matrix multiplication, and indeed, the activation of a layer can be calculated as a matrix multiplication/dot product of the activations of the previous layer and the weight matrix of the current layer, plus the bias vector of the current layer:
 
-$$a^{[l]} = g^{[l]}(W^{[l]}\times a^{[l-1]} + b^{[l]})
+$$
+a^{[l]} = g^{[l]}(W^{[l]}\times a^{[l-1]} + b^{[l]})
 $$
 
 
@@ -508,24 +511,29 @@ Defining the structure of the function with which to approximate a given problem
 ## Loss function
 For this purpose, we introduce a metric called "loss" which shall represent the performance of our network on the specified problem in a single scalar value. 
 In general the loss can be thought of as the divergence between the output of the network and the desired output. Thus, a low loss is desirable. There are many possible methods to compute the loss, and the choice of loss function is highly problem-dependent. A very common loss function, but also very simple loss function, is the mean squared error (MSE) loss, which is defined as follows:
-$$J(\hat{y}_i, y_i) = \frac{1}{N} \sum_{i=1}^N (y_i - \hat{y}_i)^2
+
+$$
+J(\hat{y}_i, y_i) = \frac{1}{N} \sum_{i=1}^N (y_i - \hat{y}_i)^2
 $$
 where $y_i$ is the desired output and $\hat{y}_i$ is the output of the network for the $i$-th example and N is the number of examples in the training dataset. The loss function is also sometimes denoted as $L$.
 
 ## Gradient descent
 Given that the loss function $J(\hat{y}_i, y_i)$ is a function of $\hat{y}_i$, which in turn is a function of the model $m(x, W)$, we can for a specific example $x$ caluclate the partial derivative of the loss function with respect to the parameters $W$ of the model. This is called the gradient of the loss function with respect to the parameters of the model.
 Given the gradient of the loss function with respect to a specific parameter $W_i$, we can update the parameter $W_i$ in the direction of the negative gradient, which will decrease the loss function. This is called gradient descent:
-$$W_i = W_i - \alpha \frac{\partial J}{\partial W_i}
+$$
+W_i = W_i - \alpha \frac{\partial J}{\partial W_i}
 $$
 where $\alpha$ is the learning rate, which determines the size of the step in the direction of the negative gradient. While increasing the learning rate will result in larger steps, the training process may become unstable and the loss may not converge to a local minimum. Due to the non-convex nature of the loss function, the loss may not converge to a global minimum, but only to a local minimum. While this might seem to be a problem at first, converging to the absolute global minimum is not always desirable and in fact may result in a model that fails to generalize beyond examples found in the training data.
 
 ## Backpropagation
 Backpropagation is an algorithm to find the gradients to all parameters $W_1, W_2, ... W_n$ of the model $m(W)$ that we want to optimize. The algorithm is simply an implementation of the rules of calculus, and in particular it provides an intuitive interpretation of the chain rule. The chain rule states that the following:
-$$\frac{\partial dL}{\partial dx} = \frac{\partial dL}{\partial dz} \frac{\partial dz}{\partial dx}
+$$
+\frac{\partial dL}{\partial dx} = \frac{\partial dL}{\partial dz} \frac{\partial dz}{\partial dx}
 $$
 where $L$ is the function we are partially differentiating (eg. the loss function), $z$ is the output of an function $f(x)$ and $x$ is the variable we are partially differentiating with respect to.
 An interpretation of this formula common in the field of deep learning is that the chain rule simply states that the following:
-$$global gradient = upstream gradient * local gradient
+$$
+global gradient = upstream gradient * local gradient
 $$
 In this interpretation, the function to differentiate is represented as a directed acyclic graph (DAG) of individual differentiable operations, to which the chain rule is then recursively applied. In this interpretation our loss function $L$ can be viewed as the root node of the graph of operations and thus the origin, where the recursive differentiation alogirithm starts from.
 
@@ -533,7 +541,7 @@ The following figure visualizes this interpretation of the chain rule applied to
 
 ![upstream and local gradients](figures/upstream-local-gradient.svg)
 
-In this figure, we see a well-defined differentiable binary operator $f(x, y)$ which computes an output $z$. The output $z$ is an intermediary or the final value of the forward pass. To differentiate this operation, wee need the gradients "up until this operation" - the upstream gradients $\frac{\partial L}{\partial z}$. Then we proceed by computing the local gradients for both inputs $x$ and $y$. The local gradients only tell us how the output of $z$ is influenced by the input $x$ or $y$. The upstream gradients tell us how the output of $z$ is influenced by the loss function $L$. The product of the local and upstream gradients is the gradient of the loss function with respect to the input $x$ or $y$. Note that $x$ and $y$ can be functions themselves. In this case the gradients we computed are referred to as "downstream gradients" and become the "upstream gradients" for the next operation in the chain that computed the given input variable. 
+In this figure, we see a well-defined differentiable binary operator $f(x, y)$ which computes an output $z$. The output $z$ is an intermediary or the final value of the forward pass. To differentiate this operation, wee need the gradients "up until this operation" - the upstream gradients $\frac{\partial L}{\partial z}$. Then we proceed by computing the local gradients for both inputs $x$ and $y$. The local gradients only tell us how the output of $z$ is influenced by the input $x$ or $y$. The upstream gradients tell us how the output of $z$ is affects the loss function $L$. The product of the local and upstream gradients is the gradient of the loss function with respect to the input $x$ or $y$. Note that $x$ and $y$ can be functions themselves. In this case the gradients we computed are referred to as "downstream gradients" and become the "upstream gradients" for the next operation in the chain that computed the given input variable. 
 
 Note that normally we will determine whether differentiating in respect to a given input of the operation is even necessary given what paramters we want to differentiate with respect to.
 Software capable of differentiating such arbitrary graphs of operations is referred to as "Autograd engines" and are the backbone of modern deep learning frameworks.
@@ -621,7 +629,7 @@ public static class OperationNode extends Node {
     private final List<Node> inputNodes;
 
     public OperationNode(Operation operation, List<Node> inputNodes, Value output) {
-       super(output);
+        super(output);
         this.operation = operation;
         this.inputNodes = inputNodes;
     }
