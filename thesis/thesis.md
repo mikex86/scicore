@@ -359,7 +359,8 @@ $$
 
 where $a_j^{[l]}$ is the activation of the $l$-th layer of the $j$-th neuron, $g^{[l]}$ is the activation function of the $l$-th layer, $w^{[l]}$ is the weight matrix of the $l$-th layer, $b_j^{[l]}$ is the bias of the 
 $j$-th neuron of the $l$-th layer, and $n^{[l-1]}$ is the number of neurons in the previous layer.
-The weight matrix is organized such that the weight at $w_jk$ is the weight of the connection from the $k$-th neuron of the previous layer to the $j$-th neuron of the current layer.
+The weight matrix is organized such that the weight at $w_{jk}$ is the weight of the connection from the $k$-th neuron of the previous layer to the $j$-th neuron of the current layer.
+
 
 An astude observer might notice that this is mathematcally equivalent to the definition of a matrix multiplication, and indeed, the activation of a layer can be calculated as a matrix multiplication/dot product of the activations of the previous layer and the weight matrix of the current layer, plus the bias vector of the current layer:
 
@@ -546,7 +547,7 @@ In this figure, we see a well-defined differentiable binary operator $f(x, y)$ w
 Note that normally we will determine whether differentiating in respect to a given input of the operation is even necessary given what paramters we want to differentiate with respect to.
 Software capable of differentiating such arbitrary graphs of operations is referred to as "Autograd engines" and are the backbone of modern deep learning frameworks.
 
-### Scalar-level autograd
+### Scalar-level Autograd
 We will now explore implementing a simple scalar-based autograd engine. Note that this simple autograd engine is not part of SciCore, as this approach is not suitable for efficient differentiation of large neural networks.
 Later, we will explore autograd where the "atoms" of differentiations are not the individual scalars, but rather the tensors that are the inputs to tensor-based operations.
 The code for this section can be found on GitHub: https://github.com/mikex86/scalargrad
@@ -555,7 +556,7 @@ First, we will define a simple `Value` class to represent the scalar values that
 
 ```java
 public class Value {
-    private final double v;
+    private double v;
     private double grad;
     ...
     public Value(double v) {
@@ -577,7 +578,22 @@ public interface Operation {
 }
 ```
 
-The first operation we will implement is the multiplication operation. This operation will take two inputs and is thus a BinaryOperation, which redefines the `perform`
+The first operation we will implement is the addition operation. The addition operation is defined as follows:
+
+```java
+public class PlusOp implements BinaryOperation {
+
+    @Override
+    public Value perform(Value a, Value b) {
+        return new Value(a.getValue() + b.getValue());
+    }
+
+    ...
+}
+```
+
+
+The second operation we will implement is the multiplication operation. This operation will take two inputs and is thus a BinaryOperation, which redefines the `perform`
 method to take two `Value` inputs.
 
 ```java
@@ -592,7 +608,7 @@ public class MultiplyOp implements BinaryOperation {
 }
 ```
 
-The second operation we will implement is the pow operation.
+The third operation we will implement is the pow operation.
 
 ```java
 public class PowOp implements BinaryOperation {
@@ -664,7 +680,8 @@ public class GraphRecorder {
         for (Value inputValue : inputs) {
             Graph.Node inputNode = valueToNodeMap.get(inputValue);
             if (inputNode == null) {
-                // if we don't have a node for this value, it means that it is a value declaration
+                // if we don't have a node for this value,
+                // it means that it is a value declaration
                 inputNode = new Graph.ValueDeclarationNode(inputValue);
             }
             inputNodes.add(inputNode);
@@ -743,7 +760,38 @@ public class Graph {
 }
 ```
 
-Now we will implement the `backward` method for all of our operations:
+Now we will implement the `backward` method for all of our operations. We will first derive how to compute the local gradinets for each operation and the implement the backward pass according to our findings.
+
+The local gradients for the plus operation are computed as follows:
+$$
+\frac{\partial}{\partial a}(a+b)=1
+$$
+$$
+\frac{\partial}{\partial b}(a+b)=1
+$$
+Given that the gradients of a plus operation are always one, applying the chain rule simplifies to simply the upstream gradient to the operation.
+The plus operation is thus often interpreted as a "gradient router", as it simply distributes the upstream gradients to all of its inputs.
+
+```java
+public class PlusOp {
+    ...
+    @Override
+    public void backward(Value c, Value a, Value b) {
+        double upstreamGradient = c.getGrad();
+        a.accumulateGrad(upstreamGradient);
+        b.accumulateGrad(upstreamGradient);
+    }
+}
+```
+
+The gradients for the multiply operation are computed as follows:
+$$
+\frac{\partial}{\partial a}(ab)=b
+$$
+$$
+\frac{\partial}{\partial b}(ab)=a
+$$
+In the case of the multiplication operation, the local gradients are simply the other input value respectively.
 
 ```java
 public class MultiplyOp {
@@ -757,15 +805,23 @@ public class MultiplyOp {
 }
 ```
 
+The gradients for the power operation are computed as follows:
+$$
+\frac{\partial}{\partial a}(a^b)=b\cdot a^{b-1}
+$$
+$$
+\frac{\partial}{\partial b}(a^b)=a^b\cdot\ln(a)
+$$
+
 ```java
 public class PowOp {
     ...
     @Override
     public void backward(Value c, Value a, Value b) {
         double upstreamGradient = c.getGrad();
-        // Power rule: d/dx (x^y) = y * x^(y-1)
+        // Power rule: d/da (a^b) = y * a^(b-1)
         a.accumulateGrad(upstreamGradient * b.getValue() * Math.pow(a.getValue(), b.getValue() - 1));
-        // Exponentiation rule: d/dy (x^y) = x^y * ln(x)
+        // Exponentiation rule: d/db (a^b) = a^b * ln(a)
         b.accumulateGrad(upstreamGradient * Math.pow(a.getValue(), b.getValue()) * Math.log(a.getValue()));
     }
 }
@@ -804,3 +860,129 @@ c = Value{v=8.0, grad=16.0}
 d = Value{v=2.0, grad=133.0842586675095}
 e = Value{v=64.0, grad=1.0}
 ```
+
+As we can see, the gradients of all the `Value` objects in the graph have been computed correctly.
+
+We can now create a simple abstraction over the `Value` class to implement a linear layer, much like in Sci-Core, except on a scalar level.
+    
+```java
+public class Linear {
+    ...
+        this.inputsSize = inputSize;
+        this.outputsSize = outputSize;
+        this.weights = new Value[outputSize][inputSize];
+        this.biases = new Value[outputSize];
+        Random random = new Random(123);
+        double k = 1.0 / Math.sqrt(inputSize);
+        for (int i = 0; i < outputSize; i++) {
+            for (int j = 0; j < inputSize; j++) {
+                weights[i][j] = new Value(random.nextDouble() * 2 * k - k);
+            }
+        }
+        for (int i = 0; i < outputSize; i++) {
+            biases[i] = new Value(0);
+        }
+    ...
+
+    public Value[][] forward(Value[][] inputs) {
+        // matrix multiplication D=WX
+        // D = (batchSize, outputSize)
+        // W = (outputSize, inputSize)
+        // X = (batchSize, inputSize)
+        Value[][] outputs = new Value[inputs.length][outputsSize];
+        for (int i = 0; i < inputs.length; i++) {
+            for (int j = 0; j < outputsSize; j++) {
+                Value sum = new Value(0);
+                for (int k = 0; k < inputsSize; k++) {
+                    sum = sum.plus(weights[j][k].multiply(inputs[i][k]));
+                }
+                outputs[i][j] = sum.plus(biases[j]);
+            }
+        }
+        return outputs;
+    }
+    ...
+}
+```
+
+We will now construct a simple neural network that learns to approximate the function $f(x)=2*x^2 + 0.5$ - only in the value range $[0, 1]$ (this is to avoid saturation of the sigmoid function).
+
+```java
+
+public class SimpleNNTest {
+    public static void main(String[] args) {
+
+        class BobNet implements Module {
+
+            private final Sigmoid act = new Sigmoid();
+            private final Linear fc1 = new Linear(1, 1);
+            private final Linear fc2 = new Linear(1, 1);
+
+            Value[][] forward(Value[][] x) {
+                Value[][] h;
+                h = fc1.forward(x);
+                h = act.forward(h);
+                h = fc2.forward(h);
+                return h;
+            }
+            ...
+        }
+
+        BobNet bobNet = new BobNet();
+
+        Random random = new Random(123);
+
+        int batchSize = 32;
+
+        // training loop
+        for (int step = 0; step < 4_000; step++) {
+            Value[][] x = new Value[batchSize][1];
+            Value[][] y = new Value[batchSize][1];
+            for (int i = 0; i < batchSize; i++) {
+                // f(x) = 2 * x^2 + 0.5
+                float xVal = random.nextFloat();
+                float yVal = 2 * (xVal * xVal) + 0.5f;
+                x[i][0] = new Value(xVal);
+                y[i][0] = new Value(yVal);
+            }
+            Value[][] yHat = bobNet.forward(x);
+            Value loss = yHat[0][0].minus(y[0][0]).pow(new Value(2));
+            loss.backward();
+
+            if (step % 10 == 0) {
+                System.out.println("step = " + step + ", loss = " + loss.getValue());
+            }
+
+            // sgd
+            for (Value parameter : bobNet.getParameters()) {
+                parameter.setValue(parameter.getValue() - 0.1 * parameter.getGrad());
+                parameter.zeroGrad();
+            }
+        }
+
+        // test
+        Value[][] x = new Value[][]{{new Value(0.13)}};
+        Value[][] yHat = bobNet.forward(x);
+        System.out.println("yHat: " + yHat[0][0].getValue() + " (expected: 0.5169)");
+    }
+}
+```
+The output of this program is as follows:
+
+```
+step = 0, loss = 1.6565700714037799
+step = 100, loss = 0.09935483659101839
+step = 200, loss = 0.022114350721041513
+step = 300, loss = 0.020603378421378514
+...
+step = 3700, loss = 1.5217983452037842E-5
+step = 3800, loss = 2.2334898685634553E-4
+step = 3900, loss = 5.151804926115063E-5
+yHat: 0.5200816868293555 (expected: 0.5169)
+```
+
+We see that the loss is decreasing and the network is learning to approximate the function correctly.
+Note that this is a very simple example, as scalar-based autograd does not scale well to deep neural networks.
+
+## Tensor-level Autograd
+
