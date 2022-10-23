@@ -1,13 +1,7 @@
 #pragma once
 
 #include <jni.h>
-
-#define DATA_TYPE_INT8 1
-#define DATA_TYPE_INT16 2
-#define DATA_TYPE_INT32 3
-#define DATA_TYPE_INT64 4
-#define DATA_TYPE_FLOAT32 5
-#define DATA_TYPE_FLOAT64 6
+#include "jnidatatypes.h"
 
 #define UNARY_OPERATION_JNI_WRAPPER(jniMethodName, operationFunction) \
 JNIEXPORT void JNICALL jniMethodName(JNIEnv *jniEnv, jclass, jlong inPtr, jlong outPtr, jlong nElements, jint dataTypeIn) { \

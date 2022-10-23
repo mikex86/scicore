@@ -213,7 +213,8 @@ public class MNISTTest {
                 ITensor Y_pred = net.forward(X);
 
                 ITensor loss = (Y_pred.minus(Y)).pow((float)2).reduceSum(-1).divide((float)Y_pred.getNumberOfElements());
-                if (Float.isNaN(loss.elementAsFloat())) {
+                float lossValue = loss.elementAsFloat();
+                if (Float.isNaN(lossValue)) {
                     System.out.println("Loss is NaN");
                 }
 //                if (step % 100 == 0) {
@@ -242,7 +243,7 @@ public class MNISTTest {
                 optimizer.step(graph);
 
                 progressBar.step();
-                progressBar.setExtraMessage(String.format(Locale.US, "loss: %.5f", loss.elementAsFloat()));
+                progressBar.setExtraMessage(String.format(Locale.US, "loss: %.5f", lossValue));
             }
         }
         long end = System.currentTimeMillis();
