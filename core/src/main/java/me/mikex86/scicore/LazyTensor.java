@@ -8,6 +8,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.*;
 import java.util.Arrays;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -20,8 +22,8 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     @NotNull
     private final DataType resultDataType;
 
-    @NotNull
-    private final Supplier<ITensor> resultSupplier;
+    @Nullable
+    private Supplier<ITensor> resultSupplier;
 
     @Nullable
     private ITensor lazyResult;
@@ -38,13 +40,54 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
         this.sciCoreBackend = backend;
     }
 
+    private LazyTensor(@NotNull ITensor tensor) {
+        this.numElements = tensor.getNumberOfElements();
+        this.resultShape = tensor.getShape();
+        this.resultDataType = tensor.getDataType();
+        this.resultSupplier = null;
+        this.lazyResult = tensor;
+        this.sciCoreBackend = tensor.getSciCoreBackend();
+    }
+
     @NotNull
     @Override
     public ITensor result() {
         if (lazyResult == null) {
+            Supplier<ITensor> resultSupplier = Objects.requireNonNull(this.resultSupplier, "Result supplier must not be null, when no pre-computed result is available");
             lazyResult = resultSupplier.get();
         }
         return lazyResult;
+    }
+
+    /**
+     * Lazily appends a new operation to the lazy tensor, meaning
+     * that to evaluate this tensor, an additional operation will be
+     * performed on the result of the original lazy tensor.
+     */
+    public void appendOperation(@NotNull Function<ITensor, ITensor> operation) {
+        Supplier<ITensor> oldSupplier;
+        if (lazyResult == null) {
+            oldSupplier = Objects.requireNonNull(resultSupplier, "Result supplier must not be null, when no pre-computed result is available");
+        } else {
+            // avoid re-evaluating the result
+            ITensor oldResult = lazyResult; // capture
+            oldSupplier = () -> oldResult;
+        }
+        this.resultSupplier = () -> operation.apply(oldSupplier.get());
+        this.lazyResult = null;
+    }
+
+    /**
+     * Wraps a tensor in a lazy tensor. Why would you want to do that?
+     * Because you can append operations to the lazy tensor, and the
+     * tensor will only be evaluated when the result is needed.
+     * A normal tensor has no way of doing this.
+     * @param tensor the tensor to wrap
+     * @return a lazy tensor
+     */
+    @NotNull
+    public static LazyTensor wrap(@NotNull ITensor tensor) {
+        return new LazyTensor(tensor);
     }
 
     @Override
@@ -193,8 +236,8 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     }
 
     @Override
-    public void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView) {
-        result().setContents(index, tensor, useView);
+    public void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
+        result().setContents(index, tensor);
     }
 
     @Override

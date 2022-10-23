@@ -2,6 +2,7 @@ package me.mikex86.scicore.backend.impl.genericcpu;
 
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.backend.impl.genericcpu.op.*;
@@ -29,6 +30,8 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.POW, new GenCPUPowOp(this));
         operationTable.put(OperationType.TRANSPOSE, new GenCPUTransposeOp(this));
         operationTable.put(OperationType.CAST, new GenCPUCastOp(this));
+        operationTable.put(OperationType.PLUS_INPLACE, new GenCPUPlusInplaceOp(this));
+        operationTable.put(OperationType.MINUS_INPLACE, new GenCPUMinusInplaceOp(this));
     }
 
     static {
@@ -37,7 +40,8 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
 
     @Override
     public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
-        return new GenCPUTensor(this, dataType, shape);
+        // we wrap the tensor in a LazyTensor to avoid eager evaluation for in-place operations
+        return LazyTensor.wrap(new GenCPUTensor(this, dataType, shape));
     }
 
     @Override

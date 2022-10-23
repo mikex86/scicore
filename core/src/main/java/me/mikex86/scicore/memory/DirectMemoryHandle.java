@@ -94,6 +94,17 @@ public class DirectMemoryHandle implements IMemoryHandle<DirectMemoryHandle> {
         return new DirectMemoryHandle(memoryManager, this, offset, size);
     }
 
+    @NotNull
+    public DirectMemoryHandle restrictSize(long size) {
+        if (size < 0) {
+            throw new IllegalArgumentException("size must be >= 0");
+        }
+        if (size > this.size) {
+            throw new IllegalArgumentException("size must be <= this.size");
+        }
+        return new DirectMemoryHandle(memoryManager, this, 0, size);
+    }
+
     @Override
     @SuppressWarnings("deprecation")
     public void finalize() throws Throwable {

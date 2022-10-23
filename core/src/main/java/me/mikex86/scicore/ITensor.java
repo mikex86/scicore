@@ -494,7 +494,7 @@ public interface ITensor extends IValue {
 
     void setContents(boolean @NotNull [] buffer);
 
-    void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView);
+    void setContents(long @NotNull [] index, @NotNull ITensor tensor);
 
     long getNumberOfElements();
 
@@ -530,6 +530,20 @@ public interface ITensor extends IValue {
 
     @NotNull ITensor plus(@NotNull ITensor other);
 
+    void add(byte value);
+
+    void add(short value);
+
+    void add(int value);
+
+    void add(long value);
+
+    void add(float value);
+
+    void add(double value);
+
+    void add(@NotNull ITensor other);
+
     @NotNull ITensor minus(byte value);
 
     @NotNull ITensor minus(short value);
@@ -543,6 +557,20 @@ public interface ITensor extends IValue {
     @NotNull ITensor minus(double value);
 
     @NotNull ITensor minus(@NotNull ITensor other);
+
+    void subtract(byte value);
+
+    void subtract(short value);
+
+    void subtract(int value);
+
+    void subtract(long value);
+
+    void subtract(float value);
+
+    void subtract(double value);
+
+    void subtract(@NotNull ITensor other);
 
     void fill(byte value);
 

@@ -6,7 +6,6 @@ import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
 import java.util.function.Supplier;
 
 public class DatasetIterator {
@@ -71,8 +70,8 @@ public class DatasetIterator {
             if (!ShapeUtils.equals(yShape, labelShape)) {
                 throw new IllegalArgumentException("Tensor shape mismatch");
             }
-            batchedX.setContents(new long[]{i}, X, true);
-            batchedY.setContents(new long[]{i}, Y, true);
+            batchedX.setContents(new long[]{i}, X);
+            batchedY.setContents(new long[]{i}, Y);
         }
         return Pair.of(batchedX, batchedY);
     }

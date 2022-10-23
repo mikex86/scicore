@@ -3,9 +3,10 @@ package me.mikex86.scicore.backend.impl.genericcpu;
 import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.utils.Pair;
+import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.system.MemoryUtil;
 
 import java.nio.*;
 
@@ -198,20 +199,31 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView) {
-        // TODO: implement useView
-        // General copy
-        long startIndex = ShapeUtils.getFlatIndex(index, this.strides);
-        long nElementsToCopy = tensor.getNumberOfElements();
-        for (long i = 0; i < nElementsToCopy; i++) {
-            switch (this.getDataType()) {
-                case INT8 -> setByteFlat(tensor.getByteFlat(i), startIndex + i);
-                case INT16 -> setShortFlat(tensor.getShortFlat(i), startIndex + i);
-                case INT32 -> setIntFlat(tensor.getIntFlat(i), startIndex + i);
-                case INT64 -> setLongFlat(tensor.getLongFlat(i), startIndex + i);
-                case FLOAT32 -> setFloatFlat(tensor.getFloatFlat(i), startIndex + i);
-                case FLOAT64 -> setDoubleFlat(tensor.getDoubleFlat(i), startIndex + i);
-                default -> throw new IllegalArgumentException("Unsupported data type");
+    public void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
+        if (tensor.getDataType() == getDataType()) {
+            // fast memcpy when no casting is needed
+            long flatIndex = ShapeUtils.getFlatIndex(index, this.strides);
+            long nElements = ShapeUtils.getNumElements(this.shape, index);
+            DirectMemoryHandle selfMemoryHandle = getContentsAsDirectMemory()
+                    .offset(getDataType().getSizeOf(flatIndex))
+                    .restrictSize(getDataType().getSizeOf(nElements));
+            DirectMemoryHandle otherMemoryHandle = tensor.getContentsAsDirectMemory();
+            DirectMemoryManager memoryManager = backend.getMemoryManager();
+            memoryManager.copy(selfMemoryHandle, otherMemoryHandle);
+        } else {
+            // general copy as fall back
+            long startIndex = ShapeUtils.getFlatIndex(index, this.strides);
+            long nElementsToCopy = tensor.getNumberOfElements();
+            for (long i = 0; i < nElementsToCopy; i++) {
+                switch (this.getDataType()) {
+                    case INT8 -> setByteFlat(tensor.getByteFlat(i), startIndex + i);
+                    case INT16 -> setShortFlat(tensor.getShortFlat(i), startIndex + i);
+                    case INT32 -> setIntFlat(tensor.getIntFlat(i), startIndex + i);
+                    case INT64 -> setLongFlat(tensor.getLongFlat(i), startIndex + i);
+                    case FLOAT32 -> setFloatFlat(tensor.getFloatFlat(i), startIndex + i);
+                    case FLOAT64 -> setDoubleFlat(tensor.getDoubleFlat(i), startIndex + i);
+                    default -> throw new IllegalArgumentException("Unsupported data type");
+                }
             }
         }
     }

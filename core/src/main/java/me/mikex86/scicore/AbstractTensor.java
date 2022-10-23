@@ -7,6 +7,7 @@ import me.mikex86.scicore.graph.OptionBundle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -131,11 +132,11 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor transposeSelfTensor, transposeOtherTensor;
         {
-            transposeSelfTensor = backend.createTensor(DataType.BOOLEAN, new long[]{1});
+            transposeSelfTensor = backend.createTensor(DataType.BOOLEAN, new long[0]);
             transposeSelfTensor.setBooleanFlat(transposeSelf, 0);
         }
         {
-            transposeOtherTensor = backend.createTensor(DataType.BOOLEAN, new long[]{1});
+            transposeOtherTensor = backend.createTensor(DataType.BOOLEAN, new long[0]);
             transposeOtherTensor.setBooleanFlat(transposeOther, 0);
         }
         return operationRecorder.recordOperation(OperationType.MATMUL, OptionBundle.of(
@@ -161,7 +162,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT8, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
@@ -173,7 +174,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT16, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
@@ -185,7 +186,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT32, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
@@ -197,7 +198,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT64, new long[0]);
             valueScalar.setLongFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
@@ -209,7 +210,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
+            valueScalar = backend.createTensor(DataType.FLOAT32, new long[0]);
             valueScalar.setFloatFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
@@ -221,7 +222,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
+            valueScalar = backend.createTensor(DataType.FLOAT64, new long[0]);
             valueScalar.setDoubleFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
@@ -233,7 +234,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT8, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
@@ -245,7 +246,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT16, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
@@ -257,7 +258,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT32, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
@@ -269,7 +270,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT64, new long[0]);
             valueScalar.setLongFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
@@ -281,7 +282,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
+            valueScalar = backend.createTensor(DataType.FLOAT32, new long[0]);
             valueScalar.setFloatFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
@@ -293,7 +294,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
+            valueScalar = backend.createTensor(DataType.FLOAT64, new long[0]);
             valueScalar.setDoubleFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.PLUS, backend, this, valueScalar);
@@ -307,6 +308,84 @@ public abstract class AbstractTensor implements ITensor {
         return operationRecorder.recordOperation(OperationType.PLUS, backend, this, other);
     }
 
+    @Override
+    public void add(byte value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT8, new long[0]);
+            valueScalar.setIntFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.PLUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void add(short value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT16, new long[0]);
+            valueScalar.setIntFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.PLUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void add(int value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT32, new long[0]);
+            valueScalar.setIntFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.PLUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void add(long value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT64, new long[0]);
+            valueScalar.setLongFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.PLUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void add(float value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT32, new long[0]);
+            valueScalar.setFloatFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.PLUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void add(double value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT64, new long[0]);
+            valueScalar.setDoubleFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.PLUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void add(@NotNull ITensor other) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        operationRecorder.recordOperation(OperationType.PLUS_INPLACE, backend, this, other);
+    }
 
     @Override
     public @NotNull ITensor minus(byte value) {
@@ -314,7 +393,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT8, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
@@ -326,7 +405,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT16, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
@@ -338,7 +417,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT32, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
@@ -350,7 +429,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT64, new long[0]);
             valueScalar.setLongFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
@@ -362,7 +441,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
+            valueScalar = backend.createTensor(DataType.FLOAT32, new long[0]);
             valueScalar.setFloatFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
@@ -374,7 +453,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
+            valueScalar = backend.createTensor(DataType.FLOAT64, new long[0]);
             valueScalar.setDoubleFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MINUS, backend, this, valueScalar);
@@ -386,6 +465,85 @@ public abstract class AbstractTensor implements ITensor {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         return operationRecorder.recordOperation(OperationType.MINUS, backend, this, other);
+    }
+
+    @Override
+    public void subtract(byte value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT8, new long[0]);
+            valueScalar.setIntFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.MINUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void subtract(short value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT16, new long[0]);
+            valueScalar.setIntFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.MINUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void subtract(int value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT32, new long[0]);
+            valueScalar.setIntFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.MINUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void subtract(long value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.INT64, new long[0]);
+            valueScalar.setLongFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.MINUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void subtract(float value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT32, new long[0]);
+            valueScalar.setFloatFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.MINUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void subtract(double value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        ITensor valueScalar;
+        {
+            valueScalar = backend.createTensor(DataType.FLOAT64, new long[0]);
+            valueScalar.setDoubleFlat(value, 0);
+        }
+        operationRecorder.recordOperation(OperationType.MINUS_INPLACE, backend, this, valueScalar);
+    }
+
+    @Override
+    public void subtract(@NotNull ITensor other) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        operationRecorder.recordOperation(OperationType.MINUS_INPLACE, backend, this, other);
     }
 
     @Override
@@ -417,12 +575,12 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor dimensionScalar;
         {
-            dimensionScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            dimensionScalar = backend.createTensor(DataType.INT32, new long[0]);
             dimensionScalar.setIntFlat(dimension, 0);
         }
         ITensor keepDimensionsScalar;
         {
-            keepDimensionsScalar = backend.createTensor(DataType.BOOLEAN, new long[]{1});
+            keepDimensionsScalar = backend.createTensor(DataType.BOOLEAN, new long[0]);
             keepDimensionsScalar.setBooleanFlat(keepDimensions, 0);
         }
         return operationRecorder.recordOperation(OperationType.REDUCE_SUM, backend, this, dimensionScalar, keepDimensionsScalar);
@@ -431,7 +589,6 @@ public abstract class AbstractTensor implements ITensor {
     @Override
     @NotNull
     public ITensor transpose() {
-        // TODO: OPTIMIZE TRANSPOSE AS TRANSPOSED VIEW
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         return operationRecorder.recordOperation(OperationType.TRANSPOSE, backend, this);
@@ -443,7 +600,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor exponentScalar;
         {
-            exponentScalar = backend.createTensor(DataType.INT8, new long[]{1});
+            exponentScalar = backend.createTensor(DataType.INT8, new long[0]);
             exponentScalar.setIntFlat(exponent, 0);
         }
         return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
@@ -455,7 +612,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor exponentScalar;
         {
-            exponentScalar = backend.createTensor(DataType.INT16, new long[]{1});
+            exponentScalar = backend.createTensor(DataType.INT16, new long[0]);
             exponentScalar.setIntFlat(exponent, 0);
         }
         return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
@@ -467,7 +624,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor exponentScalar;
         {
-            exponentScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            exponentScalar = backend.createTensor(DataType.INT32, new long[0]);
             exponentScalar.setIntFlat(exponent, 0);
         }
         return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
@@ -479,7 +636,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor exponentScalar;
         {
-            exponentScalar = backend.createTensor(DataType.INT64, new long[]{1});
+            exponentScalar = backend.createTensor(DataType.INT64, new long[0]);
             exponentScalar.setLongFlat(exponent, 0);
         }
         return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
@@ -491,7 +648,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor exponentScalar;
         {
-            exponentScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
+            exponentScalar = backend.createTensor(DataType.FLOAT32, new long[0]);
             exponentScalar.setFloatFlat(exponent, 0);
         }
         return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
@@ -503,7 +660,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor exponentScalar;
         {
-            exponentScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
+            exponentScalar = backend.createTensor(DataType.FLOAT64, new long[0]);
             exponentScalar.setDoubleFlat(exponent, 0);
         }
         return operationRecorder.recordOperation(OperationType.POW, backend, this, exponentScalar);
@@ -530,7 +687,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT8, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT8, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
@@ -542,7 +699,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT16, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT16, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
@@ -554,7 +711,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT32, new long[0]);
             valueScalar.setIntFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
@@ -566,7 +723,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.INT64, new long[]{1});
+            valueScalar = backend.createTensor(DataType.INT64, new long[0]);
             valueScalar.setLongFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
@@ -578,7 +735,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.FLOAT32, new long[]{1});
+            valueScalar = backend.createTensor(DataType.FLOAT32, new long[0]);
             valueScalar.setFloatFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
@@ -590,7 +747,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor valueScalar;
         {
-            valueScalar = backend.createTensor(DataType.FLOAT64, new long[]{1});
+            valueScalar = backend.createTensor(DataType.FLOAT64, new long[0]);
             valueScalar.setDoubleFlat(value, 0);
         }
         return operationRecorder.recordOperation(OperationType.MULTIPLY, backend, this, valueScalar);
@@ -616,7 +773,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor dimensionScalar;
         {
-            dimensionScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            dimensionScalar = backend.createTensor(DataType.INT32, new long[0]);
             dimensionScalar.setIntFlat(dimension, 0);
         }
         return operationRecorder.recordOperation(OperationType.ARGMAX, backend, this, dimensionScalar);
@@ -654,7 +811,7 @@ public abstract class AbstractTensor implements ITensor {
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         ITensor dataTypeScalar;
         {
-            dataTypeScalar = backend.createTensor(DataType.INT32, new long[]{1});
+            dataTypeScalar = backend.createTensor(DataType.INT32, new long[0]);
             dataTypeScalar.setIntFlat(dataType.ordinal(), 0);
         }
         return operationRecorder.recordOperation(OperationType.CAST, backend, this, dataTypeScalar);
@@ -666,13 +823,13 @@ public abstract class AbstractTensor implements ITensor {
             return true;
         }
         ITensor self = this;
-        if (self instanceof IDerivedTensor derivedTensor) {
+        while (self instanceof IDerivedTensor derivedTensor) {
             self = derivedTensor.result();
         }
-        if (tensor instanceof IDerivedTensor derivedTensor) {
-            return self == derivedTensor.result();
+        while (tensor instanceof IDerivedTensor derivedTensor) {
+            tensor = derivedTensor.result();
         }
-        return false;
+        return self == tensor;
     }
 
     @Override
@@ -803,7 +960,7 @@ public abstract class AbstractTensor implements ITensor {
 
             if (hasNext) {
                 sb.append(",");
-                if (nElementsInDimension >= 15) {
+                if (nElementsInDimension % 15 == 0 || (nElementsInDimension > 15 && nEndingDimensions > 0)) {
                     sb.append('\n');
                     isNewLine = true;
                 }

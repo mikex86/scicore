@@ -216,7 +216,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView) {
+    public void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
         // TODO: implement useView
         // General copy
         long startIndex = ShapeUtils.getFlatIndex(index, this.strides);

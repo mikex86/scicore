@@ -52,7 +52,7 @@ public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
         if (dstMemoryHandle.getSize() == 0) {
             return;
         }
-        MemoryUtil.memCopy(dstMemoryHandle.getNativePtr(), srcMemoryHandle.getNativePtr(), dstMemoryHandle.getSize());
+        MemoryUtil.memCopy(srcMemoryHandle.getNativePtr(), dstMemoryHandle.getNativePtr(), dstMemoryHandle.getSize());
     }
 
     public void free(@NotNull DirectMemoryHandle directMemoryHandle) {

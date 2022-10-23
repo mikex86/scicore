@@ -73,7 +73,7 @@ public class MNISTTest {
         }
     }
 
-    private static final int BATCH_SIZE = 1;
+    private static final int BATCH_SIZE = 32;
 
     private static class MnistNet implements IModule {
 
@@ -189,14 +189,21 @@ public class MNISTTest {
 //            Objects.requireNonNull(net.fc2.getBias()).setContents(fc2bias);
 //        }
 
-        long nSteps = 33_000;
+        long nSteps = 20_000;
         int nTestSteps = 10000;
 
         float learningRate = 0.01f;
 
         IOptimizer optimizer = new Sgd(sciCore, learningRate, net.parameters());
 
-        try (ProgressBar progressBar = new ProgressBar("Training", nSteps)) {
+        System.out.println("Start training...");
+        long start = System.currentTimeMillis();
+        try (ProgressBar progressBar = new ProgressBarBuilder()
+                .setTaskName("Training")
+                .setInitialMax(nSteps)
+                .setStyle(ProgressBarStyle.UNICODE_BLOCK)
+                .setUpdateIntervalMillis(100)
+                .build()) {
             for (long step = 0; step < nSteps; step++) {
                 sciCore.getBackend().getOperationRecorder().resetRecording();
                 Pair<ITensor, ITensor> batch = trainIt.next();
@@ -231,27 +238,6 @@ public class MNISTTest {
 //                    System.out.println("Diff weights fc2: " + diffWeightsFc2.elementAsFloat());
 //                    System.out.println("Diff bias fc2: " + diffBiasFc2.elementAsFloat());
 //                }
-//                if (step % 2000 == 0) {
-//                    long nCorrect = 0;
-//                    for (int i = 0; i < nTestSteps; i++) {
-//                        sciCore.getBackend().getOperationRecorder().resetRecording();
-//                        Pair<ITensor, ITensor> testBatch = testIt.next();
-//                        ITensor testX = testBatch.getFirst();
-//                        ITensor testY = testBatch.getSecond();
-//                        ITensor testY_pred = net.forward(testX);
-//                        ITensor pred_argMax = testY_pred.argmax(1);
-//                        ITensor testY_argMax = testY.argmax(1);
-//                        boolean correct = pred_argMax.equals(testY_argMax);
-//                        if (correct) {
-//                            nCorrect++;
-//                        }
-//                    }
-//                    double accuracy = 0.0;
-//                    if (nCorrect > 0) {
-//                        accuracy = nCorrect / (double) nTestSteps;
-//                    }
-//                    System.out.println("\nStep: " + step + " Loss: " + loss.elementAsFloat() + " Accuracy: " + accuracy);
-//                }
                 IGraph graph = sciCore.getGraphUpTo(loss);
                 optimizer.step(graph);
 
@@ -259,7 +245,8 @@ public class MNISTTest {
                 progressBar.setExtraMessage(String.format(Locale.US, "loss: %.5f", loss.elementAsFloat()));
             }
         }
-        System.out.println("Done training");
+        long end = System.currentTimeMillis();
+        System.out.println("Time: " + (end - start) / 1000.0 + "s");
 
     }
 

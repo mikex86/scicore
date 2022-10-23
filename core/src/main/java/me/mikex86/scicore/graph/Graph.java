@@ -41,7 +41,7 @@ public class Graph implements IGraph {
         for (ITensor tensor : tensors) {
             Optional<IGraphNode> nodeOpt = getNodeForTensor(tensor);
             if (nodeOpt.isEmpty()) {
-                throw new IllegalArgumentException("Tensor " + tensor + " is not part of the graph");
+                throw new IllegalArgumentException("Tensor is not part of the graph");
             }
             IGraphNode node = nodeOpt.get();
 
@@ -195,7 +195,7 @@ public class Graph implements IGraph {
                 this.upstreamGradient = gradient;
             } else {
                 Validator.assertTrue(ShapeUtils.equals(this.upstreamGradient.getShape(), gradient.getShape()), "Accumulative gradients must match shape");
-                this.upstreamGradient = this.upstreamGradient.plus(gradient);
+                this.upstreamGradient.add(gradient);
             }
         }
 

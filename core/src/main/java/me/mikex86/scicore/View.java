@@ -2,7 +2,6 @@ package me.mikex86.scicore;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -255,7 +254,7 @@ public class View extends AbstractTensor {
     }
 
     @Override
-    public void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView) {
+    public void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
         throw new UnsupportedOperationException("Views are read-only");
     }
 

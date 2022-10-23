@@ -50,6 +50,27 @@ public class ShapeUtils {
     }
 
     /**
+     * Computes the number of elements in a shape that are accessed by a specified index.
+     * When index.length == shape.length, then the result is equivalent to {@link #getNumElements(long[])}.
+     * When index.length < shape.length, then the result is the product of the dimension sizes for which no index is specified in the nd-index supplied.
+     *
+     * @param shape the specified shape
+     * @param index the specified index
+     * @return the number of elements in the shape
+     */
+    public static int getNumElements(long @NotNull [] shape, long @NotNull [] index) {
+        int numElements = 1;
+        for (int i = 0; i < shape.length; i++) {
+            if (i < index.length) {
+                continue;
+            }
+            long l = shape[i];
+            numElements *= l;
+        }
+        return numElements;
+    }
+
+    /**
      * Computes the strides for a specified shape.
      * Strides are defined as the number of scalars
      * (value in the lowest dimension (the dimension with size shape[shape.length -1]))
