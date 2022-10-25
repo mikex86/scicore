@@ -730,7 +730,7 @@ Value c = a.multiply(b);
 
 We will now implement the `backward` method in the `Graph` class. This method will perform the backward pass of the graph, computing the gradients of all the `Value` objects in the graph. Note that normally one would only want to compute the gradients of a subset of the `Value` objects in the graph, where it is explicitly required, which is a feature that we will not implement here for the sake of simplicity.
 
-In the following code snippet, we recursively apply the chain rule by first computing the downstream gradients of the input nodes of the currently traversed operation and recursively ascending the graph to all nodes the operation depends on. Computed downstream gradients will become the upstream gradients of the next operation in the recursion.
+In the following code snippet, we recursively apply the chain rule by first computing the downstream gradients of the input nodes of the currently traversed operation and recursively ascending the graph to all nodes the operation depends on. Computed downstream gradients will become the upstream gradients of the next operation in the recursion. Gradients are always accumulated, so that when multiple operation nodes depend on the same value, all contributions are taken into account.
 
 ```java
 public class Graph {
@@ -985,4 +985,116 @@ We see that the loss is decreasing and the network is learning to approximate th
 Note that this is a very simple example, as scalar-based autograd does not scale well to deep neural networks.
 
 ## Tensor-level Autograd
+Now we will take a look at the concept of an autograd engine where the atomic unit of differentiation are not individual scalars, but rather tensor-level, higher level operations such as eg. matrix multiplication.
 
+Given a well defined operator $f(T_1, T_2, ..., T_n)$ which computes an output $Z$, where all $T_n$ are tensor parameters of the operator, each $T_n$ will receive a local gradient tensor $G_n$ of the same shape, where each element $G_{ijk...n}$ is the partial derivative $\frac{\partial z}{\partial T_{ijk...n}}$. Said local gradient is multiplied upstream gradient is multiplied with the upstream gradient of downstream operations to apply the chain rule. Note that $upstreamGradient * localGradient$ must result in a shape equal to the shape of $T_n$. This can occur when some dimension $n$ is broadcast in the operation $f$ such that $|T_n| = 1$ and $|Z_n|$ > 1. Because a broadcast is the virtual repetition of a scalar value in the dimension $n$ to match the dimension size of another operation $T_j$ at the respective dimension, all $n > 1$ gradient values that would be associated with the individual repition of the same scalar value must be sumed up to collect all gradient contributions. Inversely, when a tensor $T$ is summed up along a dimension $n$, such that $|T_n| = 1$ (or the dimension not kept) and $|Z_n|$ > 1, the gradient of the single resulting scalar must be repeated in the dimension $n$.
+
+Similar to the scalar-based autograd, the tensor-based autograd engine in Sci-Core builds a graph according to the method calls performed on the tensor objects using a `GraphRecorder` object.
+
+```java
+public class GraphRecorder {
+    ...
+    @Override
+    @NotNull
+    public ITensor matmul(@NotNull ITensor other) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.MATMUL, backend, this, other);
+    }
+    ...
+}
+```
+
+After calling the operation methods on the tensor objects, the recorded graph can retrieved. Gradients can be requested to 
+be computed by the autograd engine.
+After starting the backpropagation, the gradients can be retrieved for all tensors which gradients were requested for.
+
+```java
+ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
+ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
+ITensor result = a.matmul(b);
+
+IGraph graph = sciCore.getGraphUpTo(result);
+graph.requestGradientsFor(a, b);
+graph.backward();
+
+```
+
+Only branches of the graph that lead to explictly requested gradients will be computed to avoid unnecessary computation.
+Only the gradients of the requested tensors persist after the backward pass completes.
+
+```java
+public class Graph {
+    ...
+    @Override
+    public void requestGradientsFor(@NotNull ITensor... tensors) {
+        for (ITensor tensor : tensors) {
+            Optional<IGraphNode> nodeOpt = getNodeForTensor(tensor);
+            if (nodeOpt.isEmpty()) {
+                throw new IllegalArgumentException("Tensor is not part of the graph");
+            }
+            IGraphNode node = nodeOpt.get();
+
+            if (!(node instanceof ITensorNodeWithGradient nodeWithGradient)) {
+                throw new IllegalStateException(
+                    "Requested gradients to be computed " +
+                     "for node that can't hold a gradient: " + node
+                );
+            }
+            nodeWithGradient.requestGradients();
+
+            List<IGraphNode> downstreamNodes = getDependentNodes(node);
+
+            for (IGraphNode downstreamNode : downstreamNodes) {
+                if (!(downstreamNode instanceof ITensorNodeWithGradient downStreamNodeWithGradient)) {
+                    throw new IllegalArgumentException(
+                        "Requested gradient for " +
+                        "tensor that cannot hold a gradient: " + downstreamNode
+                    );
+                }
+                // all nodes that depend on this node
+                // will have their gradients computed for them
+                downStreamNodeWithGradient.setRequireGradients();
+            }
+        }
+    }
+    ...
+}
+```
+Nodes can either request gradients, or require gradients. A node that requests gradients will have its gradients computed and not discarded. A node that requires gradients will have its gradients computed and discarded, as these gradients are only needed to compute the gradients of upstream nodes, one of which will request gradients.
+
+These flags are respected in the backpropagate method to only traverse branches of the graph where nodes depend on nodes that request gradients.
+This also handles the case of deleting gradients, when the branch that could need the gradients goes out of scope of the recursion.
+```java
+public class Graph {
+    ...
+    private void backPropagate(@NotNull ITensorNodeWithGradient node) {
+        // only compute gradient for nodes for which it is required
+        if (node instanceof IDifferentiableNode differentiableNode) {
+            differentiableNode.computeGradients();
+        }
+        // traverse up the topology, if the graph extends upwards
+        if (node instanceof OperationGraphNode operationNode) {
+            for (IGraphNode inputNode : operationNode.getInputs()) {
+                if (inputNode instanceof ITensorNodeWithGradient inputNodeWithGradient) {
+                    if (inputNodeWithGradient.requiresGradients()) {
+                        backPropagate(inputNodeWithGradient);
+                    }
+                }
+            }
+        }
+        if (!node.requestsGradients()) {
+            node.deleteGradient();
+        }
+    }
+    ...
+}
+```
+
+As the individual operations operate on a tensor-basis, their backward passes are also more complex than those of their scalar counterparts. Mechanisms like broadcasting must be accounted for in the fashion described above, and more complex operation require a rigerous mathematical deriviation to simplify gradient computation.
+
+The following snippet shows the backward pass of the multiplication operation in Sci-Core:
+
+// TODO
+
+When compared with the scalar counterpart, the expression $globalGradient = upstreamGradient * upstreamGradient$ is still intact. However, we need to handle broadcasting in addition to that.

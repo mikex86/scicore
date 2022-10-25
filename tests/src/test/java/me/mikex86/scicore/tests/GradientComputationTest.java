@@ -40,9 +40,7 @@ public class GradientComputationTest {
 
     }
 
-    // TODO: will pass when transpose graph merging is implemented
     @Test
-    @Disabled
     void testMatMulChainRuleBackward() {
         // See: https://cs231n.github.io/optimization-2/#mat (Stanford University CS231n: Deep Learning for Computer Vision)
 
@@ -404,9 +402,7 @@ public class GradientComputationTest {
     }
 
 
-    // TODO: will pass when transpose graph merging is implemented
     @Test
-    @Disabled
     void testMatmulWithTranspose() {
         // (1, 2) * (2, 1) = (1, 1)
         ITensor a = sciCore.matrix(new float[][]{{1, 2}});
@@ -967,8 +963,8 @@ public class GradientComputationTest {
         ITensor dLdX = graph.getGradient(X).orElseThrow();
         ITensor dLdB = graph.getGradient(B).orElseThrow();
 
-        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdL);
-        Assertions.assertEquals(sciCore.array(new float[]{0.5f}), dLdTotalLoss);
+        Assertions.assertEquals(sciCore.scalar(1.0f), dLdL);
+        Assertions.assertEquals(sciCore.scalar(0.5f), dLdTotalLoss);
         Assertions.assertEquals(sciCore.array(new float[]{0.5f, 0.5f}), dLdLossPerSample);
         Assertions.assertEquals(sciCore.matrix(new float[][]{{0.5f, 0.5f}, {0.5f, 0.5f}}), dLdDiffSquared);
         Assertions.assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {35.0f, 49.0f}}), dLdDiff);
@@ -1011,8 +1007,8 @@ public class GradientComputationTest {
         ITensor dLdX = graph.getGradient(X).orElseThrow();
         ITensor dLdB = graph.getGradient(B).orElseThrow();
 
-        Assertions.assertEquals(sciCore.array(new float[]{1.0f}), dLdL);
-        Assertions.assertEquals(sciCore.array(new float[]{0.5f}), dLdTotalLoss);
+        Assertions.assertEquals(sciCore.scalar(1.0f), dLdL);
+        Assertions.assertEquals(sciCore.scalar(0.5f), dLdTotalLoss);
         Assertions.assertEquals(sciCore.array(new float[]{0.5f, 0.5f}), dLdLossPerSample);
         Assertions.assertEquals(sciCore.matrix(new float[][]{{0.5f, 0.5f}, {0.5f, 0.5f}}), dLdDiffSquared);
         Assertions.assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {37.0f, 51.0f}}), dLdDiff);

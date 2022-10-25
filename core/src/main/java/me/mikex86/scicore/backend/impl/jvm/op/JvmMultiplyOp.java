@@ -10,6 +10,8 @@ import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
 
     @NotNull
@@ -95,6 +97,7 @@ public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
 
             long[] gradientShape = gradients.getShape();
 
+            // TODO: THIS IS NOT ACCURATE
             if (ShapeUtils.compareBroadcastRank(gradientShape, shapeA) > 0) {
                 int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeA, gradientShape);
                 for (int i = 0; i < nCommonDimensions; i++) {

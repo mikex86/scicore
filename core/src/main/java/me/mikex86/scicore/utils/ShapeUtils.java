@@ -327,6 +327,20 @@ public class ShapeUtils {
         return 0;
     }
 
+    @NotNull
+    public static List<Integer> getNotCommonDimensions(long[] shapeA, long[] shapeB) {
+        List<Integer> notCommonDimensions = new ArrayList<>();
+        int maxLength = Math.max(shapeA.length, shapeB.length);
+        for (int i = 0; i < maxLength; i++) {
+            long elementA = i < shapeA.length ? shapeA[shapeA.length - 1 - i] : -1;
+            long elementB = i < shapeB.length ? shapeB[shapeB.length - 1 - i] : -1;
+            if (elementA != elementB) {
+                notCommonDimensions.add(i);
+            }
+        }
+        return notCommonDimensions;
+    }
+
 
     /**
      * Reduces the shape of the tensor by removing the dimension specified by the specified dimension index,
