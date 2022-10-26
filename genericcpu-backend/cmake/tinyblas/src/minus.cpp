@@ -7,16 +7,15 @@ template<typename A, typename B, typename C>
 void tblas_minus(const A *a, const B *b, C *c,
                  const size_t *shapeA, const size_t *stridesA, size_t nDimsA,
                  const size_t *shapeB, const size_t *stridesB, size_t nDimsB,
-                 const size_t *shapeC, const size_t *, size_t nDimsC) {
+                 const size_t *shapeC, const size_t *stridesC, size_t nDimsC) {
     auto *outputIndex = new size_t[nDimsC];
     memset(outputIndex, 0, sizeof(size_t) * nDimsC);
 
-    size_t cIndexFlat = 0;
     do {
         size_t aIndexFlat = getFlatIndexConstrained(outputIndex, shapeA, stridesA, nDimsA, nDimsC);
         size_t bIndexFlat = getFlatIndexConstrained(outputIndex, shapeB, stridesB, nDimsB, nDimsC);
+        size_t cIndexFlat = getFlatIndex(outputIndex, stridesC, nDimsC);
         c[cIndexFlat] = a[aIndexFlat] - b[bIndexFlat];
-        cIndexFlat++;
     } while (incrementIndex(outputIndex, shapeC, nDimsC));
     delete[] outputIndex;
 }
@@ -25,15 +24,15 @@ void tblas_minus(const A *a, const B *b, C *c,
 #ifdef __ARM_NEON__
 #include "vectorize_armneon.h"
 
-nd_by_scalar_op(plus, float, vsubq_f32, -);
-nd_by_nd_op(plus, float, vsubq_f32, -);
+nd_by_scalar_op(minus, float, vsubq_f32, -);
+nd_by_nd_op(minus, float, vsubq_f32, -);
 op_hook_optimizations(
-        plus, float,
+        minus, float,
         {
-            if (tblas_plus_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
+            if (tblas_minus_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
                                              shapeC, stridesC, nDimsC))
                 return;
-            if (tblas_plus_nd_by_nd(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
+            if (tblas_minus_nd_by_nd(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
                                          shapeC, stridesC, nDimsC))
                 return;
         },

@@ -1,6 +1,5 @@
 #include "reducesum.h"
 
-#include <cstdlib>
 #include <cstring>
 #include <stdexcept>
 #include "shapeutils.h"

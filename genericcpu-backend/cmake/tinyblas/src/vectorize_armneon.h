@@ -1,6 +1,6 @@
 #pragma once
 
-#include <immintrin.h>
+#include <arm_neon.h>
 #include <algorithm>
 
 #define OPERANDS_SIZE 16

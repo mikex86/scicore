@@ -24,7 +24,6 @@ public class JvmArgmaxOp implements IDifferentiableSingleParametricOperation<Int
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor tensor, @Nullable Integer dimension) {
         Validator.assertTrue(dimension != null, "dimensionScalar must not be null");
-
         DataType inputDataType = tensor.getDataType();
         long[] shape = tensor.getShape();
         if (dimension == -1) {
