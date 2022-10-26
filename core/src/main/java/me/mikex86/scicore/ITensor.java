@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.*;
+import java.util.List;
 
 public interface ITensor extends IValue {
 
@@ -593,6 +594,19 @@ public interface ITensor extends IValue {
     @NotNull ITensor reduceSum(int dimension);
 
     @NotNull ITensor reduceSum(int dimension, boolean keepDimensions);
+
+    @NotNull
+    default ITensor reduceSum(@NotNull List<Integer> dimensions, boolean keepDimensions) {
+        int deletedDimensions = 0;
+        ITensor result = this;
+        for (Integer dimension : dimensions) {
+            result = result.reduceSum(dimension - deletedDimensions, keepDimensions);
+            if (keepDimensions) {
+                deletedDimensions++;
+            }
+        }
+        return result;
+    }
 
     @NotNull ITensor transpose();
 

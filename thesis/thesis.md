@@ -1098,3 +1098,15 @@ The following snippet shows the backward pass of the multiplication operation in
 // TODO
 
 When compared with the scalar counterpart, the expression $globalGradient = upstreamGradient * upstreamGradient$ is still intact. However, we need to handle broadcasting in addition to that.
+
+
+### Mnist Training Example
+
+### Optimization
+
+# Language Modelling using NNs
+
+
+# Language modeling using RNNs
+
+# Language modeling using Transformers

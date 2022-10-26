@@ -7,6 +7,8 @@ import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.utils.GradientUtil;
+import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -89,39 +91,13 @@ public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
         if (a.requiresGradients()) {
-            ITensor aValue = a.getValue();
-
-            long[] shapeA = aValue.getShape();
-
             ITensor gradients = upstreamGradient.multiply(b.getValue());
-
-            long[] gradientShape = gradients.getShape();
-
-            // TODO: THIS IS NOT ACCURATE
-            if (ShapeUtils.compareBroadcastRank(gradientShape, shapeA) > 0) {
-                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeA, gradientShape);
-                for (int i = 0; i < nCommonDimensions; i++) {
-                    gradients = gradients.reduceSum(0);
-                }
-            }
+            gradients = GradientUtil.sumGradientsOnBroadDims(gradients, a.getValue().getShape());
             a.accumulateGradient(gradients);
         }
         if (b.requiresGradients()) {
-            ITensor bValue = b.getValue();
-
-            long[] shapeB = bValue.getShape();
-
             ITensor gradients = upstreamGradient.multiply(a.getValue());
-
-            long[] gradientShape = gradients.getShape();
-
-            if (ShapeUtils.compareBroadcastRank(gradientShape, shapeB) > 0) {
-                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeB, gradientShape);
-                for (int i = 0; i < nCommonDimensions; i++) {
-                    gradients = gradients.reduceSum(0);
-                }
-            }
-
+            gradients = GradientUtil.sumGradientsOnBroadDims(gradients, b.getValue().getShape());
             b.accumulateGradient(gradients);
         }
     }
