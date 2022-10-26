@@ -8,11 +8,8 @@ import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.GradientUtil;
-import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.List;
 
 public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
 
@@ -92,12 +89,12 @@ public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
         if (a.requiresGradients()) {
             ITensor gradients = upstreamGradient.multiply(b.getValue());
-            gradients = GradientUtil.sumGradientsOnBroadDims(gradients, a.getValue().getShape());
+            gradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, a.getValue().getShape());
             a.accumulateGradient(gradients);
         }
         if (b.requiresGradients()) {
             ITensor gradients = upstreamGradient.multiply(a.getValue());
-            gradients = GradientUtil.sumGradientsOnBroadDims(gradients, b.getValue().getShape());
+            gradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, b.getValue().getShape());
             b.accumulateGradient(gradients);
         }
     }

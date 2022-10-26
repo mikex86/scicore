@@ -9,6 +9,7 @@ import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.utils.GradientUtil;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -75,9 +76,11 @@ public class GenCPUDivideOp implements IDifferentiableBinaryOperation {
             // dR/dA = 1/dB
             // dL/dA = dL/dR * 1/B
             ITensor dRdA = backend.createTensor(DataType.getLarger(A.getDataType(), B.getDataType()), B.getShape());
-            dRdA.fill(1);
+            dRdA.fill(1f);
             dRdA = dRdA.divide(B); // TODO: optimize this with an leftDivide operation so that you can do B.leftDiv(1) to express 1/B
-            a.accumulateGradient(upstreamGradients.multiply(dRdA));
+            ITensor dLdA = upstreamGradients.multiply(dRdA);
+            dLdA = GradientUtil.sumGradientsOnBroadcastDims(dLdA, A.getShape());
+            a.accumulateGradient(dLdA);
         }
         if (b.requiresGradients()) {
             // dL/dB = dL/dR * dR/dB
@@ -86,10 +89,12 @@ public class GenCPUDivideOp implements IDifferentiableBinaryOperation {
             // dR/dB = -A * (1/B^2)
             // dL/dB = dL/dR * -A * (1/B^2)
             ITensor dRdB = backend.createTensor(B.getDataType(), B.getShape());
-            dRdB.fill(1);
+            dRdB.fill(1f);
             dRdB = dRdB.divide(B.pow(2f));
             dRdB = A.multiply(-1f).multiply(dRdB);
-            b.accumulateGradient(upstreamGradients.multiply(dRdB));
+            ITensor dLdB = upstreamGradients.multiply(dRdB);
+            dLdB = GradientUtil.sumGradientsOnBroadcastDims(dLdB, B.getShape());
+            b.accumulateGradient(dLdB);
         }
     }
 }

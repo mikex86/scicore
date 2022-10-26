@@ -45,7 +45,7 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
     }
 
     @Override
-    public @NotNull ITensor performLazily(Graph.@NotNull IOperationContext ctx, @NotNull ITensor input) {
+    public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
         return new LazyTensor(backend, input.getShape(), input.getDataType(), () -> perform(ctx, input));
     }
 

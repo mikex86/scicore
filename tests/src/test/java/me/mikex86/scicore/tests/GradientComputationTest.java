@@ -7,11 +7,10 @@ import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@TestInstance(TestInstance.Lifecycle.PER_METHOD)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class GradientComputationTest {
 
     ISciCore sciCore;
@@ -460,7 +459,7 @@ public class GradientComputationTest {
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
         }), dLdC);
-        Assertions.assertEquals(sciCore.array(new float[]{44.0f, 48.0f}), dLdB);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{{{44.0f, 48.0f}}}), dLdB);
         Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
@@ -663,7 +662,7 @@ public class GradientComputationTest {
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
         }), dLdC);
-        Assertions.assertEquals(sciCore.array(new float[]{-44.0f, -48.0f}), dLdB);
+        Assertions.assertEquals(sciCore.ndarray(new float[][][]{{{-44.0f, -48.0f}}}), dLdB);
         Assertions.assertEquals(sciCore.ndarray(new float[][][]{
                 {{11.0f, 12.0f}, {11.0f, 12.0f}},
                 {{11.0f, 12.0f}, {11.0f, 12.0f}}
@@ -973,7 +972,7 @@ public class GradientComputationTest {
         Assertions.assertEquals(sciCore.matrix(new float[][]{{15.0f, 21.0f}, {35.0f, 49.0f}}), dLdD);
         Assertions.assertEquals(sciCore.matrix(new float[][]{{120.0f, 170.0f}, {168.0f, 238.0f}}), dLdW);
         Assertions.assertEquals(sciCore.matrix(new float[][]{{222.0f, 258.0f}, {518.0f, 602.0f}}), dLdX);
-        Assertions.assertEquals(sciCore.array(new float[]{50.0f, 70.0f}), dLdB);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{50.0f, 70.0f}}), dLdB);
     }
 
     @Test

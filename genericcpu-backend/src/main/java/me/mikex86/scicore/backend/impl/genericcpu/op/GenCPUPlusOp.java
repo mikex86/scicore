@@ -9,6 +9,7 @@ import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.utils.GradientUtil;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,50 +65,16 @@ public class GenCPUPlusOp implements IDifferentiableBinaryOperation {
 
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
-        // Note that the upstream gradient dL/dz where z is the output of the current node
-        // is with respect to all parameters a(p11,p12,...p1n) and b(p21,p22,...p2n) where a and b are the
-        // inputs to the current node.
-        // When computing the gradient for a, we need to sum over all the other parameters in b, and vice versa.
-
         if (a.requiresGradients()) {
             ITensor aValue = a.getValue();
-
-            long[] shapeA = aValue.getShape();
-
-            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), shapeA);
-            gradients.fill(1);
-            gradients = gradients.multiply(upstreamGradient);
-
-            long[] gradientShape = gradients.getShape();
-
-            if (ShapeUtils.compareBroadcastRank(gradientShape, shapeA) > 0) {
-                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeA, gradientShape);
-                for (int i = 0; i < nCommonDimensions; i++) {
-                    gradients = gradients.reduceSum(0);
-                }
-            }
-
+            ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient, aValue.getShape());
             a.accumulateGradient(gradients);
         }
 
         if (b.requiresGradients()) {
             ITensor bValue = b.getValue();
-
-            long[] shapeB = bValue.getShape();
-
-            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), shapeB);
-            gradients.fill(1);
-            gradients = gradients.multiply(upstreamGradient);
-
-            long[] gradientsShape = gradients.getShape();
-
-            if (ShapeUtils.compareBroadcastRank(gradientsShape, shapeB) > 0) {
-                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(gradientsShape, shapeB);
-                for (int i = 0; i < nCommonDimensions; i++) {
-                    gradients = gradients.reduceSum(0);
-                }
-            }
-
+            ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient, bValue.getShape());
+            gradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, bValue.getShape());
             b.accumulateGradient(gradients);
         }
     }

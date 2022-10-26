@@ -117,14 +117,79 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         // Gradients:
         // dL/dW = G @ X.T
         // dL/dX = W.T @ G
+        OptionBundle options = ctx.getOptionBundle();
+        boolean transposeA = options.getOrDefault("transposeA", false);
+        boolean transposeB = options.getOrDefault("transposeB", false);
 
         if (a.requiresGradients()) {
-            ITensor dLdW = upstreamGradient.matmul(b.getValue().transpose());
+            ITensor dLdW;
+            if (!transposeA) {
+                // dL/dW = G @ X.T      # base case
+                // if transposeB == true:
+                //     dL/dW = G @ X.T.T    # the base case only applies when the transpose was APPLIED to the op input before the matrix multiplication
+                //                          # During the forward pass a "virtual transpose" occurred, but this is not reflected in the graph.
+                //                          # Thus, we need to transpose X again.
+                //     dL/dW = G @ X        # X.T.T = X
+                // else if transposeB == false:
+                //     dL/dW = G @ X.T      # no virtual transpose occurred, because X here is what was actually used in the forward pass
+
+                // interpretation: never transpose G, transpose X if transposeB == false
+                dLdW = upstreamGradient.matmul(b.getValue(), false, !transposeB);
+            } else {
+                // Normally, if this were a transpose op node, this would compute the upstream gradients for
+                // a transpose op, which would transpose it again as part of its gradient computation.
+                // However, since we are merging a defacto transpose op into the matmul op, we would need to transpose
+                // these gradients after dL/dW is computed. We avoid transposing by exploiting the identity:
+                // B.T @ A.T = (A @ B).T
+
+                // Derivation steps:
+                // dL/dW_local = G @ X.T      # base case (fake local gradients)
+                // if transposeB == true:
+                //     dL/dW_local = G @ X.T.T    # virtual transpose occurred, so we need to transpose X again
+                //     dL/dW_local = G @ X        # X.T.T = X
+                //     dL/dW = (G @ X).T          # transpose because of would be transpose op chain rule
+                //     dL/dW = X.T @ G.T          # apply identity
+                // else if transposeB == false:
+                //    dL/dW_local = G @ X.T       # no virtual transpose occurred, because X here is what was actually used in the forward pass
+                //    dL/dW = (G @ X.T).T         # transpose because of would be transpose op chain rule
+                //    dL/dW = X @ G.T             # apply identity
+
+                // interpretation: always transpose G, transpose X if transposeB == true
+                dLdW = b.getValue().matmul(upstreamGradient, transposeB, true);
+            }
             a.accumulateGradient(dLdW);
         }
 
         if (b.requiresGradients()) {
-            ITensor dLdX = a.getValue().transpose().matmul(upstreamGradient);
+            ITensor dLdX;
+            if (!transposeB) {
+                // dL/dX = W.T @ G      # base case
+                // if transposeA == true:
+                //     dL/dX = W.T.T @ G    # virtual transpose occurred, so we need to transpose W again
+                //     dL/dX = W @ G        # W.T.T = W
+                // else if transposeA == false:
+                //     dL/dX = W.T @ G      # no virtual transpose occurred, because W here is what was actually used in the forward pass
+
+                // interpretation: never transpose G, transpose W if transposeA == false
+                dLdX = a.getValue().matmul(upstreamGradient, !transposeA, false);
+            } else {
+                // See above
+
+                // Derivation steps:
+                // dL/dX_local = W.T @ G    # base case (fake local gradients)
+                // if transposeA == true:
+                //     dL/dX_local = W.T.T @ G    # virtual transpose occurred, so we need to transpose W again
+                //     dL/dX_local = W @ G        # W.T.T = W
+                //     dL/dX = (W @ G).T          # transpose because of would be transpose op chain rule
+                //     dL/dX = G.T @ W.T          # apply identity
+                // else if transposeA == false:
+                //    dL/dX_local = W.T @ G       # no virtual transpose occurred, because W here is what was actually used in the forward pass
+                //    dL/dX = (W.T @ G).T         # transpose because of would be transpose op chain rule
+                //    dL/dX = G.T @ W             # apply identity
+
+                // interpretation: always transpose G, transpose W if transposeA == true
+                dLdX = upstreamGradient.matmul(a.getValue(), true, transposeA);
+            }
             b.accumulateGradient(dLdX);
         }
     }

@@ -148,8 +148,6 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
 
-        // TODO: OPTIMIZE
-
         if (a.requiresGradients()) {
             ITensor dLdW;
             if (!transposeA) {

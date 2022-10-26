@@ -184,8 +184,7 @@ public class CudaTensor extends AbstractTensor {
     }
 
     @Override
-    public void setContents(long @NotNull [] index, @NotNull ITensor tensor, boolean useView) {
-        // TODO: IMPLEMENT USE VIEW
+    public void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
         long flatIndex = ShapeUtils.getFlatIndex(index, this.strides);
         if (tensor instanceof CudaTensor cudaTensor) {
             // device to device copy
