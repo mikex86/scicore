@@ -195,3 +195,4 @@ void tblas_##op_name(const type *a, const type *b, type *c,\
     optimizations\
     fallback_impl\
 }
+
