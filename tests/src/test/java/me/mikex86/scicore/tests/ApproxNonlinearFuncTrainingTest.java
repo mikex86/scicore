@@ -114,9 +114,12 @@ public class ApproxNonlinearFuncTrainingTest {
         }
     }
 
-    private final JPlot plot = new JPlot();
+    private JPlot plot;
 
     private void plotPrediction(@NotNull BobNet bobNet) {
+        if (plot == null) {
+            plot = new JPlot();
+        }
         int nPoints = 100;
         float[] modelPredictionY = new float[nPoints];
         float[] realY = new float[nPoints];
