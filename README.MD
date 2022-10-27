@@ -2,6 +2,8 @@
     <img src="logo_with_text.png" alt="SciCore Logo" width="35%" />
 </p>
 
+[![Java CI with Gradle](https://github.com/mikex86/scicore/actions/workflows/gradle.yml/badge.svg)](https://github.com/mikex86/scicore/actions/workflows/gradle.yml)
+
 SciCore is a tiny tensor processing library and autograd engine with a focus on simplicity. It is written in Java,
 with some native code for hardware specific optimizations.
 At the moment the only fully featured backend is the jvm backend, which is a pure java implementation.
