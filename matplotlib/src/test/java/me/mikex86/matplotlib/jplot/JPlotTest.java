@@ -30,7 +30,7 @@ class JPlotTest {
         jPlot.setYLabel("translation");
         jPlot.plot(data, new Color(46, 204, 113), true);
         jPlot.plot(data2, new Color(52, 152, 219), false);
-        jPlot.show(true);
+        jPlot.show(false);
     }
 
     @Test
@@ -45,7 +45,7 @@ class JPlotTest {
         jPlot.setXLabel("time");
         jPlot.setYLabel("log");
         jPlot.plot(data, new Color(46, 204, 113), true);
-        jPlot.show(true);
+        jPlot.show(false);
     }
 
     @Test
@@ -60,7 +60,7 @@ class JPlotTest {
         jPlot.setXLabel("time");
         jPlot.setYLabel("translation");
         jPlot.plot(data, new Color(46, 138, 204), true);
-        jPlot.show(true);
+        jPlot.show(false);
     }
 
     public static boolean isHeadless() {
