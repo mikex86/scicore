@@ -98,12 +98,14 @@ public class ApproxNonlinearFuncTrainingTest {
             losses[step] = (float) Math.log(lossValue);
             if (step % 100 == 0) {
                 System.out.println("Step " + step + ", loss: " + lossValue);
-                plotPrediction(bobNet);
+                if (!GraphicsEnvironment.isHeadless()) {
+                    plotPrediction(bobNet);
+                }
             }
         }
 
         // plot loss
-        {
+        if (!GraphicsEnvironment.isHeadless()) {
             JPlot plot = new JPlot();
             plot.plot(losses, new Color(26, 188, 156), false);
             plot.setXLabel("Step");

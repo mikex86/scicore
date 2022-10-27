@@ -93,7 +93,7 @@ public class ApproxLinearFuncTrainingTest {
         Assertions.assertEquals(sciCore.array(new float[]{0.5f}), bobNet.f1.getBias());
 
         // plot loss
-        {
+        if (!GraphicsEnvironment.isHeadless()) {
             JPlot plot = new JPlot();
             plot.plot(losses, new Color(26, 188, 156), false);
             plot.setXLabel("Step");

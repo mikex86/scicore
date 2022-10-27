@@ -6,17 +6,16 @@ import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class GraphRecordingTest {
+@Disabled // this test is disabled because it is abstract
+abstract class GraphRecordingTest {
 
     ISciCore sciCore;
 

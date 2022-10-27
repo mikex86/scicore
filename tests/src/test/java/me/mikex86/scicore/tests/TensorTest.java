@@ -18,8 +18,8 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-
-class TensorTest {
+@Disabled // this test is disabled because it is abstract
+abstract class TensorTest {
 
     private static final float EPSILON = 1E-6f;
 
