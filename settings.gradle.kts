@@ -4,7 +4,7 @@ import java.lang.System.getenv
 
 rootProject.name = "scicore"
 include("matplotlib")
-if (OperatingSystem.current() != OperatingSystem.MAC_OS && !getenv("CI").isNullOrEmpty()) {
+if (OperatingSystem.current() != OperatingSystem.MAC_OS && getenv("CI").isNullOrEmpty()) {
     include("cuda-backend")
 }
 include("core")
