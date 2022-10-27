@@ -19,7 +19,7 @@ dependencies {
     testImplementation("org.junit.platform:junit-platform-suite-api:1.9.0")
     testImplementation("org.junit.jupiter:junit-jupiter-engine")
 
-    testImplementation("me.tongfei:progressbar:0.9.4")
+    testImplementation("me.tongfei:progressbar:0.9.5")
 
     implementation("org.jetbrains:annotations:23.0.0")
     implementation(project(":matplotlib"))
