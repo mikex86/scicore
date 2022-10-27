@@ -1,6 +1,6 @@
 plugins {
     id("java")
-    id("com.google.protobuf") version "0.8.17"
+//    id("com.google.protobuf") version "0.8.17"
 }
 
 group = "org.example"
@@ -10,31 +10,31 @@ buildscript {
     repositories {
         mavenCentral()
     }
-    dependencies {
-        classpath("com.google.protobuf:protobuf-gradle-plugin:0.8.17")
-    }
+//    dependencies {
+//        classpath("com.google.protobuf:protobuf-gradle-plugin:0.8.17")
+//    }
 }
 
-sourceSets {
-    main {
-        // This is to get intellij to resolve imports properly in the Protobuf intellisense
-        // Don't actually place java source files in this directory, thank you.
-        java {
-            srcDirs("src/main/protobuf")
-        }
-        java {
-            srcDirs("src/generated/main/java")
-        }
-        proto {
-            srcDirs("src/main/protobuf")
-            include("**/*.proto3")
-        }
-    }
-}
-
-protobuf {
-    protobuf.generatedFilesBaseDir = "$projectDir/src/generated"
-}
+//sourceSets {
+//    main {
+//        // This is to get intellij to resolve imports properly in the Protobuf intellisense
+//        // Don't actually place java source files in this directory, thank you.
+//        java {
+//            srcDirs("src/main/protobuf")
+//        }
+//        java {
+//            srcDirs("src/generated/main/java")
+//        }
+//        proto {
+//            srcDirs("src/main/protobuf")
+//            include("**/*.proto3")
+//        }
+//    }
+//}
+//
+//protobuf {
+//    protobuf.generatedFilesBaseDir = "$projectDir/src/generated"
+//}
 
 repositories {
     mavenCentral()
