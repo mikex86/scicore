@@ -1,8 +1,9 @@
-package me.mikex86.scicore.graphviz;
+package me.mikex86.scicore.tests.graphviz;
 
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.graphviz.DAGGraphRenderPlanFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;

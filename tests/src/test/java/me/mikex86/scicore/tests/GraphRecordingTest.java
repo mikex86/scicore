@@ -1,7 +1,11 @@
-package me.mikex86.scicore;
+package me.mikex86.scicore.tests;
 
+import me.mikex86.scicore.ISciCore;
+import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -11,15 +15,14 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@TestInstance(TestInstance.Lifecycle.PER_METHOD)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class GraphRecordingTest {
 
     ISciCore sciCore;
 
-    @BeforeEach
-    void setUp() {
+    public GraphRecordingTest(@NotNull ISciCore.BackendType backendType) {
         sciCore = new SciCore();
-        sciCore.setBackend(SciCore.BackendType.JVM);
+        sciCore.setBackend(backendType);
     }
 
     /**
