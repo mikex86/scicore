@@ -83,8 +83,8 @@ dependencies {
     implementation("org.apache.logging.log4j:log4j-core:2.19.0")
 
     // Protobuf
-    implementation("com.google.protobuf:protobuf-java:3.21.7")
-    runtimeOnly("com.google.protobuf:protobuf-java-util:3.21.7")
+    implementation("com.google.protobuf:protobuf-java:3.21.8")
+    runtimeOnly("com.google.protobuf:protobuf-java-util:3.21.8")
 
     // LWJGL
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
