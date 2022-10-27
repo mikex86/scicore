@@ -1,4 +1,5 @@
 import org.gradle.internal.os.OperatingSystem
+import java.lang.System.getenv
 
 plugins {
     id("java")
@@ -25,7 +26,7 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":genericcpu-backend"))
     @Suppress("INACCESSIBLE_TYPE")
-    if (OperatingSystem.current() != OperatingSystem.MAC_OS) {
+    if (OperatingSystem.current() != OperatingSystem.MAC_OS && getenv("CI").isNullOrEmpty()) {
         implementation(project(":cuda-backend"))
     }
 }
