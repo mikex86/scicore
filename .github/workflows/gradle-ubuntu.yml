@@ -36,7 +36,7 @@ jobs:
         uses: actions/upload-artifact@v3.1.1
         with:
           name: scicore-core-linux
-          path: core/build/lib/core-*.jar
+          path: core/build/libs/core-*.jar
       - name: Generic-CPU backend
         uses: actions/upload-artifact@v3.1.1
         with:
