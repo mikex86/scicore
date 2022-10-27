@@ -299,7 +299,7 @@ public class JPlot {
     private static final Paint DEFAULT_NAME_TEXT_PAINT = new Paint();
 
     @NotNull
-    private static final Typeface TYPEFACE = Objects.requireNonNull(FontMgr.getDefault().matchFamilyStyle("Roboto Mono", FontStyle.NORMAL));
+    private static final Typeface TYPEFACE = Objects.requireNonNullElse(FontMgr.getDefault().matchFamilyStyle("Roboto Mono", FontStyle.NORMAL), FontMgr.getDefault().matchFamilyStyle("Arial", FontStyle.NORMAL));
 
     static {
         LINE_PAINT.setStrokeWidth(DEFAULT_STROKE_WIDTH);
