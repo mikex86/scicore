@@ -2,6 +2,7 @@
 #include "ReduceSumJNI.h"
 #include "jnidatatypes.h"
 #include <reducesum.h>
+#include <string>
 
 JNIEXPORT void JNICALL Java_me_mikex86_scicore_backend_impl_genericcpu_jni_ReduceSumJNI_nreduceSum(JNIEnv *jniEnv, jclass, jlong aPtr,
                                                                                  jlong cPtr, jint dataType,
@@ -11,10 +12,12 @@ JNIEXPORT void JNICALL Java_me_mikex86_scicore_backend_impl_genericcpu_jni_Reduc
     size_t nDimsA = jniEnv->GetArrayLength(shapeA);
     size_t nDimsC = jniEnv->GetArrayLength(shapeC);
     if (nDimsA != jniEnv->GetArrayLength(stridesA)) {
-        throw std::runtime_error("nDimsA != jniEnv->GetArrayLength(stridesA)");
+        jniEnv->ThrowNew(jniEnv->FindClass("java/lang/RuntimeException"), "nDimsA != jniEnv->GetArrayLength(stridesA)");
+        return;
     }
     if (nDimsC != jniEnv->GetArrayLength(stridesC)) {
-        throw std::runtime_error("nDimsC != jniEnv->GetArrayLength(stridesC)");
+        jniEnv->ThrowNew(jniEnv->FindClass("java/lang/RuntimeException"), "nDimsC != jniEnv->GetArrayLength(stridesC)");
+        return;
     }
     auto *shapeA_ = new size_t[nDimsA];
     auto *stridesA_ = new size_t[nDimsA];
@@ -62,8 +65,10 @@ JNIEXPORT void JNICALL Java_me_mikex86_scicore_backend_impl_genericcpu_jni_Reduc
                             shapeC_, stridesC_, nDimsC,
                             static_cast<int64_t>(dimension), static_cast<bool>(keepDims));
             break;
-        default:
-            throw std::runtime_error("Unknown data type");
+        default: {
+            std::string msg = "Unsupported data type: " + std::to_string(dataType);
+            jniEnv->ThrowNew(jniEnv->FindClass("java/lang/RuntimeException"), msg.c_str());
+        }
     }
 
     delete[] shapeA_;

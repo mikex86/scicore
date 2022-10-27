@@ -1480,10 +1480,10 @@ class TensorTest {
                     {{34.0f, 36.0f, 38.0f, 40.0f}, {36.0f, 38.0f, 40.0f, 42.0f}, {38.0f, 40.0f, 42.0f, 44.0f}}});
             ITensor sum = ndarray.reduceSum(-1);
             assertEquals(sciCore.scalar(10.0f + 12.0f + 14.0f + 16.0f + 12.0f + 14.0f + 16.0f + 18.0f + 14.0f + 16.0f + 18.0f + 20.0f
-                    + 16.0f + 18.0f + 20.0f + 22.0f + 18.0f + 20.0f + 22.0f + 24.0f + 20.0f + 22.0f + 24.0f + 26.0f
-                    + 22.0f + 24.0f + 26.0f + 28.0f + 24.0f + 26.0f + 28.0f + 30.0f + 26.0f + 28.0f + 30.0f + 32.0f
-                    + 28.0f + 30.0f + 32.0f + 34.0f + 30.0f + 32.0f + 34.0f + 36.0f + 32.0f + 34.0f + 36.0f + 38.0f
-                    + 34.0f + 36.0f + 38.0f + 40.0f + 36.0f + 38.0f + 40.0f + 42.0f + 38.0f + 40.0f + 42.0f + 44.0f), sum);
+                                        + 16.0f + 18.0f + 20.0f + 22.0f + 18.0f + 20.0f + 22.0f + 24.0f + 20.0f + 22.0f + 24.0f + 26.0f
+                                        + 22.0f + 24.0f + 26.0f + 28.0f + 24.0f + 26.0f + 28.0f + 30.0f + 26.0f + 28.0f + 30.0f + 32.0f
+                                        + 28.0f + 30.0f + 32.0f + 34.0f + 30.0f + 32.0f + 34.0f + 36.0f + 32.0f + 34.0f + 36.0f + 38.0f
+                                        + 34.0f + 36.0f + 38.0f + 40.0f + 36.0f + 38.0f + 40.0f + 42.0f + 38.0f + 40.0f + 42.0f + 44.0f), sum);
         }
 
         @Test
@@ -1497,10 +1497,10 @@ class TensorTest {
             ITensor sum = ndarray.reduceSum(-1, true);
             assertEquals(sciCore.ndarray(new float[][][]{{{
                     10.0f + 12.0f + 14.0f + 16.0f + 12.0f + 14.0f + 16.0f + 18.0f + 14.0f + 16.0f + 18.0f + 20.0f +
-                            16.0f + 18.0f + 20.0f + 22.0f + 18.0f + 20.0f + 22.0f + 24.0f + 20.0f + 22.0f + 24.0f + 26.0f +
-                            22.0f + 24.0f + 26.0f + 28.0f + 24.0f + 26.0f + 28.0f + 30.0f + 26.0f + 28.0f + 30.0f + 32.0f +
-                            28.0f + 30.0f + 32.0f + 34.0f + 30.0f + 32.0f + 34.0f + 36.0f + 32.0f + 34.0f + 36.0f + 38.0f +
-                            34.0f + 36.0f + 38.0f + 40.0f + 36.0f + 38.0f + 40.0f + 42.0f + 38.0f + 40.0f + 42.0f + 44.0f}}}), sum);
+                    16.0f + 18.0f + 20.0f + 22.0f + 18.0f + 20.0f + 22.0f + 24.0f + 20.0f + 22.0f + 24.0f + 26.0f +
+                    22.0f + 24.0f + 26.0f + 28.0f + 24.0f + 26.0f + 28.0f + 30.0f + 26.0f + 28.0f + 30.0f + 32.0f +
+                    28.0f + 30.0f + 32.0f + 34.0f + 30.0f + 32.0f + 34.0f + 36.0f + 32.0f + 34.0f + 36.0f + 38.0f +
+                    34.0f + 36.0f + 38.0f + 40.0f + 36.0f + 38.0f + 40.0f + 42.0f + 38.0f + 40.0f + 42.0f + 44.0f}}}), sum);
         }
 
         @Test
@@ -2299,6 +2299,103 @@ class TensorTest {
             ITensor max2 = a.argmax(1);
             assertEquals(sciCore.array(new long[]{0, 2}), max2);
         }
+
+        @Test
+        void test_argmax_3d_dimMinus1() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{2, 1, 0}, {1, 0, 3}},
+                    {{1, 0, 3}, {2, 1, 0}}
+            });
+            ITensor max2 = a.argmax(-1);
+            assertEquals(sciCore.scalar(5L), max2);
+        }
+
+        @Test
+        void test_argmax_3d_dim0() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{2, 1, 0}, {1, 0, 3}},
+                    {{1, 0, 3}, {2, 1, 0}}
+            });
+            ITensor max1 = a.argmax(0);
+            assertEquals(sciCore.ndarray(new long[][]{{0, 0, 1}, {1, 1, 0}}), max1);
+        }
+
+        @Test
+        void test_argmax_3d_dim1() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{2, 1, 0}, {1, 0, 3}},
+                    {{1, 0, 3}, {2, 1, 0}}
+            });
+            ITensor max2 = a.argmax(1);
+            assertEquals(sciCore.ndarray(new long[][]{
+                    {0, 0, 1},
+                    {1, 1, 0}
+            }), max2);
+        }
+
+        @Test
+        void test_argmax_3d_dim2() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{2, 1, 0}, {1, 0, 3}},
+                    {{1, 0, 3}, {2, 1, 0}}
+            });
+            ITensor max2 = a.argmax(2);
+            assertEquals(sciCore.ndarray(new long[][]{
+                    {0, 2},
+                    {2, 0}
+            }), max2);
+        }
+
+        @Test
+        void test_argmax_4d_dimMinus1() {
+            ITensor a = sciCore.ndarray(new float[][][][]{
+                    {{{0, 4, 1, 3}, {4, 3, 7, 1}}, {{3, 4, 1, 9}, {5, 1, 0, 8}}, {{4, 5, 9, 4}, {1, 1, 6, 4}}},
+                    {{{7, 1, 6, 3}, {1, 6, 6, 6}}, {{5, 0, 2, 6}, {4, 1, 5, 0}}, {{6, 8, 5, 7}, {5, 1, 5, 8}}}
+            });
+            ITensor max2 = a.argmax(-1);
+            assertEquals(sciCore.scalar(11L), max2);
+        }
+
+        @Test
+        void test_argmax_4d_dim0() {
+            ITensor a = sciCore.ndarray(new float[][][][]{
+                    {{{0, 4, 1, 3}, {4, 3, 7, 1}}, {{3, 4, 1, 9}, {5, 1, 0, 8}}, {{4, 5, 9, 4}, {1, 1, 6, 4}}},
+                    {{{7, 1, 6, 3}, {1, 6, 6, 6}}, {{5, 0, 2, 6}, {4, 1, 5, 0}}, {{6, 8, 5, 7}, {5, 1, 5, 8}}}
+            });
+            ITensor max1 = a.argmax(0);
+            assertEquals(sciCore.ndarray(new long[][][]{
+                    {{1, 0, 1, 0}, {0, 1, 0, 1}},
+                    {{1, 0, 1, 0}, {0, 0, 1, 0}},
+                    {{1, 1, 0, 1}, {1, 0, 0, 1}}
+            }), max1);
+        }
+
+        @Test
+        void test_argmax_4d_dim1() {
+            ITensor a = sciCore.ndarray(new float[][][][]{
+                    {{{0, 4, 1, 3}, {4, 3, 7, 1}}, {{3, 4, 1, 9}, {5, 1, 0, 8}}, {{4, 5, 9, 4}, {1, 1, 6, 4}}},
+                    {{{7, 1, 6, 3}, {1, 6, 6, 6}}, {{5, 0, 2, 6}, {4, 1, 5, 0}}, {{6, 8, 5, 7}, {5, 1, 5, 8}}}
+            });
+            ITensor max1 = a.argmax(1);
+            assertEquals(sciCore.ndarray(new long[][][]{
+                    {{2, 2, 2, 1}, {1, 0, 0, 1}},
+                    {{0, 2, 0, 2}, {2, 0, 0, 2}}
+            }), max1);
+        }
+
+        @Test
+        void test_argmax_4d_dim2() {
+            ITensor a = sciCore.ndarray(new float[][][][]{
+                    {{{0, 4, 1, 3}, {4, 3, 7, 1}}, {{3, 4, 1, 9}, {5, 1, 0, 8}}, {{4, 5, 9, 4}, {1, 1, 6, 4}}},
+                    {{{7, 1, 6, 3}, {1, 6, 6, 6}}, {{5, 0, 2, 6}, {4, 1, 5, 0}}, {{6, 8, 5, 7}, {5, 1, 5, 8}}}
+            });
+            ITensor max1 = a.argmax(2);
+            assertEquals(sciCore.ndarray(new long[][][]{
+                    {{1, 0, 1, 0}, {1, 0, 0, 0}, {0, 0, 0, 0}},
+                    {{0, 1, 0, 1}, {0, 1, 1, 0}, {0, 0, 0, 1}}
+            }), max1);
+        }
+
     }
 
     @Nested

@@ -1,4 +1,6 @@
 #include <argmax.h>
+#include <cstring>
+#include "shapeutils.h"
 
 template<typename T>
 void tblas_argmax(const T *a, uint64_t *c,
@@ -20,30 +22,42 @@ void tblas_argmax(const T *a, uint64_t *c,
         }
         c[0] = maxIndex;
     } else {
-        size_t nElementsA = 1;
-        for (size_t i = 0; i < nDimsA; i++) {
-            nElementsA *= shapeA[i];
-        }
-        size_t nElementsC = 1;
-        for (size_t i = 0; i < nDimsC; i++) {
-            nElementsC *= shapeC[i];
-        }
-        size_t strideA = stridesA[dimension];
-        size_t strideC = stridesC[dimension];
-        size_t nElementsPerSlice = nElementsA / shapeA[dimension];
-        for (size_t i = 0; i < nElementsC; i++) {
-            size_t offsetA = i * strideC;
-            size_t offsetC = i * strideC;
-            size_t maxIndex = 0;
-            T maxValue = a[offsetA];
-            for (size_t j = 1; j < nElementsPerSlice; j++) {
-                if (a[offsetA + j * strideA] > maxValue) {
-                    maxIndex = j;
-                    maxValue = a[offsetA + j * strideA];
+        auto *aIndex = new size_t[nDimsA];
+        memset(aIndex, 0, nDimsA * sizeof(size_t));
+        auto *outputIndex = new size_t[nDimsC];
+        memset(outputIndex, 0, sizeof(size_t) * nDimsC);
+
+        do {
+            size_t aFlatIndex = getFlatIndex(aIndex, stridesA, nDimsA);
+            T maxValue = a[aFlatIndex];
+            size_t maxIndex = aIndex[dimension];
+            for (size_t i = 1; i < shapeA[dimension]; i++) {
+                aIndex[dimension] = i;
+                aFlatIndex = getFlatIndex(aIndex, stridesA, nDimsA);
+                if (a[aFlatIndex] > maxValue) {
+                    maxValue = a[aFlatIndex];
+                    maxIndex = i;
                 }
             }
-            c[offsetC] = maxIndex;
-        }
+            size_t cFlatIndex = getFlatIndex(outputIndex, stridesC, nDimsC);
+            c[cFlatIndex] = maxIndex;
+            aIndex[dimension] = 0;
+
+            // increment aIndex on all dimensions except the dimension we're reducing
+            for (size_t i = 0; i < nDimsA; i++) {
+                if (nDimsA - i - 1 != dimension) {
+                    aIndex[nDimsA - i - 1]++;
+                    if (aIndex[nDimsA - i - 1] < shapeA[nDimsA - i - 1]) {
+                        break;
+                    } else {
+                        aIndex[nDimsA - i - 1] = 0;
+                    }
+                }
+            }
+        } while (incrementIndex(outputIndex, shapeC, nDimsC));
+
+        delete[] aIndex;
+        delete[] outputIndex;
     }
 }
 

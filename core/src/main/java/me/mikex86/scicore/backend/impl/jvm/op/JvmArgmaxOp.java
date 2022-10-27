@@ -67,7 +67,7 @@ public class JvmArgmaxOp implements IDifferentiableSingleParametricOperation<Int
         long[] completeIndex = new long[shape.length];
         long[] reducedIndex = new long[reducedShape.length];
 
-        while (true) {
+        do {
             if (inputDataType.isFloatingPoint()) {
                 double max = Double.MIN_VALUE;
                 long maxIndex = 0;
@@ -93,13 +93,20 @@ public class JvmArgmaxOp implements IDifferentiableSingleParametricOperation<Int
                 }
                 result.setLong(maxIndex, reducedIndex);
             }
-            if (!ShapeUtils.incrementIndex(reducedIndex, reducedShape)) {
-                break;
+
+            // increment aIndex on all dimensions except the dimension we're reducing
+            for (int i = 0; i < shape.length; i++) {
+                if (shape.length - i - 1 != dimension) {
+                    completeIndex[shape.length - i - 1]++;
+                    if (completeIndex[shape.length - i - 1] < shape[shape.length - i - 1]) {
+                        break;
+                    } else {
+                        completeIndex[shape.length - i - 1] = 0;
+                    }
+                }
             }
-            if (!ShapeUtils.incrementIndex(completeIndex, shape)) {
-                break;
-            }
-        }
+
+        } while (ShapeUtils.incrementIndex(reducedIndex, reducedShape));
         return result;
     }
 

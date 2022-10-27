@@ -33,7 +33,7 @@ public class GenCpuArgmaxOp implements IDifferentiableSingleParametricOperation<
             ArgmaxJNI.argmax(
                     tensor.getContentsAsDirectMemory().getNativePtr(), tensor.getShape(), tensor.getStrides(),
                     result.getContentsAsDirectMemory().getNativePtr(), result.getShape(), result.getStrides(),
-                    DataType.INT64, dimension
+                    tensor.getDataType(), dimension
             );
             return result;
         }
@@ -47,7 +47,7 @@ public class GenCpuArgmaxOp implements IDifferentiableSingleParametricOperation<
         ArgmaxJNI.argmax(
                 tensor.getContentsAsDirectMemory().getNativePtr(), tensor.getShape(), tensor.getStrides(),
                 result.getContentsAsDirectMemory().getNativePtr(), result.getShape(), result.getStrides(),
-                DataType.INT64, dimension
+                tensor.getDataType(), dimension
         );
         return result;
     }
