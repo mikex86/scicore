@@ -46,10 +46,10 @@ public class GraphVisualizer {
     private static final int NODE_MAIN_TEXT_BACKGROUND_BORDER_RADIUS = 8 * GRAPH_SCALE;
 
     @NotNull
-    private static final Typeface HEADING_TYPEFACE = Objects.requireNonNull(FontMgr.getDefault().matchFamilyStyle("Roboto", FontStyle.NORMAL));
+    private static final Typeface HEADING_TYPEFACE = Objects.requireNonNullElse(FontMgr.getDefault().matchFamilyStyle("Roboto", FontStyle.NORMAL), Typeface.makeDefault());
 
     @NotNull
-    private static final Typeface ATTRIBUTE_TYPEFACE = Objects.requireNonNull(FontMgr.getDefault().matchFamilyStyle("Roboto Mono", FontStyle.NORMAL));
+    private static final Typeface ATTRIBUTE_TYPEFACE = Objects.requireNonNullElse(FontMgr.getDefault().matchFamilyStyle("Roboto Mono", FontStyle.NORMAL), Typeface.makeDefault());
 
     @NotNull
     private static final Paint COLUM_BACKGROUND_COLOR = new Paint();
