@@ -27,7 +27,7 @@ val skiaArtifact = "skija-" + System.getProperty("os.name")!!.let {
 dependencies {
     implementation("org.jetbrains:annotations:23.0.0")
 
-    implementation("org.jetbrains.skija:$skiaArtifact:0.93.6")
+    implementation("org.jetbrains.skija:$skiaArtifact:0.93.1")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.0")
