@@ -1,6 +1,8 @@
 package me.mikex86.matplotlib.jplot;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIf;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -12,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class JPlotTest {
 
     @Test
+    @DisabledIf("me.mikex86.matplotlib.jplot.JPlotTest#isHeadless")
     void plotSinAndCos() {
         JPlot jPlot = new JPlot();
         float[] data = new float[250];
@@ -31,6 +34,7 @@ class JPlotTest {
     }
 
     @Test
+    @DisabledIf("me.mikex86.matplotlib.jplot.JPlotTest#isHeadless")
     void plotLog() {
         JPlot jPlot = new JPlot();
         float[] data = new float[50];
@@ -45,6 +49,7 @@ class JPlotTest {
     }
 
     @Test
+    @DisabledIf("me.mikex86.matplotlib.jplot.JPlotTest#isHeadless")
     void plotParabola() {
         JPlot jPlot = new JPlot();
         float[] data = new float[50];
@@ -56,5 +61,9 @@ class JPlotTest {
         jPlot.setYLabel("translation");
         jPlot.plot(data, new Color(46, 138, 204), true);
         jPlot.show(true);
+    }
+
+    public static boolean isHeadless() {
+        return GraphicsEnvironment.isHeadless();
     }
 }

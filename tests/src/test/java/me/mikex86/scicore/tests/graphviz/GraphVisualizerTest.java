@@ -7,8 +7,10 @@ import me.mikex86.scicore.graphviz.DAGGraphRenderPlanFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.DisabledIf;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +29,7 @@ class GraphVisualizerTest {
     }
 
     @Test
+    @DisabledIf("me.mikex86.scicore.tests.graphviz.GraphVisualizerTest#isHeadless")
     void visualizeGraph() {
         ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4}});
         ITensor b = sciCore.matrix(new float[][]{{5, 6}, {8, 9}, {11, 13}, {15, 17}});
@@ -48,5 +51,9 @@ class GraphVisualizerTest {
         } catch (IOException ex) {
             fail(ex);
         }
+    }
+
+    public static boolean isHeadless() {
+        return GraphicsEnvironment.isHeadless();
     }
 }
