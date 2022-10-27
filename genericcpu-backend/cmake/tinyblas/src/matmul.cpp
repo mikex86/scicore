@@ -1,4 +1,4 @@
-#include <algorithm>
+#include <cstring>
 #include "matmul.h"
 #include "forceinline.h"
 
