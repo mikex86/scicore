@@ -37,11 +37,11 @@ abstract class GraphRecordingTest {
         ITensor b2 = sciCore.matrix(new float[][]{{15}, {16}, {17}, {18}, {19}});
         ITensor result2 = a2.matmul(b2);
 
-        IGraph graph1 = sciCore.getGraphUpTo(result1);
+        IGraph graph1 = sciCore.getExecutionGraphUpTo(result1);
         assertEquals(result1, ((IGraph.ITensorNode) graph1.getOutputNode()).getValue());
         assertEquals(List.of(a1, b1), ((Graph.OperationGraphNode) graph1.getOutputNode()).getInputs().stream().map(n -> ((IGraph.ITensorNode) n).getValue()).collect(Collectors.toList()));
 
-        IGraph graph2 = sciCore.getGraphUpTo(result2);
+        IGraph graph2 = sciCore.getExecutionGraphUpTo(result2);
         assertEquals(result2, ((IGraph.ITensorNode) graph2.getOutputNode()).getValue());
         assertEquals(List.of(a2, b2), ((Graph.OperationGraphNode) graph2.getOutputNode()).getInputs().stream().map(n -> ((IGraph.ITensorNode) n).getValue()).collect(Collectors.toList()));
     }

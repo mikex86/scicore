@@ -50,7 +50,7 @@ public class GenCPUCastOp implements IDifferentiableSingleParametricOperation<In
             throw new IllegalArgumentException("Invalid data type ordinal: " + dataTypeOrdinal);
         }
         DataType resultDataType = resultDataTypeOpt.get();
-        return new LazyTensor(backend, input.getShape(), resultDataType, () -> perform(ctx, input, dataTypeOrdinal));
+        return new LazyTensor(backend, input.getShape(), resultDataType);
     }
 
     @Override

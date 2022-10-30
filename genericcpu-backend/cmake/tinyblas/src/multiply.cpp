@@ -61,11 +61,13 @@ op_hook_optimizations(
         multiply, float,
         {
             if (tblas_multiply_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
-                                             shapeC, stridesC, nDimsC))
+                                             shapeC, stridesC, nDimsC)) {
                 return;
+            }
             if (tblas_multiply_nd_by_nd(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
-                                         shapeC, stridesC, nDimsC))
+                                         shapeC, stridesC, nDimsC)) {
                 return;
+            }
         },
         {
             auto *outputIndex = new size_t[nDimsC];

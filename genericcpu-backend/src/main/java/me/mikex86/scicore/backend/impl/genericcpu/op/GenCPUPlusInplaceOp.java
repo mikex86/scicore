@@ -8,12 +8,13 @@ import me.mikex86.scicore.backend.impl.genericcpu.jni.PlusJNI;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
+import me.mikex86.scicore.graph.op.IInplaceOperation;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.GradientUtil;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-public class GenCPUPlusInplaceOp implements IDifferentiableBinaryOperation {
+public class GenCPUPlusInplaceOp implements IDifferentiableBinaryOperation, IInplaceOperation {
 
     @NotNull
     private final GenCPUBackend backend;
@@ -66,11 +67,6 @@ public class GenCPUPlusInplaceOp implements IDifferentiableBinaryOperation {
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
         if (resultDataType != dataTypeA) {
             throw new IllegalArgumentException("Cannot perform inplace operation on tensor with data type " + dataTypeA + " and data type " + resultDataType);
-        }
-        if (a instanceof LazyTensor lazyTensor) {
-            lazyTensor.appendOperation(result -> perform(ctx, result, b));
-        } else {
-            perform(ctx, a, b); // execute eagerly
         }
         return a;
     }

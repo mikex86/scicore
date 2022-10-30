@@ -1,5 +1,6 @@
 package me.mikex86.scicore.backend;
 
+import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.graph.IGraphRecorder;
 import me.mikex86.scicore.graph.op.IOperation;

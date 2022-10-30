@@ -37,22 +37,58 @@ public class Graph implements IGraph {
     }
 
     @Override
-    public void requestGradientsFor(@NotNull ITensor... tensors) {
-        for (ITensor tensor : tensors) {
-            Optional<IGraphNode> nodeOpt = getNodeForTensor(tensor);
+    public void requestGradientsFor(@NotNull List<ITensor> parameters) {
+        for (ITensor parameter : parameters) {
+            Optional<IGraphNode> nodeOpt = Optional.empty();
+            Stack<IGraphNode> pathToNode = new Stack<>();
+            {
+                Deque<IGraphNode> nodesToVisit = new LinkedList<>();
+                nodesToVisit.add(outputNode);
+
+                while (!nodesToVisit.isEmpty()) {
+                    IGraphNode node = nodesToVisit.poll();
+                    pathToNode.push(node);
+                    if (node instanceof OperationGraphNode operationNode) {
+                        if (operationNode.getValue().isSame(parameter)) {
+                            nodeOpt = Optional.of(node);
+                            break;
+                        }
+                        // traverse up the topology, if the graph extends upwards
+                        List<IGraphNode> inputs = operationNode.getInputs();
+
+                        // insert inputs at the beginning the nodesToVisit queue
+                        // This ensures that we visit depth first
+                        for (int i = inputs.size() - 1; i >= 0; i--) {
+                            nodesToVisit.addFirst(inputs.get(i));
+                        }
+                    } else if (node instanceof TensorDeclarationGraphNode tensorDeclarationNode) {
+                        if (tensorDeclarationNode.getValue().isSame(parameter)) {
+                            nodeOpt = Optional.of(node);
+                            break;
+                        } else {
+                            IGraphNode removed = pathToNode.pop();
+                            IGraphNode prev = pathToNode.peek();
+                            if (!(prev instanceof OperationGraphNode prevOp)) {
+                                throw new IllegalStateException("Unexpected node type: " + prev.getClass().getName());
+                            }
+                            List<IGraphNode> prevOpInputs = prevOp.getInputs();
+                            int index = prevOpInputs.indexOf(removed);
+                            if (index == prevOpInputs.size() - 1) {
+                                pathToNode.pop(); // we just visited the last input of this operation, so we can pop it off the stack
+                            }
+                        }
+                    }
+                }
+            }
             if (nodeOpt.isEmpty()) {
                 throw new IllegalArgumentException("Tensor is not part of the graph");
             }
             IGraphNode node = nodeOpt.get();
 
-            if (!(node instanceof ITensorNodeWithGradient nodeWithGradient)) {
-                throw new IllegalStateException("Requested gradients to be computed for node that can't hold a gradient: " + node);
-            }
+            ITensorNodeWithGradient nodeWithGradient = (ITensorNodeWithGradient) node;
             nodeWithGradient.requestGradients();
 
-            List<IGraphNode> downstreamNodes = getDependentNodes(node);
-
-            for (IGraphNode downstreamNode : downstreamNodes) {
+            for (IGraphNode downstreamNode : pathToNode) {
                 if (!(downstreamNode instanceof ITensorNodeWithGradient downStreamNodeWithGradient)) {
                     throw new IllegalArgumentException("Requested gradient for tensor that cannot hold a gradient: " + downstreamNode);
                 }
@@ -116,7 +152,7 @@ public class Graph implements IGraph {
     }
 
     @NotNull
-    public Optional<ITensor>  getGradient(@NotNull ITensor tensor) {
+    public Optional<ITensor> getGradient(@NotNull ITensor tensor) {
         Optional<IGraphNode> node = getNodeForTensor(tensor);
         return OptionalUtils.cast(node, ITensorNodeWithGradient.class).map(ITensorNodeWithGradient::getGradient);
     }
@@ -141,25 +177,6 @@ public class Graph implements IGraph {
         }
 
         return Optional.empty();
-    }
-
-    @NotNull
-    @Override
-    public List<IGraphNode> getDependentNodes(@NotNull IGraphNode node) {
-        List<IGraphNode> nodes = new ArrayList<>();
-
-        Queue<IGraphNode> nodesToVisit = new LinkedList<>();
-        nodesToVisit.add(node);
-
-        while (!nodesToVisit.isEmpty()) {
-            IGraphNode currentNode = nodesToVisit.poll();
-            nodes.add(currentNode);
-
-            // traverse down the topology, if the graph extends downwards
-            nodesToVisit.addAll(currentNode.getDownstreamNodes());
-        }
-
-        return nodes;
     }
 
 
@@ -251,10 +268,6 @@ public class Graph implements IGraph {
             return tensor;
         }
 
-        @Override
-        public @NotNull TensorDeclarationGraphNode deepCopy() {
-            return new TensorDeclarationGraphNode(tensor);
-        }
     }
 
     public static class OperationGraphNode extends AbstractDifferentiableNode {
@@ -276,13 +289,9 @@ public class Graph implements IGraph {
             this.inputs = inputs;
             this.operationContext = operationContext;
             this.operationRegistry = operationRegistry;
-
-            for (IGraphNode input : inputs) {
-                input.addDownstreamNode(this); // indicate usage of input node by this node
-            }
         }
 
-        public void setOutput(@NotNull ITensor output) {
+        public void setOutput(@Nullable ITensor output) {
             this.output = output;
         }
 
@@ -324,18 +333,27 @@ public class Graph implements IGraph {
             return operationType.name();
         }
 
-        @Override
-        public @NotNull OperationGraphNode deepCopy() {
-            List<IGraphNode> inputs = new ArrayList<>();
-            for (IGraphNode input : this.inputs) {
-                inputs.add(input.deepCopy()); // downstream nodes are not copied --> are added later
-            }
 
-            // Using this constructor correctly adds this node as a downstream of each of the input nodes,
-            // thus ensuring the references remain inside the scope of the deep copy.
-            OperationGraphNode node = new OperationGraphNode(operationType, inputs, operationContext, operationRegistry);
-            node.setOutput(getOutput());
-            return node;
+        /**
+         * Performs the operation of this node.
+         */
+        @NotNull
+        public ITensor perform() {
+            OperationType operationType = getOperationType();
+            IOperation operation = operationRegistry.getOperation(operationType);
+            List<ITensor> inputTensors = new ArrayList<>();
+            for (IGraphNode input : inputs) {
+                if (input instanceof ITensorNode tensorNode) {
+                    inputTensors.add(tensorNode.getValue());
+                } else {
+                    throw new IllegalStateException("Input node is not a tensor node: " + input);
+                }
+            }
+            return operation.perform(this.operationContext, inputTensors);
+        }
+
+        public boolean hasOutput() {
+            return output != null;
         }
     }
 

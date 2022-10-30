@@ -6,6 +6,7 @@ import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 
 public interface ISciCore {
     @NotNull ITensor zeros(@NotNull DataType dataType, long @NotNull ... shape);
@@ -72,7 +73,9 @@ public interface ISciCore {
 
     @NotNull ITensor onesLike(@NotNull ITensor reference);
 
-    @NotNull IGraph getGraphUpTo(@NotNull ITensor tensor);
+    @NotNull IGraph getExecutionGraphUpTo(@NotNull ITensor root);
+
+    @NotNull IGraph getBackpropagationGraphUpTo(@NotNull ITensor root, @NotNull List<ITensor> parameters);
 
     @NotNull ITensor scalar(byte value);
 
@@ -128,7 +131,7 @@ public interface ISciCore {
             }
         },
 
-        GENERIC_CPU {
+        CPU {
             @NotNull
             @Override
             public ISciCoreBackend newInstance() {

@@ -7,11 +7,12 @@ import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
+import me.mikex86.scicore.graph.op.IInplaceOperation;
 import me.mikex86.scicore.utils.GradientUtil;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-public class JvmPlusInplaceOp implements IDifferentiableBinaryOperation {
+public class JvmPlusInplaceOp implements IDifferentiableBinaryOperation, IInplaceOperation {
 
     @NotNull
     private final JvmBackend backend;
@@ -87,11 +88,6 @@ public class JvmPlusInplaceOp implements IDifferentiableBinaryOperation {
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
         if (resultDataType != dataTypeA) {
             throw new IllegalArgumentException("Cannot perform inplace operation on tensor with data type " + dataTypeA + " and data type " + resultDataType);
-        }
-        if (a instanceof LazyTensor lazyTensor) {
-            lazyTensor.appendOperation(result -> perform(ctx, result, b));
-        } else {
-            perform(ctx, a, b); // execute eagerly
         }
         return a;
     }

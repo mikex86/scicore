@@ -11,7 +11,6 @@ import me.mikex86.scicore.nn.layers.ReLU;
 import me.mikex86.scicore.nn.layers.Softmax;
 import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
-import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.tongfei.progressbar.ProgressBar;
@@ -169,7 +168,7 @@ public class MNISTTest {
         downloadMnist();
 
         ISciCore sciCore = new SciCore();
-        sciCore.setBackend(ISciCore.BackendType.GENERIC_CPU);
+        sciCore.setBackend(ISciCore.BackendType.CPU);
         sciCore.seed(123);
 
         DatasetIterator trainIt = new DatasetIterator(BATCH_SIZE, new MnistDataSupplier(sciCore, true, false));
@@ -198,6 +197,7 @@ public class MNISTTest {
 
         System.out.println("Start training...");
         long start = System.currentTimeMillis();
+        float lossValue = -1;
         try (ProgressBar progressBar = new ProgressBarBuilder()
                 .setTaskName("Training")
                 .setInitialMax(nSteps)
@@ -205,7 +205,7 @@ public class MNISTTest {
                 .setUpdateIntervalMillis(100)
                 .build()) {
             for (long step = 0; step < nSteps; step++) {
-                sciCore.getBackend().getOperationRecorder().resetRecording();
+//                sciCore.getBackend().getOperationRecorder().resetRecording();
                 Pair<ITensor, ITensor> batch = trainIt.next();
                 ITensor X = batch.getFirst();
                 ITensor Y = batch.getSecond();
@@ -213,7 +213,7 @@ public class MNISTTest {
                 ITensor Y_pred = net.forward(X);
 
                 ITensor loss = (Y_pred.minus(Y)).pow((float)2).reduceSum(-1).divide((float)Y_pred.getNumberOfElements());
-                float lossValue = loss.elementAsFloat();
+                lossValue = loss.elementAsFloat();
                 if (Float.isNaN(lossValue)) {
                     System.out.println("Loss is NaN");
                 }
@@ -239,8 +239,7 @@ public class MNISTTest {
 //                    System.out.println("Diff weights fc2: " + diffWeightsFc2.elementAsFloat());
 //                    System.out.println("Diff bias fc2: " + diffBiasFc2.elementAsFloat());
 //                }
-                IGraph graph = sciCore.getGraphUpTo(loss);
-                optimizer.step(graph);
+                optimizer.step(loss);
 
                 progressBar.step();
                 progressBar.setExtraMessage(String.format(Locale.US, "loss: %.5f", lossValue));
@@ -248,7 +247,7 @@ public class MNISTTest {
         }
         long end = System.currentTimeMillis();
         System.out.println("Time: " + (end - start) / 1000.0 + "s");
-
+        System.out.println("Final loss value: " + lossValue);
     }
 
     private static class MnistDataSupplier implements Supplier<Pair<ITensor, ITensor>> {

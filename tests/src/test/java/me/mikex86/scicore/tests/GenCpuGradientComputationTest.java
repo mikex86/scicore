@@ -5,6 +5,6 @@ import me.mikex86.scicore.ISciCore;
 public class GenCpuGradientComputationTest extends GradientComputationTest {
 
     GenCpuGradientComputationTest() {
-        super(ISciCore.BackendType.GENERIC_CPU);
+        super(ISciCore.BackendType.CPU);
     }
 }

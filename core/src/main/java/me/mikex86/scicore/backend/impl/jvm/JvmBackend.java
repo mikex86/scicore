@@ -1,6 +1,7 @@
 package me.mikex86.scicore.backend.impl.jvm;
 
 import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
@@ -37,8 +38,13 @@ public class JvmBackend extends AbstractSciCoreBackend {
 
     @Override
     public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
-        // we wrap the tensor in a LazyTensor to avoid eager evaluation for in-place operations
-        return LazyTensor.wrap(new JvmTensor(this, dataType, shape));
+        return new JvmTensor(this, dataType, shape);
+    }
+
+    @NotNull
+    @Override
+    public ISciCore.BackendType getBackendType() {
+        return ISciCore.BackendType.JVM;
     }
 
     @Override

@@ -1,8 +1,8 @@
 package me.mikex86.scicore.backend.impl.genericcpu;
 
 import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.LazyTensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.backend.impl.genericcpu.op.*;
@@ -42,8 +42,13 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
 
     @Override
     public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
-        // we wrap the tensor in a LazyTensor to avoid eager evaluation for in-place operations
-        return LazyTensor.wrap(new GenCPUTensor(this, dataType, shape));
+        return new GenCPUTensor(this, dataType, shape);
+    }
+
+    @NotNull
+    @Override
+    public ISciCore.BackendType getBackendType() {
+        return ISciCore.BackendType.CPU;
     }
 
     @Override

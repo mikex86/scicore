@@ -1,6 +1,11 @@
 package me.mikex86.scicore;
 
+import me.mikex86.matplotlib.graphviz.GraphVisualizer;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.GraphExecutor;
+import me.mikex86.scicore.graph.IGraphRecorder;
+import me.mikex86.scicore.graphviz.DAGGraphRenderPlanFactory;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -8,9 +13,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.*;
 import java.util.Arrays;
-import java.util.Objects;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Encapsulates tensor supplier. Lazily evaluates the supplier when the result is needed.
@@ -23,20 +25,15 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     private final DataType resultDataType;
 
     @Nullable
-    private Supplier<ITensor> resultSupplier;
-
-    @Nullable
     private ITensor lazyResult;
 
     @NotNull
     private final ISciCoreBackend sciCoreBackend;
 
-    public LazyTensor(@NotNull ISciCoreBackend backend, long @NotNull [] resultShape, @NotNull DataType resultDataType, @NotNull Supplier<ITensor> resultSupplier) {
+    public LazyTensor(@NotNull ISciCoreBackend backend, long @NotNull [] resultShape, @NotNull DataType resultDataType) {
         this.numElements = ShapeUtils.getNumElements(resultShape);
         this.resultShape = resultShape;
         this.resultDataType = resultDataType;
-        this.resultSupplier = resultSupplier;
-        this.lazyResult = null;
         this.sciCoreBackend = backend;
     }
 
@@ -44,7 +41,6 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
         this.numElements = tensor.getNumberOfElements();
         this.resultShape = tensor.getShape();
         this.resultDataType = tensor.getDataType();
-        this.resultSupplier = null;
         this.lazyResult = tensor;
         this.sciCoreBackend = tensor.getSciCoreBackend();
     }
@@ -53,28 +49,25 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     @Override
     public ITensor result() {
         if (lazyResult == null) {
-            Supplier<ITensor> resultSupplier = Objects.requireNonNull(this.resultSupplier, "Result supplier must not be null, when no pre-computed result is available");
-            lazyResult = resultSupplier.get();
+            ISciCoreBackend backend = getSciCoreBackend();
+            IGraphRecorder graphRecorder = backend.getOperationRecorder();
+            Graph graph = graphRecorder.getExecutionGraphTo(backend, this);
+            GraphExecutor graphExecutor = new GraphExecutor();
+            graphExecutor.execute(graph);
         }
         return lazyResult;
     }
 
-    /**
-     * Lazily appends a new operation to the lazy tensor, meaning
-     * that to evaluate this tensor, an additional operation will be
-     * performed on the result of the original lazy tensor.
-     */
-    public void appendOperation(@NotNull Function<ITensor, ITensor> operation) {
-        Supplier<ITensor> oldSupplier;
-        if (lazyResult == null) {
-            oldSupplier = Objects.requireNonNull(resultSupplier, "Result supplier must not be null, when no pre-computed result is available");
-        } else {
-            // avoid re-evaluating the result
-            ITensor oldResult = lazyResult; // capture
-            oldSupplier = () -> oldResult;
+    public void setResult(@NotNull ITensor result) {
+        while (result instanceof IDerivedTensor lazyTensor) {
+            result = lazyTensor.result();
         }
-        this.resultSupplier = () -> operation.apply(oldSupplier.get());
-        this.lazyResult = null;
+        this.lazyResult = result;
+    }
+
+
+    public boolean hasResult() {
+        return lazyResult != null;
     }
 
     /**
@@ -82,6 +75,7 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
      * Because you can append operations to the lazy tensor, and the
      * tensor will only be evaluated when the result is needed.
      * A normal tensor has no way of doing this.
+     *
      * @param tensor the tensor to wrap
      * @return a lazy tensor
      */
@@ -292,7 +286,16 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
 
     @Override
     public String toString() {
-        return result().toString();
+        if (hasResult()) {
+            return "LazyTensor(" +
+                   "result=" + result() +
+                   ')';
+        } else {
+            return "LazyTensor(" +
+                   "shape=" + ShapeUtils.toString(resultShape) +
+                   ", dataType=" + resultDataType +
+                   ", hasResult=false)";
+        }
     }
 
     @Override

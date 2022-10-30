@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 @Disabled // this test is disabled because it is abstract
 abstract class GradientComputationTest {
 
@@ -27,8 +29,7 @@ abstract class GradientComputationTest {
         ITensor result = a.matmul(b);
         Assertions.assertEquals(sciCore.matrix(new float[][]{{130.0f}}), result);
 
-        IGraph graph = sciCore.getGraphUpTo(result);
-        graph.requestGradientsFor(a, b);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(result, List.of(a, b));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -71,10 +72,7 @@ abstract class GradientComputationTest {
         Assertions.assertEquals(sciCore.matrix(new float[][]{{1030.f}}), fwd2); // check forward pass
 
         // Automatic backpropagation
-        IGraph graph = sciCore.getGraphUpTo(fwd2);
-
-        graph.requestGradientsFor(w1, w2);
-
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(fwd2, List.of(w1, w2));
         graph.backward();
 
         // Manual backpropagation
@@ -113,8 +111,7 @@ abstract class GradientComputationTest {
         ITensor f = e.plus(c);
         ITensor g = f.matmul(d);
 
-        IGraph graph = sciCore.getGraphUpTo(g);
-        graph.requestGradientsFor(a, b, c, d);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(g, List.of(a, b, c, d));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -136,8 +133,7 @@ abstract class GradientComputationTest {
         ITensor d = a.multiply(b); // element-wise multiplication
         ITensor e = d.matmul(c); // matrix multiplication to get a scalar
 
-        IGraph graph = sciCore.getGraphUpTo(e);
-        graph.requestGradientsFor(a, b);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(e, List.of(a, b));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -155,8 +151,7 @@ abstract class GradientComputationTest {
         ITensor d = a.multiply(b); // scalar multiplication
         ITensor e = d.matmul(c); // matrix multiplication to get a scalar
 
-        IGraph graph = sciCore.getGraphUpTo(e);
-        graph.requestGradientsFor(a, b, c);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(e, List.of(a, b, c));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -176,8 +171,7 @@ abstract class GradientComputationTest {
         ITensor d = b.multiply(a); // scalar multiplication
         ITensor e = d.matmul(c); // matrix multiplication to get a scalar
 
-        IGraph graph = sciCore.getGraphUpTo(e);
-        graph.requestGradientsFor(a, b, c);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(e, List.of(a, b, c));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -201,8 +195,7 @@ abstract class GradientComputationTest {
         ITensor h = g.reduceSum(0);
         ITensor i = h.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(i);
-        graph.requestGradientsFor(a, b, c, d, e, f, g, h, i);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(i, List.of(a, b, c, d, e, f, g, h, i));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -305,8 +298,7 @@ abstract class GradientComputationTest {
         ITensor d = a.divide(b); // element-wise division
         ITensor e = d.matmul(c); // matrix multiplication to get a scalar
 
-        IGraph graph = sciCore.getGraphUpTo(e);
-        graph.requestGradientsFor(a, b);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(e, List.of(a, b));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -325,8 +317,7 @@ abstract class GradientComputationTest {
 
         Assertions.assertEquals(sciCore.matrix(new float[][]{{25.0f}}), c);
 
-        IGraph graph = sciCore.getGraphUpTo(c);
-        graph.requestGradientsFor(a, b);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(c, List.of(a, b));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -345,8 +336,7 @@ abstract class GradientComputationTest {
         ITensor d = a.pow(b);
         ITensor e = d.matmul(c);
 
-        IGraph graph = sciCore.getGraphUpTo(e);
-        graph.requestGradientsFor(a, b);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(e, List.of(a, b));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -364,8 +354,7 @@ abstract class GradientComputationTest {
         ITensor d = c.reduceSum(0);
         ITensor e = d.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(e);
-        graph.requestGradientsFor(e, d, c, b, a);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(e, List.of(e, d, c, b, a));
         graph.backward();
 
         ITensor dLdE = graph.getGradient(e).orElseThrow();
@@ -389,8 +378,7 @@ abstract class GradientComputationTest {
         ITensor c = a.matmul(b);
         ITensor d = c.reduceSum(1);
 
-        IGraph graph = sciCore.getGraphUpTo(d);
-        graph.requestGradientsFor(a, b);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(d, List.of(a, b));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -410,8 +398,7 @@ abstract class GradientComputationTest {
 
         ITensor c = a.matmul(bT);
 
-        IGraph graph = sciCore.getGraphUpTo(c);
-        graph.requestGradientsFor(a, b, bT);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(c, List.of(a, b, bT));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -439,8 +426,7 @@ abstract class GradientComputationTest {
         ITensor f = d.matmul(e);
         ITensor g = f.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(g);
-        graph.requestGradientsFor(a, b, c, d, e, f, g);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(g, List.of(a, b, c, d, e, f, g));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -479,8 +465,7 @@ abstract class GradientComputationTest {
         ITensor f = d.matmul(e);
         ITensor g = f.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(g);
-        graph.requestGradientsFor(a, b, c, d, e, f, g);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(g, List.of(a, b, c, d, e, f, g));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -519,8 +504,7 @@ abstract class GradientComputationTest {
         ITensor f = d.matmul(e);
         ITensor g = f.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(g);
-        graph.requestGradientsFor(a, b, c, d, e, f, g);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(g, List.of(a, b, c, d, e, f, g));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -559,8 +543,7 @@ abstract class GradientComputationTest {
         ITensor f = d.matmul(e);
         ITensor g = f.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(g);
-        graph.requestGradientsFor(a, b, c, d, e, f, g);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(g, List.of(a, b, c, d, e, f, g));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -599,8 +582,7 @@ abstract class GradientComputationTest {
         ITensor f = d.matmul(e);
         ITensor g = f.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(g);
-        graph.requestGradientsFor(a, b, c, d, e, f, g);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(g, List.of(a, b, c, d, e, f, g));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -642,8 +624,7 @@ abstract class GradientComputationTest {
         ITensor f = d.matmul(e);
         ITensor g = f.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(g);
-        graph.requestGradientsFor(a, b, c, d, e, f, g);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(g, List.of(a, b, c, d, e, f, g));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -682,8 +663,7 @@ abstract class GradientComputationTest {
         ITensor f = d.matmul(e);
         ITensor g = f.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(g);
-        graph.requestGradientsFor(a, b, c, d, e, f, g);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(g, List.of(a, b, c, d, e, f, g));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -722,8 +702,7 @@ abstract class GradientComputationTest {
         ITensor f = d.matmul(e);
         ITensor g = f.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(g);
-        graph.requestGradientsFor(a, b, c, d, e, f, g);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(g, List.of(a, b, c, d, e, f, g));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -762,8 +741,7 @@ abstract class GradientComputationTest {
         ITensor h = g.reduceSum(0);
         ITensor i = h.reduceSum(0);
 
-        IGraph graph = sciCore.getGraphUpTo(i);
-        graph.requestGradientsFor(a, b, c, d, e, f, g, h, i);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(i, List.of(a, b, c, d, e, f, g, h, i));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -887,8 +865,7 @@ abstract class GradientComputationTest {
         ITensor lossPerSample = squared.reduceSum(0);
         ITensor loss = lossPerSample.reduceSum(0).divide((float) X.getShape()[0]);
 
-        IGraph graph = sciCore.getGraphUpTo(loss);
-        graph.requestGradientsFor(W, B);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, List.of(W, B));
         graph.backward();
 
         ITensor dLdW = graph.getGradient(W).orElseThrow();
@@ -916,8 +893,7 @@ abstract class GradientComputationTest {
         ITensor lossPerSample = squared.reduceSum(0);
         ITensor loss = lossPerSample.reduceSum(0).divide((float) X.getShape()[0]);
 
-        IGraph graph = sciCore.getGraphUpTo(loss);
-        graph.requestGradientsFor(W, B);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, List.of(W, B));
         graph.backward();
 
         ITensor dLdW = graph.getGradient(W).orElseThrow();
@@ -946,8 +922,7 @@ abstract class GradientComputationTest {
         ITensor totalLoss = lossPerSample.reduceSum(0);
         ITensor L = totalLoss.divide((float) X.getShape()[0]);
 
-        IGraph graph = sciCore.getGraphUpTo(L);
-        graph.requestGradientsFor(L, totalLoss, lossPerSample, diffSquared, diff, Y, Y_pred, D, W, X, B);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(L, List.of(L, totalLoss, lossPerSample, diffSquared, diff, Y, Y_pred, D, W, X, B));
         graph.backward();
 
         ITensor dLdL = graph.getGradient(L).orElseThrow();
@@ -990,8 +965,7 @@ abstract class GradientComputationTest {
         ITensor totalLoss = lossPerSample.reduceSum(0);
         ITensor L = totalLoss.divide((float) X.getShape()[0]);
 
-        IGraph graph = sciCore.getGraphUpTo(L);
-        graph.requestGradientsFor(L, totalLoss, lossPerSample, diffSquared, diff, Y, Y_pred, D, W, X, B);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(L, List.of(L, totalLoss, lossPerSample, diffSquared, diff, Y, Y_pred, D, W, X, B));
         graph.backward();
 
         ITensor dLdL = graph.getGradient(L).orElseThrow();
@@ -1032,8 +1006,7 @@ abstract class GradientComputationTest {
         ITensor lossPerSample = squared.reduceSum(0);
         ITensor loss = lossPerSample.reduceSum(0).divide((float) X.getShape()[0]);
 
-        IGraph graph = sciCore.getGraphUpTo(loss);
-        graph.requestGradientsFor(W, B);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, List.of(W, B));
         graph.backward();
 
         ITensor dLdW = graph.getGradient(W).orElseThrow();
@@ -1056,8 +1029,7 @@ abstract class GradientComputationTest {
         ITensor lossPerSample = squared.reduceSum(0);
         ITensor loss = lossPerSample.reduceSum(0).divide((float) X.getShape()[0]);
 
-        IGraph graph = sciCore.getGraphUpTo(loss);
-        graph.requestGradientsFor(W, B);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, List.of(W, B));
         graph.backward();
 
         ITensor dLdW = graph.getGradient(W).orElseThrow();
@@ -1074,8 +1046,7 @@ abstract class GradientComputationTest {
         ITensor b = sciCore.matrix(new float[][]{{3}, {4}});
         ITensor c = a.exp().matmul(b);
 
-        IGraph graph = sciCore.getGraphUpTo(c);
-        graph.requestGradientsFor(a);
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(c, List.of(a));
         graph.backward();
 
         ITensor dLdA = graph.getGradient(a).orElseThrow();
@@ -1088,8 +1059,7 @@ abstract class GradientComputationTest {
         ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
         ITensor result = a.matmul(b);
 
-        IGraph graph = sciCore.getGraphUpTo(result);
-        graph.requestGradientsFor(a); // only request for a
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(result, List.of(a));
 
         graph.backward();
 
@@ -1103,8 +1073,7 @@ abstract class GradientComputationTest {
         ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
         ITensor result = a.matmul(b);
 
-        IGraph graph = sciCore.getGraphUpTo(result);
-        graph.requestGradientsFor(a, b); // request for a and b
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(result, List.of(a, b));
         graph.backward();
 
         Assertions.assertFalse(graph.getGradient(result).isPresent());
@@ -1129,11 +1098,8 @@ abstract class GradientComputationTest {
         ITensor result1 = a.matmul(b1);
         ITensor result2 = a.matmul(b2);
 
-        IGraph graph1 = sciCore.getGraphUpTo(result1);
-        IGraph graph2 = sciCore.getGraphUpTo(result2);
-
-        graph1.requestGradientsFor(a, b1);
-        graph2.requestGradientsFor(a, b2);
+        IGraph graph1 = sciCore.getBackpropagationGraphUpTo(result1, List.of(a, b1));
+        IGraph graph2 = sciCore.getBackpropagationGraphUpTo(result2, List.of(a, b2));
 
         graph1.backward();
         graph2.backward();

@@ -80,8 +80,7 @@ public class ApproxLinearFuncTrainingTest {
             ITensor YPred = bobNet.forward(X);
             ITensor loss = (YPred.minus(Y)).pow(2).reduceSum(0).divide(batchSize);
 
-            IGraph graph = sciCore.getGraphUpTo(loss);
-            optimizer.step(graph);
+            optimizer.step(loss);
 
             float lossValue = loss.elementAsFloat();
             losses[step] = (float) Math.log(lossValue);

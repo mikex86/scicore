@@ -2,6 +2,7 @@ package me.mikex86.scicore.nn.optim;
 
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,7 +19,7 @@ public class Sgd implements IOptimizer {
 
     private final boolean adaptiveLearningRate;
 
-    private long nSteps = 1;
+    private long nSteps = 0;
 
     private final float learningRateDecayFactor;
 
@@ -35,8 +36,8 @@ public class Sgd implements IOptimizer {
     }
 
     @Override
-    public void step(@NotNull IGraph graph) {
-        graph.requestGradientsFor(parameters.toArray(new ITensor[0]));
+    public void step(@NotNull ITensor loss) {
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, parameters);
         graph.backward();
 
         for (ITensor parameter : parameters) {

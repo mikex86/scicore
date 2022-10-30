@@ -126,7 +126,7 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         if (!resultDataType.isNumeric()) {
             throw new IllegalArgumentException("Cannot perform matrix multiplication on non-numeric data types");
         }
-        return new LazyTensor(this.backend, resultShape, resultDataType, () -> perform(ctx, a, b));
+        return new LazyTensor(this.backend, resultShape, resultDataType);
     }
 
     @Override

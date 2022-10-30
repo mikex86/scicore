@@ -14,6 +14,7 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.*;
+import java.util.List;
 import java.util.Random;
 
 public class SciCore implements ISciCore {
@@ -468,8 +469,13 @@ public class SciCore implements ISciCore {
 
     @Override
     @NotNull
-    public IGraph getGraphUpTo(@NotNull ITensor tensor) {
-        return operationRecorder.getGraphFor(getBackend(), tensor);
+    public IGraph getExecutionGraphUpTo(@NotNull ITensor root) {
+        return operationRecorder.getExecutionGraphTo(getBackend(), root);
+    }
+
+    @Override
+    public @NotNull IGraph getBackpropagationGraphUpTo(@NotNull ITensor root, @NotNull List<ITensor> parameters) {
+        return operationRecorder.getBackpropagationGraphTo(getBackend(), root, parameters);
     }
 
     @Override

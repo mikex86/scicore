@@ -3,7 +3,6 @@ package me.mikex86.scicore.backend.impl.genericcpu.op;
 import me.mikex86.scicore.DataType;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.LazyTensor;
-import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.ReduceSumJNI;
 import me.mikex86.scicore.graph.Graph;
@@ -76,7 +75,7 @@ public class GenCPUReduceSumOp implements IDifferentiableBiParametricOperation<I
         DataType dataType = tensor.getDataType();
         long[] shape = tensor.getShape();
         long[] outputShape = ShapeUtils.getReducedShape(shape, dimension, keepDimensions);
-        return new LazyTensor(backend, outputShape, dataType, () -> perform(ctx, tensor, dimension, keepDimensions));
+        return new LazyTensor(backend, outputShape, dataType);
     }
 
     @Override

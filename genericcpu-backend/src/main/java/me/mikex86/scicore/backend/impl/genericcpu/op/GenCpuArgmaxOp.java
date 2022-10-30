@@ -56,7 +56,7 @@ public class GenCpuArgmaxOp implements IDifferentiableSingleParametricOperation<
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input, @Nullable Integer dimension) {
         Validator.assertTrue(dimension != null, "dimensionScalar must not be null");
         long[] reducedShape = ShapeUtils.getReducedShape(input.getShape(), dimension, false);
-        return new LazyTensor(backend, reducedShape, DataType.INT64, () -> perform(ctx, input, dimension));
+        return new LazyTensor(backend, reducedShape, DataType.INT64);
     }
 
 

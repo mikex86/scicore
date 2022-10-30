@@ -1,6 +1,7 @@
 package me.mikex86.scicore.backend;
 
 import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.graph.*;
 import me.mikex86.scicore.graph.op.IOperation;
@@ -16,5 +17,7 @@ public interface ISciCoreBackend {
     @NotNull Optional<IOperation> getOperation(@NotNull OperationType operationType);
 
     @NotNull IGraphRecorder getOperationRecorder();
+
+    @NotNull ISciCore.BackendType getBackendType();
 
 }

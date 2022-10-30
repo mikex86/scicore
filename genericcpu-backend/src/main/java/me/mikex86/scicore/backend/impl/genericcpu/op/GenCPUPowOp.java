@@ -47,7 +47,7 @@ public class GenCPUPowOp implements IDifferentiableBinaryOperation {
         DataType dataTypeA = a.getDataType();
         DataType dataTypeB = b.getDataType();
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
-        return new LazyTensor(backend, shapeA, resultDataType, () -> perform(ctx, a, b));
+        return new LazyTensor(backend, shapeA, resultDataType);
     }
 
     @Override

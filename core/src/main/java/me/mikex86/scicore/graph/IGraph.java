@@ -15,64 +15,35 @@ public interface IGraph {
      *
      * @param tensors the list of tensors to compute gradients for
      */
-    void requestGradientsFor(@NotNull ITensor... tensors);
+    void requestGradientsFor(@NotNull List<ITensor> tensors);
 
     void backward();
 
     @NotNull Optional<ITensor> getGradient(@NotNull ITensor value);
 
-    /**
-     * Recursively lists downstream nodes of the specified node.
-     *
-     * @param node a given node
-     * @return a list of all nodes that depend on the given node, meaning that they are a function of the given node. This list includes itself
-     */
-    @NotNull List<IGraphNode> getDependentNodes(@NotNull IGraphNode node);
-
     interface IGraphNode {
 
         default String getName() {
-            Random random = new Random(hashCode());
-            char randomChar = (char) (random.nextInt(26) + 'a');
-            return String.valueOf(randomChar);
+            Random random = new Random(System.identityHashCode(this));
+            char c1 = (char) ('A' + random.nextInt(26));
+            char c2 = (char) ('A' + random.nextInt(26));
+            return String.format("%c%c", c1, c2);
         }
-
-        /**
-         * Adds a downstream node to this node. This indicates a usage of this node by another node, which takes it as an input.
-         *
-         * @param downstreamNode the downstream node
-         */
-        void addDownstreamNode(@NotNull IGraphNode downstreamNode);
-
-        /**
-         * @return the list of all usages of this node. Empty for the output node.
-         */
-        @NotNull
-        List<IGraphNode> getDownstreamNodes();
-
-        @NotNull
-        IGraphNode deepCopy();
 
     }
 
     abstract class AbstractGraphNode implements IGraphNode {
-
-        @NotNull
-        private final List<IGraphNode> downstreamNodes = new ArrayList<>();
-
-        @Override
-        public void addDownstreamNode(@NotNull IGraphNode downstreamNode) {
-            downstreamNodes.add(downstreamNode);
-        }
-
-        @Override
-        public @NotNull List<IGraphNode> getDownstreamNodes() {
-            return downstreamNodes;
-        }
     }
 
     interface ITensorNode extends IGraphNode {
         @NotNull ITensor getValue();
+
+        default String getName() {
+            Random random = new Random(System.identityHashCode(getValue()));
+            char c1 = (char) ('A' + random.nextInt(26));
+            char c2 = (char) ('A' + random.nextInt(26));
+            return String.format("%c%c", c1, c2);
+        }
     }
 
     interface ITensorNodeWithGradient extends ITensorNode {
@@ -118,10 +89,6 @@ public interface IGraph {
          * This is different to zeroGrad(), which just sets the gradient to zero.
          */
         void deleteGradient();
-    }
-
-    interface IValueNode extends IGraphNode {
-        @NotNull Object getValue();
     }
 
     interface IDifferentiableNode extends ITensorNodeWithGradient {

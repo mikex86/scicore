@@ -5,7 +5,7 @@ import me.mikex86.scicore.ISciCore;
 public class GenCpuTensorTest extends TensorTest {
 
     GenCpuTensorTest() {
-        super(ISciCore.BackendType.GENERIC_CPU);
+        super(ISciCore.BackendType.CPU);
     }
 
 }

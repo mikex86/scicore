@@ -42,7 +42,7 @@ class GraphVisualizerTest {
 
         assertEquals(sciCore.matrix(new float[][]{{507.0f}}), e);
 
-        IGraph graph = sciCore.getGraphUpTo(e);
+        IGraph graph = sciCore.getExecutionGraphUpTo(e);
 
         BufferedImage image = DAGGraphRenderPlanFactory.visualizeGraph(graph);
 

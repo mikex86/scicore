@@ -69,7 +69,7 @@ public class GenCPUTransposeOp implements IDifferentiableUnaryOperation {
         long[] resultShape = getResultShape(input);
 
         DataType dataType = input.getDataType();
-        return new LazyTensor(this.backend, resultShape, dataType, () -> perform(ctx, input));
+        return new LazyTensor(this.backend, resultShape, dataType);
     }
 
     private long @NotNull [] getResultShape(@NotNull ITensor input) {

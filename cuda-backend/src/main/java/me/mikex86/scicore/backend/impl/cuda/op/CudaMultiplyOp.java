@@ -86,7 +86,7 @@ public class CudaMultiplyOp implements IDifferentiableBinaryOperation {
 
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
 
-        return new LazyTensor(backend, finalShape, resultDataType, () -> perform(ctx, a, b));
+        return new LazyTensor(backend, finalShape, resultDataType);
     }
 
     @Override

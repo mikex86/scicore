@@ -37,7 +37,7 @@ public class JvmExpOp implements IDifferentiableUnaryOperation {
 
     @Override
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
-        return new LazyTensor(backend, input.getShape(), input.getDataType(), () -> perform(ctx, input));
+        return new LazyTensor(backend, input.getShape(), input.getDataType());
     }
 
     @Override

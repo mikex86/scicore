@@ -4,6 +4,7 @@ import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;
 import jcuda.jcublas.cublasHandle;
 import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryManager;
@@ -123,6 +124,12 @@ public class CudaBackend extends AbstractSciCoreBackend {
     @Override
     public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
         return new CudaTensor(this, dataType, shape);
+    }
+
+    @NotNull
+    @Override
+    public ISciCore.BackendType getBackendType() {
+        return ISciCore.BackendType.CUDA;
     }
 
     @Override

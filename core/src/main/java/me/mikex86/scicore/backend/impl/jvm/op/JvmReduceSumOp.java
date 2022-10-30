@@ -101,7 +101,7 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
         DataType dataType = tensor.getDataType();
         long[] shape = tensor.getShape();
         long[] outputShape = ShapeUtils.getReducedShape(shape, dimension, keepDimensions);
-        return new LazyTensor(backend, outputShape, dataType, () -> perform(ctx, tensor, dimension, keepDimensions));
+        return new LazyTensor(backend, outputShape, dataType);
     }
 
     @Override

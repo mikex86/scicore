@@ -896,7 +896,7 @@ public abstract class AbstractTensor implements ITensor {
                 isNewLine = true;
             }
         }
-        sb.ensureCapacity(sb.length() + (int) nElements * 10);
+        sb.ensureCapacity(sb.length() + (int) nElements * 15);
         long[] index = new long[shape.length];
         boolean hasNext;
         long nElementsInDimension = 0;
@@ -945,10 +945,16 @@ public abstract class AbstractTensor implements ITensor {
             }
             nElementsInDimension++;
 
+            boolean printDots = false;
             // increment index
             for (int dim = index.length - 1; dim >= 0; dim--) {
                 if (index[dim] < shape[dim] - 1) {
                     index[dim]++;
+                    // check if index hits 15 and has more than elements 15 to go to print '...'
+                    if (index[dim] == 15 && shape[dim] > 15 * 2) {
+                        index[dim] = shape[dim] - 15;
+                        printDots = true;
+                    }
                     hasNext = true;
                     break;
                 }
@@ -961,7 +967,19 @@ public abstract class AbstractTensor implements ITensor {
 
             if (hasNext) {
                 sb.append(",");
-                if (nElementsInDimension % 15 == 0 || (nElementsInDimension > 15 && nEndingDimensions > 0)) {
+                if (printDots) {
+                    for (int i = 0; i < nEndingDimensions; i++) {
+                        sb.append('\n');
+                        isNewLine = true;
+                    }
+                    if (isNewLine) {
+                        sb.append('\t');
+                    }
+                    sb.append(" ".repeat(Math.max(0, isNewLine ? (index.length - nStartingDimensions) : 1)));
+                    sb.append("...,");
+                    sb.append("\n".repeat(Math.max(0, nEndingDimensions - 1)));
+                }
+                if ((nElementsInDimension > 15 && nEndingDimensions > 0)) {
                     sb.append('\n');
                     isNewLine = true;
                 }

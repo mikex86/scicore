@@ -8,8 +8,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class GraphVisualizer {
 
@@ -98,24 +97,46 @@ public class GraphVisualizer {
         try (Surface surface = Surface.makeRasterN32Premul(renderPlan.getMaxNumNodesPerRow() * WIDTH_PER_NODE, renderPlan.getNumRows() * HEIGHT_PER_ROW)) {
             Canvas canvas = surface.getCanvas();
 
+            Map<GraphRenderPlan.IGraphNode, Integer> nodeToXPos = new IdentityHashMap<>();
+            Map<GraphRenderPlan.IGraphNode, Integer> nodeToYPos = new IdentityHashMap<>();
+
             // render rows (reversed because output node is row 0, but should be rendered last)
             {
                 int nRows = renderPlan.getNumRows();
 
-                // render interconnect lines
-                for (int i = 0; i < nRows; i++) {
-                    GraphRenderPlan.Row row = renderPlan.getRows().get(nRows - i - 1);
-
-                    // if has next row
-                    if (nRows - i < nRows) {
-                        GraphRenderPlan.Row nextRow = renderPlan.getRows().get(nRows - i);
-                        renderInterconnect(row, nextRow, i, canvas);
+                // populate nodeToXPos and nodeToYPos
+                {
+                    int rowIndex = 0;
+                    for (GraphRenderPlan.Row row : renderPlan.getRows()) {
+                        int nodeIndex = 0;
+                        for (GraphRenderPlan.Column column : row.columns()) {
+                            for (GraphRenderPlan.IGraphNode node : column.nodes()) {
+                                int xPos = nodeIndex * WIDTH_PER_NODE;
+                                nodeToXPos.put(node, xPos);
+                                nodeToYPos.put(node, rowIndex * HEIGHT_PER_ROW);
+                                nodeIndex++;
+                            }
+                        }
+                        rowIndex++;
                     }
                 }
 
                 // render main nodes
                 for (int i = 0; i < nRows; i++) {
-                    GraphRenderPlan.Row row = renderPlan.getRows().get(nRows - i - 1);
+                    GraphRenderPlan.Row row = renderPlan.getRows().get(i);
+                    renderRowBackground(row, i, canvas);
+                }
+
+                // render interconnect lines
+                for (int i = 0; i < nRows; i++) {
+                    GraphRenderPlan.Row row = renderPlan.getRows().get(i);
+
+                    renderInterconnect(row, i, canvas, nodeToXPos, nodeToYPos);
+                }
+
+                // render main nodes
+                for (int i = 0; i < nRows; i++) {
+                    GraphRenderPlan.Row row = renderPlan.getRows().get(i);
                     renderRow(row, i, canvas);
                 }
             }
@@ -140,22 +161,30 @@ public class GraphVisualizer {
         }
     }
 
-    private static void renderInterconnect(@NotNull GraphRenderPlan.Row row, @NotNull GraphRenderPlan.Row nextRow, int rowIndex, @NotNull Canvas canvas) {
+    private static void renderInterconnect(@NotNull GraphRenderPlan.Row row, int rowIndex, @NotNull Canvas canvas, @NotNull Map<GraphRenderPlan.IGraphNode, Integer> nodeToXPos, @NotNull Map<GraphRenderPlan.IGraphNode, Integer> nodeToYPos) {
         int y = rowIndex * HEIGHT_PER_ROW;
-        int nextY = (rowIndex - 1) * HEIGHT_PER_ROW;
+        int nodeIndex = 0;
         for (GraphRenderPlan.Column column : row.columns()) {
-            int nodeIndex = 0;
             for (GraphRenderPlan.IGraphNode node : column.nodes()) {
                 int x = nodeIndex * WIDTH_PER_NODE;
                 if (node instanceof GraphRenderPlan.IGraphNode.Interconnect interconnect) {
                     for (GraphRenderPlan.IGraphNode input : interconnect.incomingNodes()) {
-                        int nextX = getXPosition(input, nextRow);
+                        int nextX = getXPosition(input, nodeToXPos);
+                        int nextY = getYPosition(input, nodeToYPos);
+
+                        int interX = nextX;
+                        int interY = y;
+
+                        if ((y - nextY) / HEIGHT_PER_ROW > 1) {
+                            // skew the path to the left to avoid multiple lines running in each other
+                            interX = (int) (nextX - WIDTH_PER_NODE * 0.9);
+                        }
+
                         try (Path path = new Path()) {
                             path.moveTo(x + WIDTH_PER_NODE / 2f, y + HEIGHT_PER_ROW / 2f);
-//                            path.lineTo(nextX + WIDTH_PER_NODE / 2f, nextY + HEIGHT_PER_ROW / 2f);
                             path.cubicTo(
                                     x + WIDTH_PER_NODE / 2f, y + HEIGHT_PER_ROW / 2f,
-                                    nextX + WIDTH_PER_NODE / 2f, y - HEIGHT_PER_ROW / 8f,
+                                    interX + WIDTH_PER_NODE / 2f, interY - HEIGHT_PER_ROW / 8f,
                                     nextX + WIDTH_PER_NODE / 2f, nextY + HEIGHT_PER_ROW / 2f
                             );
                             canvas.drawPath(path, LINE_PAINT);
@@ -167,17 +196,12 @@ public class GraphVisualizer {
         }
     }
 
-    private static int getXPosition(@NotNull GraphRenderPlan.IGraphNode input, @NotNull GraphRenderPlan.Row nextRow) {
-        int x = 0;
-        for (GraphRenderPlan.Column column : nextRow.columns()) {
-            for (GraphRenderPlan.IGraphNode node : column.nodes()) {
-                if (node == input) {
-                    return x;
-                }
-                x += WIDTH_PER_NODE;
-            }
-        }
-        return x;
+    private static int getYPosition(@NotNull GraphRenderPlan.IGraphNode input, @NotNull Map<GraphRenderPlan.IGraphNode, Integer> nodeToYPos) {
+        return nodeToYPos.get(input);
+    }
+
+    private static int getXPosition(@NotNull GraphRenderPlan.IGraphNode input, @NotNull Map<GraphRenderPlan.IGraphNode, Integer> nodeToXPos) {
+        return nodeToXPos.getOrDefault(input, 0);
     }
 
     private static void renderRow(@NotNull GraphRenderPlan.Row row, int rowIndex, @NotNull Canvas canvas) {
@@ -187,20 +211,31 @@ public class GraphVisualizer {
         }
     }
 
-    private static int renderColumn(@NotNull GraphRenderPlan.Column column, int x, int y, @NotNull Canvas canvas) {
+    private static void renderRowBackground(@NotNull GraphRenderPlan.Row row, int rowIndex, @NotNull Canvas canvas) {
+        int x = 0;
+        for (GraphRenderPlan.Column column : row.columns()) {
+            x = renderColumnBackground(column, x, rowIndex * HEIGHT_PER_ROW, canvas);
+        }
+    }
+
+    private static int renderColumnBackground(@NotNull GraphRenderPlan.Column column, int x, int y, @NotNull Canvas canvas) {
         int columWidth = column.getNumNodes() * WIDTH_PER_NODE;
 
         // render column background
         {
-//            RRect rect = RRect.makeLTRB(
-//                    x + COLUMN_PADDING,
-//                    y + COLUMN_PADDING,
-//                    x + columWidth - COLUMN_PADDING,
-//                    y + TENSOR_NODE_HEAD_HEIGHT - COLUMN_PADDING,
-//                    COLUMN_BACKGROUND_BORDER_RADIUS
-//            );
-//            canvas.drawRRect(rect, COLUM_BACKGROUND_COLOR);
+            RRect rect = RRect.makeLTRB(
+                    x + COLUMN_PADDING,
+                    y + COLUMN_PADDING,
+                    x + columWidth - COLUMN_PADDING,
+                    y + HEIGHT_PER_ROW - COLUMN_PADDING,
+                    COLUMN_BACKGROUND_BORDER_RADIUS
+            );
+            canvas.drawRRect(rect, COLUM_BACKGROUND_COLOR);
         }
+        return x + columWidth;
+    }
+
+    private static int renderColumn(@NotNull GraphRenderPlan.Column column, int x, int y, @NotNull Canvas canvas) {
 
         // render nodes
         {
@@ -216,7 +251,7 @@ public class GraphVisualizer {
         if (node instanceof GraphRenderPlan.IGraphNode.DataNode dataNode) {
             return renderDataNode(dataNode, x, y, canvas);
         } else if (node instanceof GraphRenderPlan.IGraphNode.Interconnect interconnect) {
-            return renderInterconnect(interconnect, x, y, canvas);
+            return renderInterconnectRoot(interconnect, x, y, canvas);
         } else {
             throw new IllegalArgumentException("Unknown node type: " + node.getClass().getName());
         }
@@ -227,53 +262,56 @@ public class GraphVisualizer {
     }
 
     private static int renderNode(@NotNull String title, @NotNull Map<String, String> attributes, int x, int y, Canvas canvas) {
+        int centerY = y + HEIGHT_PER_ROW / 2;
         try (Font headingFont = new Font(HEADING_TYPEFACE, NODE_HEADING_FONT_SIZE)) {
-
-            // render background
-            {
-                // render background
-                RRect rect = RRect.makeLTRB(
-                        x + COLUMN_PADDING + NODE_PADDING + NODE_BORDER_WIDTH / 2f,
-                        y + COLUMN_PADDING + NODE_PADDING + NODE_BORDER_WIDTH / 2f,
-                        x + DATA_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
-                        y + DATA_NODE_HEAD_HEIGHT - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
-                        NODE_BACKGROUND_BORDER_RADIUS
-                );
-                canvas.drawRRect(rect, DATA_NODE_BACKGROUND_COLOR);
-
-                // render top bar
-                rect = RRect.makeLTRB(
-                        x + COLUMN_PADDING + NODE_PADDING,
-                        y + COLUMN_PADDING + NODE_PADDING,
-                        x + DATA_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING,
-                        y + COLUMN_PADDING + NODE_PADDING + NODE_HEADING_TEXT_PADDING + (headingFont.getMetrics().getBottom() - headingFont.getMetrics().getTop()) + NODE_HEADING_TEXT_PADDING,
-                        NODE_BACKGROUND_BORDER_RADIUS, NODE_BACKGROUND_BORDER_RADIUS, 0, 0
-                );
-                canvas.drawRRect(rect, DATA_NODE_COLOR);
-
-                // render border
-                rect = RRect.makeLTRB(
-                        x + COLUMN_PADDING + NODE_PADDING + NODE_BORDER_WIDTH / 2f,
-                        y + COLUMN_PADDING + NODE_PADDING + NODE_BORDER_WIDTH / 2f,
-                        x + DATA_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
-                        y + DATA_NODE_HEAD_HEIGHT - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
-                        NODE_BACKGROUND_BORDER_RADIUS - 10f
-                );
-                canvas.drawRRect(rect, DATA_NODE_COLOR_STROKE);
-            }
-
-            // render heading
-            canvas.drawString(
-                    title,
-                    x + COLUMN_PADDING + NODE_PADDING + NODE_HEADING_TEXT_PADDING,
-                    y + COLUMN_PADDING + NODE_PADDING + NODE_HEADING_TEXT_PADDING - headingFont.getMetrics().getTop(),
-                    headingFont,
-                    HEADING_TEXT_COLOR
-            );
-
             try (Font attributeFont = new Font(ATTRIBUTE_TYPEFACE, NODE_ATTRIBUTE_FONT_SIZE)) {
+                float topBarHeight = (headingFont.getMetrics().getBottom() - headingFont.getMetrics().getTop()) + NODE_HEADING_TEXT_PADDING;
+                float nodeHeight = topBarHeight + (attributes.size() * attributeFont.getMetrics().getHeight()) + NODE_ATTRIBUTE_TEXT_PADDING;
+
+                // render background
+                {
+                    // render background
+                    RRect rect = RRect.makeLTRB(
+                            x + COLUMN_PADDING + NODE_PADDING + NODE_BORDER_WIDTH / 2f,
+                            centerY - nodeHeight / 2f,
+                            x + DATA_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
+                            centerY + nodeHeight / 2f,
+                            NODE_BACKGROUND_BORDER_RADIUS
+                    );
+                    canvas.drawRRect(rect, DATA_NODE_BACKGROUND_COLOR);
+
+                    // render top bar
+                    rect = RRect.makeLTRB(
+                            x + COLUMN_PADDING + NODE_PADDING,
+                            centerY - nodeHeight / 2f,
+                            x + DATA_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING,
+                            centerY - nodeHeight / 2f + topBarHeight,
+                            NODE_BACKGROUND_BORDER_RADIUS, NODE_BACKGROUND_BORDER_RADIUS, 0, 0
+                    );
+                    canvas.drawRRect(rect, DATA_NODE_COLOR);
+
+                    // render border
+                    rect = RRect.makeLTRB(
+                            x + COLUMN_PADDING + NODE_PADDING + NODE_BORDER_WIDTH / 2f,
+                            centerY - nodeHeight / 2f,
+                            x + DATA_NODE_HEAD_WIDTH - NODE_PADDING - COLUMN_PADDING - NODE_BORDER_WIDTH / 2f,
+                            centerY + nodeHeight / 2f,
+                            NODE_BACKGROUND_BORDER_RADIUS - 10f
+                    );
+                    canvas.drawRRect(rect, DATA_NODE_COLOR_STROKE);
+                }
+
+                // render heading
+                canvas.drawString(
+                        title,
+                        x + COLUMN_PADDING + NODE_PADDING + NODE_HEADING_TEXT_PADDING,
+                        centerY - nodeHeight / 2f + topBarHeight - NODE_HEADING_TEXT_PADDING,
+                        headingFont,
+                        HEADING_TEXT_COLOR
+                );
+
                 // render attributes
-                float yOffset = y + COLUMN_PADDING + NODE_PADDING + NODE_HEADING_TEXT_PADDING + (headingFont.getMetrics().getBottom() - headingFont.getMetrics().getTop()) + NODE_HEADING_TEXT_PADDING;
+                float yOffset = centerY - nodeHeight / 2f + topBarHeight;
                 for (Map.Entry<String, String> attribute : attributes.entrySet()) {
                     canvas.drawString(
                             attribute.getKey() + ": " + attribute.getValue(),
@@ -289,11 +327,11 @@ public class GraphVisualizer {
         return x + WIDTH_PER_NODE;
     }
 
-    public static int renderInterconnect(@NotNull GraphRenderPlan.IGraphNode.Interconnect node, int x, int y, Canvas canvas) {
+    public static int renderInterconnectRoot(@NotNull GraphRenderPlan.IGraphNode.Interconnect node, int x, int y, Canvas canvas) {
         // render background
         canvas.drawCircle(
                 x + WIDTH_PER_NODE / 2f,
-                y + DATA_NODE_HEAD_WIDTH / 2f,
+                y + HEIGHT_PER_ROW / 2f,
                 INTERCONNECT_NODE_RADIUS / 2f - COLUMN_PADDING - NODE_PADDING,
                 OPERATION_NODE_COLOR
         );
@@ -303,7 +341,7 @@ public class GraphVisualizer {
             canvas.drawString(
                     node.name(),
                     x + WIDTH_PER_NODE / 2f - font.measureTextWidth(node.name()) / 2f,
-                    y + DATA_NODE_HEAD_WIDTH / 2f + font.getMetrics().getBottom(),
+                    y + HEIGHT_PER_ROW / 2f + font.getMetrics().getBottom(),
                     font,
                     HEADING_TEXT_COLOR
             );

@@ -82,7 +82,7 @@ public class JvmDivideOp implements IDifferentiableBinaryOperation {
         DataType ownDataType = a.getDataType();
         DataType otherDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
-        return new LazyTensor(backend, finalShape, resultDataType, () -> perform(ctx, a, b));
+        return new LazyTensor(backend, finalShape, resultDataType);
     }
 
     @Override
