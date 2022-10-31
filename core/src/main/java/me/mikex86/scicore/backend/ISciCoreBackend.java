@@ -1,8 +1,8 @@
 package me.mikex86.scicore.backend;
 
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.graph.*;
 import me.mikex86.scicore.graph.op.IOperation;
 import org.jetbrains.annotations.NotNull;

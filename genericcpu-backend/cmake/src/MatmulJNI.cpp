@@ -5,7 +5,7 @@
 #include <Accelerate/Accelerate.h>
 #elif defined(USE_MKL)
 #include <mkl_cblas.h>
-#elif
+#else
 #define USE_TINYBLAS
 #endif
 

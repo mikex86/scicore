@@ -1,9 +1,8 @@
 package me.mikex86.scicore.nn.layers;
 
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.SciCore;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.nn.IModule;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

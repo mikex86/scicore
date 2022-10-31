@@ -1,4 +1,4 @@
-package me.mikex86.scicore;
+package me.mikex86.scicore.tensor;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;

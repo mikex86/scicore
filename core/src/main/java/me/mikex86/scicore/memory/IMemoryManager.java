@@ -1,9 +1,9 @@
 package me.mikex86.scicore.memory;
 
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import org.jetbrains.annotations.NotNull;
 
-public interface IMemoryManager<T extends IMemoryHandle> {
+public interface IMemoryManager<T extends IMemoryHandle<T>> {
 
     @NotNull
     T alloc(long nBytes);
@@ -17,7 +17,7 @@ public interface IMemoryManager<T extends IMemoryHandle> {
     @NotNull
     T calloc(long nElements, @NotNull DataType dataType);
 
-
+    void free(@NotNull T memoryHandle);
 
     /**
      * Copies the data from the source memory handle to the destination memory handle.
@@ -25,4 +25,5 @@ public interface IMemoryManager<T extends IMemoryHandle> {
      * @param srcMemoryHandle the source memory handle.
      */
     void copy(@NotNull T dstMemoryHandle, @NotNull T srcMemoryHandle);
+
 }

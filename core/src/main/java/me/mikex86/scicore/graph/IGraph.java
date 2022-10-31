@@ -1,6 +1,6 @@
 package me.mikex86.scicore.graph;
 
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.ITensor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,6 +44,10 @@ public interface IGraph {
             char c2 = (char) ('A' + random.nextInt(26));
             return String.format("%c%c", c1, c2);
         }
+
+        void deleteValue();
+
+        boolean hasValue();
     }
 
     interface ITensorNodeWithGradient extends ITensorNode {

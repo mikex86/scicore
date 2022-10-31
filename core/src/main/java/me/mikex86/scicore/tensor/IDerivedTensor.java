@@ -1,4 +1,4 @@
-package me.mikex86.scicore;
+package me.mikex86.scicore.tensor;
 
 import org.jetbrains.annotations.NotNull;
 

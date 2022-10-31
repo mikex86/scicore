@@ -5,7 +5,7 @@ import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;
 import jcuda.driver.CUdeviceptr;
 import jcuda.jcurand.curandGenerator;
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernel;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernelLaunchConfig;
 import me.mikex86.scicore.backend.impl.cuda.kernel.KernelNameUtility;

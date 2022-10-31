@@ -1,6 +1,6 @@
 package me.mikex86.scicore.tests.graphviz;
 
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graphviz.DAGGraphRenderPlanFactory;

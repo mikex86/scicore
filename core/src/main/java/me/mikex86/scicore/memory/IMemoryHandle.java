@@ -1,6 +1,6 @@
 package me.mikex86.scicore.memory;
 
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -64,11 +64,6 @@ public interface IMemoryHandle<T extends IMemoryHandle<T>> {
     @NotNull default T offset(long offset, long size, @NotNull DataType dataType) {
         return offset(dataType.getSizeOf(offset), dataType.getSizeOf(size));
     }
-
-    /**
-     * Every memory handle must implement the finalize method, which will free the memory if it is not already freed.
-     */
-    void finalize() throws Throwable;
 
     boolean isFreed();
 }

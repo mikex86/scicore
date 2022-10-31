@@ -1,18 +1,22 @@
-package me.mikex86.scicore;
+package me.mikex86.scicore.tensor;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
+import me.mikex86.scicore.utils.dispose.IDisposable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.*;
 import java.util.List;
 
-public interface ITensor extends IValue {
+public interface ITensor extends IValue, IDisposable {
 
     float EPSILON = 1E-4f;
+
+    long getId();
 
     @NotNull DataType getDataType();
 
@@ -677,16 +681,30 @@ public interface ITensor extends IValue {
      */
     @NotNull DirectMemoryHandle getContentsAsDirectMemory(long startFlatIndex, long endFlatIndex);
 
-    // TODO: USE getIfIsType EVERYWHERE INSTEAD OF INSTANCEOF
     default <T extends ITensor> @Nullable T getIfIsType(@NotNull Class<T> typeClass) {
         return typeClass.isInstance(this) ? typeClass.cast(this) : null;
     }
 
+    /**
+     * Disposes the resources of the tensor. Note that it is optional to call this method, as the tensor's resources will be disposed when the tensor is garbage collected.
+     * This method is implemented to provide a hint to the GC that the resources may be garbage collected.
+     */
+    @Override
+    void dispose();
+
+    /**
+     * Makes the tensor reference its associated graph node to prevent it from being garbage collected before this tensor is.
+     *
+     * @param graphNode the graph node
+     */
+    void setReferenceToAssociatedGraphNode(@Nullable IGraph.IGraphNode graphNode);
+
     @NotNull ITensor cast(@NotNull DataType dataType);
 
     /**
-     * @param tensor the tensor to check
-     * @return true, if the tensor is the same instance as this tensor. Lazy tensors that wrap the same tensor are not considered equal.
+     * @return the number of bytes used by the tensor's data.
      */
-    boolean isSame(@NotNull ITensor tensor);
+    default long getNumBytes() {
+        return getDataType().getSizeOf(getNumberOfElements());
+    }
 }

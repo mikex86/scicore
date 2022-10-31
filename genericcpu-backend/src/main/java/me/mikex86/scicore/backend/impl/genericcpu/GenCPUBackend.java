@@ -1,8 +1,8 @@
 package me.mikex86.scicore.backend.impl.genericcpu;
 
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.backend.impl.genericcpu.op.*;
@@ -39,6 +39,7 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
     static {
         LibraryLoader.loadLibrary("scicore_genericcpu");
     }
+
 
     @Override
     public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {

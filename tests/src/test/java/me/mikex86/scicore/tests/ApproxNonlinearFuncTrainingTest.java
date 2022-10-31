@@ -1,9 +1,9 @@
 package me.mikex86.scicore.tests;
 
 import me.mikex86.matplotlib.jplot.JPlot;
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
@@ -11,7 +11,6 @@ import me.mikex86.scicore.nn.layers.Linear;
 import me.mikex86.scicore.nn.layers.Sigmoid;
 import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
-import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,7 +83,6 @@ public class ApproxNonlinearFuncTrainingTest {
         DatasetIterator dataIt = getData(batchSize);
         IOptimizer optimizer = new Sgd(sciCore, 0.5f, bobNet.parameters(), true, 1e-6f);
         for (int step = 0; step < nSteps; step++) {
-            sciCore.getBackend().getOperationRecorder().resetRecording();
             Pair<ITensor, ITensor> next = dataIt.next();
             ITensor X = next.getFirst();
             ITensor Y = next.getSecond();

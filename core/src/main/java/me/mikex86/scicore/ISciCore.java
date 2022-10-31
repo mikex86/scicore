@@ -3,6 +3,8 @@ package me.mikex86.scicore;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.InvocationTargetException;

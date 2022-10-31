@@ -1,7 +1,7 @@
 package me.mikex86.scicore.graph;
 
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.LazyTensor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Deque;

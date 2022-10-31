@@ -9,6 +9,8 @@ import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.graph.GraphRecorder;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.IGraphRecorder;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.utils.ArrayUtils;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;

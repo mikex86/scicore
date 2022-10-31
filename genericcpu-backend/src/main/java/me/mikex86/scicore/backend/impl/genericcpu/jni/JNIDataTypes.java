@@ -1,6 +1,6 @@
 package me.mikex86.scicore.backend.impl.genericcpu.jni;
 
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import org.jetbrains.annotations.NotNull;
 
 public class JNIDataTypes {

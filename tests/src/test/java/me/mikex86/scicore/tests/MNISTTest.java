@@ -1,8 +1,8 @@
 package me.mikex86.scicore.tests;
 
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
@@ -164,6 +164,8 @@ public class MNISTTest {
         }
     }
 
+    // Recommended: -XX:+UseZGC -XX:+ExplicitGCInvokesConcurrent -XX:MaxGCPauseMillis=1
+    // The fact that the GC seems to not care about GC-ing memory handles because they are "small" on the Jvm heap (despite referencing large regions of native memory) is a bit concerning.
     public static void main(String[] args) throws IOException, InterruptedException {
         downloadMnist();
 
@@ -213,10 +215,6 @@ public class MNISTTest {
                 ITensor Y_pred = net.forward(X);
 
                 ITensor loss = (Y_pred.minus(Y)).pow((float)2).reduceSum(-1).divide((float)Y_pred.getNumberOfElements());
-                lossValue = loss.elementAsFloat();
-                if (Float.isNaN(lossValue)) {
-                    System.out.println("Loss is NaN");
-                }
 //                if (step % 100 == 0) {
 //                    ITensor actualWeightsFc1 = net.fc1.getWeights();
 //                    ITensor actualBiasFc1 = Objects.requireNonNull(net.fc1.getBias());
@@ -240,8 +238,14 @@ public class MNISTTest {
 //                    System.out.println("Diff bias fc2: " + diffBiasFc2.elementAsFloat());
 //                }
                 optimizer.step(loss);
-
                 progressBar.step();
+
+                lossValue = loss.elementAsFloat();
+                if (Float.isNaN(lossValue)) {
+                    System.out.println("Loss is NaN");
+                }
+                sciCore.getBackend().getOperationRecorder().dropHistory(loss);
+
                 progressBar.setExtraMessage(String.format(Locale.US, "loss: %.5f", lossValue));
             }
         }

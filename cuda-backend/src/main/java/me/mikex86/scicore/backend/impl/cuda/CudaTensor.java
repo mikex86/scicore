@@ -1,9 +1,10 @@
 package me.mikex86.scicore.backend.impl.cuda;
 
-import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.utils.Pair;
+import me.mikex86.scicore.tensor.AbstractTensor;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -51,63 +52,63 @@ public class CudaTensor extends AbstractTensor {
 
     @Override
     public byte getByteFlat(long flatIndex) {
-        return dataContainer.getByteFlat(flatIndex);
+        return dataContainer.getInt8Flat(flatIndex);
     }
 
     @Override
     public void setByteFlat(byte value, long flatIndex) {
-        dataContainer.setByteFlat(value, flatIndex);
+        dataContainer.getInt8Flat(value, flatIndex);
     }
 
     @Override
     public short getShortFlat(long flatIndex) {
-        return dataContainer.getShortFlat(flatIndex);
+        return dataContainer.getInt16Flat(flatIndex);
     }
 
     @Override
     public void setShortFlat(short value, long flatIndex) {
-        dataContainer.setShortFlat(value, flatIndex);
+        dataContainer.setInt16Flat(value, flatIndex);
     }
 
     @Override
     public int getIntFlat(long flatIndex) {
-        return dataContainer.getIntFlat(flatIndex);
+        return dataContainer.getInt32Flat(flatIndex);
     }
 
     @Override
     public void setIntFlat(int value, long flatIndex) {
-        dataContainer.setIntFlat(value, flatIndex);
+        dataContainer.setInt32Flat(value, flatIndex);
     }
 
     @Override
     public long getLongFlat(long flatIndex) {
-        return dataContainer.getLongFlat(flatIndex);
+        return dataContainer.getInt64Flat(flatIndex);
     }
 
     @Override
     public void setLongFlat(long value, long flatIndex) {
-        dataContainer.setLongFlat(value, flatIndex);
+        dataContainer.setInt64Flat(value, flatIndex);
     }
 
 
     @Override
     public float getFloatFlat(long flatIndex) {
-        return dataContainer.getFloatFlat(flatIndex);
+        return dataContainer.getFloat32Flat(flatIndex);
     }
 
     @Override
     public void setFloatFlat(float value, long flatIndex) {
-        dataContainer.setFloatFlat(value, flatIndex);
+        dataContainer.setFloat32Flat(value, flatIndex);
     }
 
     @Override
     public double getDoubleFlat(long flatIndex) {
-        return dataContainer.getDoubleFlat(flatIndex);
+        return dataContainer.getFloat32Flat(flatIndex);
     }
 
     @Override
     public void setDoubleFlat(double value, long flatIndex) {
-        dataContainer.setDoubleFlat(value, flatIndex);
+        dataContainer.setFloat64Flat(value, flatIndex);
     }
 
     @Override
@@ -255,4 +256,8 @@ public class CudaTensor extends AbstractTensor {
         return dataContainer;
     }
 
+    @Override
+    public void dispose() {
+        this.dataContainer.dispose();
+    }
 }

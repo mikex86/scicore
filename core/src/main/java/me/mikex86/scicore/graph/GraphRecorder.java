@@ -1,12 +1,13 @@
 package me.mikex86.scicore.graph;
 
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.LazyTensor;
+import com.google.common.collect.MapMaker;
+import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.OperationRegistry;
-import me.mikex86.scicore.graph.op.IInplaceOperation;
 import me.mikex86.scicore.graph.op.IOperation;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -16,7 +17,18 @@ public class GraphRecorder implements IGraphRecorder {
     private final OperationRegistry operationRegistry;
 
     @NotNull
-    private final IdentityHashMap<ITensor, Graph.IGraphNode> valueToNodeMap = new IdentityHashMap<>(); // We don't compare based on tensor contents. That's stupid
+    private final Map<ITensor, Graph.IGraphNode> valueToNodeMap = new MapMaker()
+            .weakKeys()
+            .weakValues()
+            .makeMap();
+
+    /**
+     * Maps graph nodes to the list of graph nodes that use them as inputs.
+     */
+    @NotNull
+    private final Map<IGraph.IGraphNode, List<Graph.OperationGraphNode>> nodeToUsages = new MapMaker()
+            .weakKeys()
+            .makeMap();
 
     public GraphRecorder(@NotNull OperationRegistry operationRegistry) {
         this.operationRegistry = operationRegistry;
@@ -25,31 +37,53 @@ public class GraphRecorder implements IGraphRecorder {
     @Override
     public @NotNull ITensor recordOperation(@NotNull OperationType operationType, @NotNull OptionBundle optionBundle, @NotNull ITensor... inputs) {
         IOperation operation = operationRegistry.getOperation(operationType);
-
         List<Graph.IGraphNode> inputNodes = new ArrayList<>();
         for (ITensor input : inputs) {
-            Graph.IGraphNode node = valueToNodeMap.get(input);
+            Graph.IGraphNode node = getGraphNode(input);
             if (node == null) {
+                if (input instanceof LazyTensor lazyTensor && !lazyTensor.hasResult()) {
+                    throw new IllegalArgumentException("Lost track of tensor");
+                }
                 node = new Graph.TensorDeclarationGraphNode(input);
-                valueToNodeMap.put(input, node);
+                input.setReferenceToAssociatedGraphNode(node);
+                putGraphNode(input, node);
             }
             inputNodes.add(node);
         }
         Graph.IOperationContext ctx = new Graph.OperationContext(optionBundle);
         Graph.OperationGraphNode operationGraphNode = new Graph.OperationGraphNode(operationType, inputNodes, ctx, operationRegistry);
         ITensor result = operation.performLazily(ctx, List.of(inputs));
-        if (operation instanceof IInplaceOperation) {
-            operationGraphNode.setOutput(new LazyTensor(result.getSciCoreBackend(), result.getShape(), result.getDataType())); // force re-evaluation
-        } else {
-            operationGraphNode.setOutput(result);
-        }
-        valueToNodeMap.put(result, operationGraphNode);
+//        if (operation instanceof IInplaceOperation) {
+//            operationGraphNode.setOutput(new LazyTensor(result.getSciCoreBackend(), result.getShape(), result.getDataType()));
+//        } else {
+        operationGraphNode.setOutput(result);
+//        }
+        putGraphNode(result, operationGraphNode);
         return result;
+    }
+
+    @Nullable
+    private IGraph.IGraphNode getGraphNode(@NotNull ITensor input) {
+        return this.valueToNodeMap.get(input);
+    }
+
+    private boolean graphNodeExistsFor(@NotNull ITensor input) {
+        return this.valueToNodeMap.containsKey(input);
+    }
+
+    public void putGraphNode(@NotNull ITensor tensor, @NotNull IGraph.IGraphNode graphNode) {
+        if (graphNode instanceof Graph.OperationGraphNode operationGraphNode) {
+            for (IGraph.IGraphNode input : operationGraphNode.getInputs()) {
+                nodeToUsages.computeIfAbsent(input, k -> new ArrayList<>()).add(operationGraphNode);
+            }
+        }
+        tensor.setReferenceToAssociatedGraphNode(graphNode);
+        this.valueToNodeMap.put(tensor, graphNode);
     }
 
     @Override
     public @NotNull Graph getExecutionGraphTo(@NotNull ISciCoreBackend backend, @NotNull ITensor rootTensor) {
-        Graph.IGraphNode rootNode = valueToNodeMap.get(rootTensor);
+        Graph.IGraphNode rootNode = getGraphNode(rootTensor);
         if (rootNode == null) {
             throw new IllegalArgumentException("Tensor was not recorded as an output computed by this graph");
         }
@@ -141,196 +175,145 @@ public class GraphRecorder implements IGraphRecorder {
     }
 
     @Override
-    public @NotNull Graph getBackpropagationGraphTo(@NotNull ISciCoreBackend sciCoreBackend, @NotNull ITensor rootTensor, @NotNull List<ITensor> parameters) {
-        Graph.IGraphNode rootNode = valueToNodeMap.get(rootTensor);
+    public @NotNull Graph getBackpropagationGraphTo(@NotNull ISciCoreBackend backend, @NotNull ITensor rootTensor, @NotNull List<ITensor> parameters) {
+        Graph.IGraphNode rootNode = getGraphNode(rootTensor);
         if (rootNode == null) {
             throw new IllegalArgumentException("Tensor was not recorded as an output computed by this graph");
         }
 
-        for (ITensor parameter : parameters) {
-            if (!valueToNodeMap.containsKey(parameter)) {
-                throw new IllegalArgumentException("Parameter was not recorded as a value of this graph");
+        // Creates a graph from the recorded nodes
+        // Operation Nodes, whose output is already computed, will be present as tensor declaration nodes, as opposed to operation nodes.
+        Queue<IGraph.IGraphNode> toVisit = new ArrayDeque<>();
+        toVisit.add(rootNode);
+
+        // Reverse topological reorder until we reach already computed nodes
+        // Note that the same node can be reached from multiple paths, at different depths.
+        // When we add a node to this list that was already present, we need to remove the previous occurrence and add it again at the front.
+        // This way, the first occurrence of a node in the list will be the one with the highest depth (meaning executed first).
+        // This is important because we want to compute the nodes in the order of their depth, so that we can compute the inputs before the outputs.
+        Deque<Graph.OperationGraphNode> reverseTopology = new LinkedList<>();
+        while (!toVisit.isEmpty()) {
+            IGraph.IGraphNode node = toVisit.remove();
+            if (node instanceof Graph.OperationGraphNode operationNode) {
+                List<IGraph.IGraphNode> inputs = operationNode.getInputs();
+                toVisit.addAll(inputs);
+                reverseTopology.remove(operationNode); // remove if already present
+                reverseTopology.addFirst(operationNode);
             }
         }
 
-        Map<ITensor, IGraph.IGraphNode> parameterToNodeMap = new IdentityHashMap<>();
-        Map<ITensor, Set<IGraph.IGraphNode>> visitedWhenSearchingForNode = new IdentityHashMap<>();
+        // Maps from the original node to a copy of the list of inputs of that node.
+        Map<Graph.OperationGraphNode, List<IGraph.IGraphNode>> nodeToInputs = new HashMap<>();
 
-        for (ITensor parameter : parameters) {
-            visitedWhenSearchingForNode.put(parameter, Collections.newSetFromMap(new IdentityHashMap<>()));
-        }
+        Map<Graph.IGraphNode, Graph.IGraphNode> nodeToCopy = new IdentityHashMap<>();
 
-        // Depth first search is dangerous here, because we will bias towards traversing back in time
-        // We assume that the parameter is not that far back in execution time.
-        // Figuratively speaking, we want to exhaust the present, before going back in time.
-        // Thus, we use a breadth first search to find the parameter.
-        // We keep track of the nodes we visited to find each parameter.
-        // This is to make the depth first search that follows afterwards more efficient.
-        {
-            for (ITensor parameter : parameters) {
-                Queue<IGraph.IGraphNode> toVisit = new LinkedList<>();
-                toVisit.add(rootNode);
-
-                Set<IGraph.IGraphNode> visited = Collections.newSetFromMap(new IdentityHashMap<>());
-                while (!toVisit.isEmpty()) {
-                    IGraph.IGraphNode node = toVisit.remove();
-                    if (visited.contains(node)) {
-                        continue;
-                    }
-                    visited.add(node);
-                    visitedWhenSearchingForNode.get(parameter).add(node);
-                    if (node instanceof IGraph.ITensorNode tensorNode) {
-                        if (tensorNode.getValue().isSame(parameter)) {
-                            parameterToNodeMap.put(parameter, node);
-                            break;
-                        }
-                    }
-                    if (node instanceof Graph.OperationGraphNode operationNode) {
-                        toVisit.addAll(operationNode.getInputs());
-                    }
+        // iterate in reverse topological order and create copies via #copyNode.
+        // Iterating in reverse topological order ensures that leaf nodes are visited first, and thus their copies are created first.
+        // This is important because nodes that depend on these leaf nodes will need to reference the copies of the leaf nodes,
+        // which means their copies must already be created at that point in time.
+        for (Graph.OperationGraphNode operationNode : reverseTopology) {
+            List<IGraph.IGraphNode> inputs = operationNode.getInputs();
+            List<IGraph.IGraphNode> copies = new ArrayList<>(inputs.size());
+            for (IGraph.IGraphNode input : inputs) {
+                IGraph.IGraphNode alreadyExistingCopy = nodeToCopy.get(input);
+                if (alreadyExistingCopy == null) {
+                    IGraph.IGraphNode copy = copyNodeIncludeAlreadyComputed(input, nodeToInputs);
+                    copies.add(copy);
+                    nodeToCopy.put(input, copy);
+                } else {
+                    copies.add(alreadyExistingCopy);
                 }
             }
+            nodeToInputs.put(operationNode, copies);
         }
 
-        for (ITensor parameter : parameters) {
-            if (!parameterToNodeMap.containsKey(parameter)) {
-                throw new IllegalArgumentException("Parameter was not found in the graph");
-            }
-        }
-
-        // We need this depth first search because we need to find the path from the parameter to the root node.
-        // The set of nodes the breath first search visited will make the search more efficient
-        // Build up parameterToPathMap
-        Map<ITensor, Stack<IGraph.IGraphNode>> parameterToPathMap = getPathsToParameters(rootNode, parameters, visitedWhenSearchingForNode);
-
-        // Build serialized reverse topology
-        Queue<IGraph.IGraphNode> reverseTopology = buildReverseTopology(parameterToPathMap);
-
-        IGraph.IGraphNode rootCopy = copyWithDependencies(rootNode, reverseTopology, parameterToNodeMap);
-        Graph graph = new Graph(rootCopy, sciCoreBackend, operationRegistry);
+        IGraph.IGraphNode rootCopy = copyNodeIncludeAlreadyComputed(rootNode, nodeToInputs);
+        Graph graph = new Graph(rootCopy, backend, operationRegistry);
         graph.requestGradientsFor(parameters);
         return graph;
     }
 
-    @NotNull
-    private Queue<IGraph.IGraphNode> buildReverseTopology(@NotNull Map<ITensor, Stack<IGraph.IGraphNode>> parameterToPathMap) {
-        Queue<IGraph.IGraphNode> reverseTopology = new LinkedList<>();
-        for (Stack<IGraph.IGraphNode> pathToParameter : parameterToPathMap.values()) {
-            // add path to parameter reversed
-            while (!pathToParameter.isEmpty()) {
-                IGraph.IGraphNode pathNode = pathToParameter.pop();
-                reverseTopology.remove(pathNode); // remove old occurrence, if any
-                // re-add to the end. Re-adding to the end ensures that the nodes will not come before all their inputs in the list
-                reverseTopology.add(pathNode);
-            }
-        }
-        return reverseTopology;
-    }
+    private int nBytesDeletedSinceLastGC = 0;
 
-    @NotNull
-    private IGraph.IGraphNode copyWithDependencies(@NotNull IGraph.IGraphNode rootNode, @NotNull Iterable<IGraph.IGraphNode> reverseTopology, @NotNull Map<ITensor, IGraph.IGraphNode> parameterToNodeMap) {
-        // Maps from the original node to a copy of the list of inputs of that node.
-        Map<Graph.OperationGraphNode, List<IGraph.IGraphNode>> nodeToInputs = new HashMap<>();
-        Map<Graph.IGraphNode, Graph.IGraphNode> nodeToCopy = new IdentityHashMap<>();
-        for (IGraph.IGraphNode node : reverseTopology) {
-            if (parameterToNodeMap.containsValue(node)) {
-                continue;
+    @Override
+    public void dropHistory(@NotNull ITensor tensor) {
+        IGraph.IGraphNode node = getGraphNode(tensor);
+        if (node == null) {
+            throw new IllegalArgumentException("Tensor was not recorded as an output computed by this graph");
+        }
+
+        if (tensor instanceof LazyTensor lazyTensor) {
+            lazyTensor.result();
+        }
+
+        // TODO: FIX SOME NODES NOT BEING CLEANED
+        if (node instanceof Graph.OperationGraphNode operationNode) {
+
+            // Replace the node that computed the tensor with a tensor declaration node that holds a constant tensor with the same value.
+            {
+                Graph.TensorDeclarationGraphNode constantReplacement = new Graph.TensorDeclarationGraphNode(tensor);
+                List<Graph.OperationGraphNode> usages = nodeToUsages.get(operationNode);
+                if (usages != null) {
+                    for (Graph.OperationGraphNode usage : usages) {
+                        usage.replaceInputs(node, constantReplacement);
+                    }
+                }
+                putGraphNode(tensor, constantReplacement);
             }
-            if (node instanceof Graph.OperationGraphNode operationNode) {
-                List<IGraph.IGraphNode> inputs = operationNode.getInputs();
-                List<IGraph.IGraphNode> copies = new ArrayList<>(inputs.size());
-                for (IGraph.IGraphNode input : inputs) {
-                    IGraph.IGraphNode alreadyExistingCopy = nodeToCopy.get(input);
-                    if (alreadyExistingCopy == null) {
-                        IGraph.IGraphNode copy = copyNodeIncludeAlreadyComputed(input, nodeToInputs);
-                        copies.add(copy);
-                        nodeToCopy.put(input, copy);
+
+            // Nullify tensors of all nodes that are now detached from the graph.
+            Queue<IGraph.IGraphNode> toVisit = new LinkedList<>();
+            toVisit.add(operationNode);
+
+            Set<IGraph.IGraphNode> deleted = new HashSet<>();
+
+            while (!toVisit.isEmpty()) {
+                IGraph.IGraphNode currentNode = toVisit.remove();
+                if (currentNode instanceof Graph.OperationGraphNode operationGraphNode) {
+                    toVisit.addAll(operationGraphNode.getInputs());
+                }
+                if (currentNode instanceof IGraph.ITensorNode tensorNode) {
+                    List<Graph.OperationGraphNode> usages = nodeToUsages.get(tensorNode);
+                    if (usages == null || usages.isEmpty()) {
+                        nodeToUsages.remove(tensorNode);
+
+                        if (tensorNode.hasValue()) {
+                            ITensor value = tensorNode.getValue();
+                            valueToNodeMap.remove(value);
+                            tensorNode.deleteValue();
+                            deleted.add(tensorNode);
+                            nBytesDeletedSinceLastGC += value.getNumBytes();
+                            value = null; // help GC
+                        }
                     } else {
-                        copies.add(alreadyExistingCopy);
+                        Iterator<Graph.OperationGraphNode> iterator = usages.iterator();
+                        while (iterator.hasNext()) {
+                            Graph.OperationGraphNode usage = iterator.next();
+                            if (deleted.contains(usage)) {
+                                iterator.remove();
+                            }
+                        }
+                        if (usages.isEmpty()) {
+                            nodeToUsages.remove(tensorNode);
+                            if (tensorNode.hasValue()) {
+                                ITensor value = tensorNode.getValue();
+                                valueToNodeMap.remove(value);
+                                tensorNode.deleteValue();
+                                deleted.add(tensorNode);
+                                nBytesDeletedSinceLastGC += value.getNumBytes();
+                                value = null; // help GC
+                            }
+                        }
                     }
                 }
-                nodeToInputs.put(operationNode, copies);
             }
         }
-        return copyNodeIncludeAlreadyComputed(rootNode, nodeToInputs);
+        if (nBytesDeletedSinceLastGC > 500_000_000) { // 100 Mb
+            System.gc();
+            nBytesDeletedSinceLastGC = 0;
+        }
     }
 
-    @NotNull
-    private Map<ITensor, Stack<IGraph.IGraphNode>> getPathsToParameters(@NotNull IGraph.IGraphNode rootNode, @NotNull List<ITensor> parameters, @NotNull Map<ITensor, Set<IGraph.IGraphNode>> visitedWhenSearchingForNode) {
-        Map<ITensor, Stack<IGraph.IGraphNode>> parameterToPathMap = new IdentityHashMap<>();
-
-        // Visit nodes of the graph until we have reached all parameters
-        Set<ITensor> parametersToVisit = Collections.newSetFromMap(new IdentityHashMap<>());
-        parametersToVisit.addAll(parameters);
-
-        Deque<IGraph.IGraphNode> toVisit = new LinkedList<>();
-        toVisit.addFirst(rootNode);
-
-        for (ITensor parameter : parameters) {
-            parameterToPathMap.put(parameter, new Stack<>());
-        }
-
-        while (!toVisit.isEmpty()) {
-            IGraph.IGraphNode node = toVisit.poll();
-            boolean breathFirstSearchVisitedForAnyParameter = false;
-            for (ITensor parameter : parametersToVisit) {
-                parameterToPathMap.get(parameter).push(node);
-                Set<IGraph.IGraphNode> breathFirstSearchVisited = visitedWhenSearchingForNode.get(parameter);
-                if (!breathFirstSearchVisitedForAnyParameter) {
-                    if (breathFirstSearchVisited.contains(node)) {
-                        breathFirstSearchVisitedForAnyParameter = true;
-                    }
-                }
-            }
-            if (!breathFirstSearchVisitedForAnyParameter) {
-                // We have reached a node that was not visited by the breath first search.
-                // Thus, we can skip this node.
-                continue;
-            }
-            if (node instanceof Graph.OperationGraphNode operationNode) {
-                List<IGraph.IGraphNode> inputs = operationNode.getInputs();
-                for (ITensor tensor : parametersToVisit) {
-                    if (operationNode.getValue().isSame(tensor)) {
-                        parametersToVisit.remove(tensor);
-                        break;
-                    }
-                }
-                if (parametersToVisit.isEmpty()) {
-                    break;
-                }
-                // insert inputs at the beginning the nodesToVisit queue.
-                // This ensures that we visit depth first
-                for (int i = inputs.size() - 1; i >= 0; i--) {
-                    toVisit.addFirst(inputs.get(i));
-                }
-            } else if (node instanceof Graph.TensorDeclarationGraphNode tensorDeclarationGraphNode) {
-                for (ITensor tensor : parametersToVisit) {
-                    if (tensorDeclarationGraphNode.getValue().isSame(tensor)) {
-                        parametersToVisit.remove(tensor);
-                        break;
-                    } else {
-                        Stack<IGraph.IGraphNode> pathToParameterStack = parameterToPathMap.get(tensor);
-                        IGraph.IGraphNode removed = pathToParameterStack.pop();
-                        if (pathToParameterStack.isEmpty()) {
-                            continue;
-                        }
-                        IGraph.IGraphNode prev = pathToParameterStack.peek();
-                        if (!(prev instanceof Graph.OperationGraphNode prevOp)) {
-                            throw new IllegalStateException("Expected prev to be an operation node");
-                        }
-                        List<IGraph.IGraphNode> inputs = prevOp.getInputs();
-                        if (inputs.indexOf(removed) == inputs.size() - 1) {
-                            pathToParameterStack.pop(); // we just visited the last input of this operation, so we can pop it off the stack
-                        }
-                    }
-                }
-                if (parametersToVisit.isEmpty()) {
-                    break;
-                }
-            }
-        }
-        return parameterToPathMap;
-    }
 
     /**
      * Copies a node without making already computed nodes constant tensor nodes.
@@ -362,12 +345,6 @@ public class GraphRecorder implements IGraphRecorder {
         } else {
             throw new IllegalArgumentException("Unknown node type: " + node.getClass().getName());
         }
-    }
-
-
-    @Override
-    public void resetRecording() {
-        valueToNodeMap.clear();
     }
 
 }

@@ -78,9 +78,12 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 
     testImplementation("me.tongfei:progressbar:0.9.5")
-    testImplementation("com.google.code.gson:gson:2.9.1")
+    testImplementation("com.google.code.gson:gson:2.10")
 
     implementation("org.apache.logging.log4j:log4j-core:2.19.0")
+
+    // Guava
+    implementation("com.google.guava:guava:31.1-jre")
 
     // Protobuf
     implementation("com.google.protobuf:protobuf-java:3.21.8")

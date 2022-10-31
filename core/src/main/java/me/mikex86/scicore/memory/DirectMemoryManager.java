@@ -1,12 +1,14 @@
 package me.mikex86.scicore.memory;
 
-import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.utils.NumberUtils;
+import me.mikex86.scicore.utils.dispose.IDisposable;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.jemalloc.JEmalloc;
 
-public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
+public class DirectMemoryManager extends AbstractMemoryManager<DirectMemoryHandle> {
 
     public static final long NULL = 0;
 
@@ -16,7 +18,9 @@ public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
         if (ptr == NULL) {
             throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
         }
-        return new DirectMemoryHandle(this, ptr, nBytes);
+        DirectMemoryHandle memoryHandle = new DirectMemoryHandle(this, ptr, nBytes);
+        registerFinalizer(memoryHandle);
+        return memoryHandle;
     }
 
     @NotNull
@@ -25,7 +29,9 @@ public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
         if (ptr == NULL) {
             throw new OutOfMemoryError("JEmalloc failed to allocate " + nBytes + " bytes");
         }
-        return new DirectMemoryHandle(this, ptr, nBytes);
+        DirectMemoryHandle memoryHandle = new DirectMemoryHandle(this, ptr, nBytes);
+        registerFinalizer(memoryHandle);
+        return memoryHandle;
     }
 
     @NotNull
@@ -33,7 +39,6 @@ public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
         long nBytes = dataType.getSizeOf(nElements);
         return alloc(nBytes);
     }
-
 
     @NotNull
     public DirectMemoryHandle calloc(long nElements, @NotNull DataType dataType) {
@@ -55,6 +60,7 @@ public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
         MemoryUtil.memCopy(srcMemoryHandle.getNativePtr(), dstMemoryHandle.getNativePtr(), dstMemoryHandle.getSize());
     }
 
+    @Override
     public void free(@NotNull DirectMemoryHandle directMemoryHandle) {
         if (directMemoryHandle.isFreed()) {
             throw new IllegalArgumentException("Handle already freed: " + directMemoryHandle);
@@ -62,6 +68,7 @@ public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
         if (!directMemoryHandle.canFree()) {
             throw new IllegalArgumentException("Cannot free a sub-handle: " + directMemoryHandle);
         }
+        deactivateFinalizerFor(directMemoryHandle);
         JEmalloc.nje_free(directMemoryHandle.getNativePtr());
         directMemoryHandle.freed = true;
     }
@@ -69,5 +76,17 @@ public class DirectMemoryManager implements IMemoryManager<DirectMemoryHandle> {
     @NotNull
     public DirectMemoryHandle ensureDirect(@NotNull ITensor tensor) {
         return tensor.getContentsAsDirectMemory();
+    }
+
+    @Override
+    protected @NotNull IDisposable createDisposableFor(@NotNull DirectMemoryHandle memoryHandle) {
+        return new DirectMemoryHandleResource(memoryHandle.getNativePtr());
+    }
+
+    record DirectMemoryHandleResource(long nativePtr) implements IDisposable {
+        @Override
+        public void dispose() {
+            JEmalloc.nje_free(nativePtr);
+        }
     }
 }

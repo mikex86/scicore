@@ -1,6 +1,6 @@
 package me.mikex86.scicore.graph;
 
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,5 +35,11 @@ public interface IGraphRecorder {
      */
     @NotNull Graph getBackpropagationGraphTo(@NotNull ISciCoreBackend sciCoreBackend, @NotNull ITensor root, @NotNull List<ITensor> parameters);
 
-    void resetRecording();
+    /**
+     * Drops the history of how this tensor was computed. This is useful e.g. when the tensor was changed by the optimizer and thus backpropagation back into the last training step (wtf) would be brain-dead.
+     * Thus, we no longer need to keep a record of how the tensor was computed.
+     * Executes all operations to compute the value of the specified tensor contained in the graph, if it is not already computed.
+     * @param tensor the tensor to compute
+     */
+    void dropHistory(@NotNull ITensor tensor);
 }

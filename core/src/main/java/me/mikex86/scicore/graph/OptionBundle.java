@@ -1,10 +1,9 @@
 package me.mikex86.scicore.graph;
 
-import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;

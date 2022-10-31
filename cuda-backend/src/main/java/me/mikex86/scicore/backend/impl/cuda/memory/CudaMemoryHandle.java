@@ -21,36 +21,34 @@ public class CudaMemoryHandle implements IMemoryHandle<CudaMemoryHandle> {
 
     private final long size;
 
-    private boolean freed = false;
+    boolean freed = false;
 
-    public CudaMemoryHandle(@NotNull CUdeviceptr devicePtr, long size) {
+    @NotNull
+    private final CudaMemoryManager memoryManager;
+
+    public CudaMemoryHandle(@NotNull CudaMemoryManager memoryManager, @NotNull CUdeviceptr devicePtr, long size) {
+        this.memoryManager = memoryManager;
         this.parent = null;
         this.devicePtr = devicePtr;
         this.size = size;
     }
 
     private CudaMemoryHandle(@NotNull CudaMemoryHandle parent, long offset) {
+        this.memoryManager = parent.memoryManager;
         this.parent = parent;
         this.devicePtr = parent.devicePtr.withByteOffset(offset);
         this.size = parent.size - offset;
     }
 
     @Override
-    public void finalize() throws Throwable {
-        super.finalize();
-        free();
-    }
-
-    @Override
     public void free() {
         if (freed) {
-            return;
+            throw new IllegalArgumentException("Memory already freed: " + this);
         }
         if (parent != null) {
-            return; // parent will free
+            throw new IllegalArgumentException("Cannot free a sub-handle: " + this);
         }
-        cuCheck(cuMemFree(devicePtr));
-        freed = true;
+        this.memoryManager.free(this);
     }
 
     @NotNull

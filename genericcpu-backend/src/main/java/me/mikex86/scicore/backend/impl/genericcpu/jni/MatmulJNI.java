@@ -1,11 +1,9 @@
 package me.mikex86.scicore.backend.impl.genericcpu.jni;
 
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.MemoryUtil;
-
-import java.util.OptionalInt;
 
 import static java.lang.Math.max;
 

@@ -1,11 +1,11 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
-import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.DivideJNI;
-import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.IGraph;
@@ -46,7 +46,6 @@ public class GenCPUDivideOp implements IDifferentiableBinaryOperation {
                 aMemoryHandle.getNativePtr(), shapeA, stridesA, a.getDataType(),
                 bMemoryHandle.getNativePtr(), shapeB, stridesB, b.getDataType(),
                 resultMemoryHandle.getNativePtr(), finalShape, resultStrides, result.getDataType());
-
 
         return result;
     }

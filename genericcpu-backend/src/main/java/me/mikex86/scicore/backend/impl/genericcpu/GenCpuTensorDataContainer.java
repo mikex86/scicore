@@ -1,8 +1,9 @@
 package me.mikex86.scicore.backend.impl.genericcpu;
 
-import me.mikex86.scicore.DataType;
+import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.memory.DirectMemoryManager;
+import me.mikex86.scicore.tensor.data.ITensorDataContainer;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.MemoryUtil;
 
@@ -10,7 +11,7 @@ import java.nio.*;
 
 import static java.lang.Math.min;
 
-public class GenCpuTensorDataContainer {
+public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @NotNull
     private final DirectMemoryHandle memoryHandle;
@@ -31,84 +32,99 @@ public class GenCpuTensorDataContainer {
         this.dataType = dataType;
     }
 
-    public byte getByteFlat(long flatIndex) {
+    @Override
+    public byte getInt8Flat(long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex;
         return MemoryUtil.memGetByte(finalPtr);
     }
 
-    public void setByteFlat(byte value, long flatIndex) {
+    @Override
+    public void getInt8Flat(byte value, long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex;
         MemoryUtil.memPutByte(finalPtr, value);
     }
 
+    @Override
     public short getInt16Flat(long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 2;
         return MemoryUtil.memGetShort(finalPtr);
     }
 
+    @Override
     public void setInt16Flat(short value, long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 2;
         MemoryUtil.memPutShort(finalPtr, value);
     }
 
+    @Override
     public int getInt32Flat(long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         return MemoryUtil.memGetInt(finalPtr);
     }
 
+    @Override
     public void setInt32Flat(int value, long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         MemoryUtil.memPutInt(finalPtr, value);
     }
 
+    @Override
     public long getInt64Flat(long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         return MemoryUtil.memGetLong(finalPtr);
     }
 
+    @Override
     public void setInt64Flat(long value, long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         MemoryUtil.memPutLong(finalPtr, value);
     }
 
+    @Override
     public float getFloat32Flat(long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         return MemoryUtil.memGetFloat(finalPtr);
     }
 
+    @Override
     public void setFloat32Flat(float value, long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         MemoryUtil.memPutFloat(finalPtr, value);
     }
 
+    @Override
     public double getFloat64Flat(long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         return MemoryUtil.memGetDouble(finalPtr);
     }
 
+    @Override
     public void setFloat64Flat(double value, long flatIndex) {
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         MemoryUtil.memPutDouble(finalPtr, value);
     }
 
+    @Override
     public void setBooleanFlat(boolean value, long flatIndex) {
         long byteIndex = flatIndex / 8;
         int bitIndex = (int) (flatIndex % 8);
-        byte byteValue = getByteFlat(byteIndex);
+        byte byteValue = getInt8Flat(byteIndex);
         byteValue = (byte) (byteValue & ~(1 << bitIndex));
         if (value) {
             byteValue = (byte) (byteValue | (1 << bitIndex));
         }
-        setByteFlat(byteValue, byteIndex);
+        getInt8Flat(byteValue, byteIndex);
     }
 
+    @Override
     public boolean getBooleanFlat(long flatIndex) {
         long byteIndex = flatIndex / 8;
         int bitIndex = (int) (flatIndex % 8);
-        byte byteValue = getByteFlat(byteIndex);
+        byte byteValue = getInt8Flat(byteIndex);
         return (byteValue & (1 << bitIndex)) != 0;
     }
 
+    @Override
     public void setContents(@NotNull ByteBuffer buffer) {
         if (buffer.remaining() > this.dataSize) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
@@ -127,6 +143,7 @@ public class GenCpuTensorDataContainer {
         }
     }
 
+    @Override
     public void setContents(@NotNull ShortBuffer buffer) {
         if (buffer.remaining() > this.dataSize / Short.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
@@ -146,6 +163,7 @@ public class GenCpuTensorDataContainer {
         }
     }
 
+    @Override
     public void setContents(@NotNull IntBuffer buffer) {
         if (buffer.remaining() > this.dataSize / Integer.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
@@ -165,6 +183,7 @@ public class GenCpuTensorDataContainer {
         }
     }
 
+    @Override
     public void setContents(@NotNull LongBuffer buffer) {
         if (buffer.remaining() > this.dataSize / Long.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
@@ -184,6 +203,7 @@ public class GenCpuTensorDataContainer {
         }
     }
 
+    @Override
     public void setContents(@NotNull FloatBuffer buffer) {
         if (buffer.remaining() > this.dataSize / Float.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
@@ -203,6 +223,7 @@ public class GenCpuTensorDataContainer {
         }
     }
 
+    @Override
     public void setContents(@NotNull DoubleBuffer buffer) {
         if (buffer.remaining() > this.dataSize / Double.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
@@ -222,6 +243,7 @@ public class GenCpuTensorDataContainer {
         }
     }
 
+    @Override
     public void setContents(boolean @NotNull [] data) {
         if (data.length > this.dataSize * 8) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize * 8 + " bits with buffer of size " + data.length + " bits");
@@ -229,23 +251,88 @@ public class GenCpuTensorDataContainer {
         for (int i = 0; i < data.length; i++) {
             int byteIndex = i / 8;
             int bitIndex = i % 8;
-            byte byteValue = getByteFlat(byteIndex);
+            byte byteValue = getInt8Flat(byteIndex);
             if (data[i]) {
                 byteValue = (byte) (byteValue | (1 << bitIndex));
             } else {
                 byteValue = (byte) (byteValue & ~(1 << bitIndex));
             }
-            setByteFlat(byteValue, byteIndex);
+            getInt8Flat(byteValue, byteIndex);
         }
     }
 
-    /**
-     * Returns a reference memory handle to the internal data buffer in the specified index range.
-     *
-     * @param startFlatIndex the start index of the data to copy (flat index)
-     * @param endFlatIndex   the end index of the data to copy (exclusive, flat index)
-     * @return the host byte buffer. Must not be freed.
-     */
+    @Override
+    public void fill(byte value) {
+        MemoryUtil.memSet(this.memoryHandle.getNativePtr(), value & 0xFF, this.dataSize);
+    }
+
+    @Override
+    public void fill(short value) {
+        if (this.dataSize % Short.BYTES != 0) {
+            throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with short value");
+        }
+        ShortBuffer buffer = this.memoryHandle.asShortBuffer();
+        for (int i = 0; i < buffer.capacity(); i++) {
+            buffer.put(i, value);
+        }
+        buffer.flip();
+    }
+
+    @Override
+    public void fill(int value) {
+        if (this.dataSize % Integer.BYTES != 0) {
+            throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with int value");
+        }
+        IntBuffer buffer = this.memoryHandle.asIntBuffer();
+        for (int i = 0; i < buffer.capacity(); i++) {
+            buffer.put(i, value);
+        }
+        buffer.flip();
+    }
+
+    @Override
+    public void fill(long value) {
+        if (this.dataSize % Long.BYTES != 0) {
+            throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with long value");
+        }
+        LongBuffer buffer = this.memoryHandle.asLongBuffer();
+        for (int i = 0; i < buffer.capacity(); i++) {
+            buffer.put(i, value);
+        }
+        buffer.flip();
+    }
+
+    @Override
+    public void fill(float value) {
+        if (this.dataSize % Float.BYTES != 0) {
+            throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with float value");
+        }
+        FloatBuffer buffer = this.memoryHandle.asFloatBuffer();
+        for (int i = 0; i < buffer.capacity(); i++) {
+            buffer.put(i, value);
+        }
+        buffer.flip();
+    }
+
+    @Override
+    public void fill(double value) {
+        if (this.dataSize % Double.BYTES != 0) {
+            throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with double value");
+        }
+        DoubleBuffer buffer = this.memoryHandle.asDoubleBuffer();
+        for (int i = 0; i < buffer.capacity(); i++) {
+            buffer.put(i, value);
+        }
+        buffer.flip();
+    }
+
+    @Override
+    public void fill(boolean value) {
+        byte byteValue = value ? (byte) 0xFF : (byte) 0x00;
+        fill(byteValue);
+    }
+
+    @Override
     @NotNull
     public DirectMemoryHandle getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
         long containerSize = this.dataSize;
@@ -259,14 +346,13 @@ public class GenCpuTensorDataContainer {
         return this.memoryHandle.offset(startFlatIndex, nElements, dataType);
     }
 
-    /**
-     * @return a reference memory handle to the internal data buffer. Must not be freed.
-     */
+    @Override
     @NotNull
     public DirectMemoryHandle getAsDirectBuffer() {
         return this.memoryHandle.createReference();
     }
 
+    @Override
     @NotNull
     public DataType getDataType() {
         return dataType;
@@ -277,7 +363,13 @@ public class GenCpuTensorDataContainer {
         return memoryHandle;
     }
 
+    @Override
     public long getDataSize() {
         return dataSize;
+    }
+
+    @Override
+    public void dispose() {
+        this.memoryHandle.free();
     }
 }

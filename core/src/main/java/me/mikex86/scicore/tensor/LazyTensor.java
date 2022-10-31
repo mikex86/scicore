@@ -1,11 +1,10 @@
-package me.mikex86.scicore;
+package me.mikex86.scicore.tensor;
 
-import me.mikex86.matplotlib.graphviz.GraphVisualizer;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.GraphExecutor;
+import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.IGraphRecorder;
-import me.mikex86.scicore.graphviz.DAGGraphRenderPlanFactory;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -13,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.*;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Encapsulates tensor supplier. Lazily evaluates the supplier when the result is needed.
@@ -49,6 +49,7 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     @Override
     public ITensor result() {
         if (lazyResult == null) {
+            Objects.requireNonNull(associatedGraphNode);
             ISciCoreBackend backend = getSciCoreBackend();
             IGraphRecorder graphRecorder = backend.getOperationRecorder();
             Graph graph = graphRecorder.getExecutionGraphTo(backend, this);
@@ -65,6 +66,9 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
         this.lazyResult = result;
     }
 
+    public void forceReevaluation() {
+        this.lazyResult = null;
+    }
 
     public boolean hasResult() {
         return lazyResult != null;

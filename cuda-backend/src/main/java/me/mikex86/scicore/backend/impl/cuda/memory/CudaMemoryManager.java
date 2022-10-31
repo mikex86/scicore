@@ -2,20 +2,23 @@ package me.mikex86.scicore.backend.impl.cuda.memory;
 
 import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
-import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.View;
+import me.mikex86.scicore.memory.AbstractMemoryManager;
+import me.mikex86.scicore.memory.IMemoryHandle;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.View;
 import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.memory.IMemoryManager;
 import me.mikex86.scicore.utils.ViewUtils;
+import me.mikex86.scicore.utils.dispose.IDisposable;
 import org.jetbrains.annotations.NotNull;
 
 import static jcuda.driver.JCudaDriver.*;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 
-public class CudaMemoryManager implements IMemoryManager<CudaMemoryHandle> {
+public class CudaMemoryManager extends AbstractMemoryManager<CudaMemoryHandle> {
 
     @NotNull
     private final CudaBackend backend;
@@ -28,13 +31,14 @@ public class CudaMemoryManager implements IMemoryManager<CudaMemoryHandle> {
     public CudaMemoryHandle alloc(long size) {
         CUdeviceptr devicePtr = new CUdeviceptr();
         cuCheck(cuMemAlloc(devicePtr, size));
-        return new CudaMemoryHandle(devicePtr, size);
+        return new CudaMemoryHandle(this, devicePtr, size);
     }
 
     @Override
     public @NotNull CudaMemoryHandle calloc(long nBytes) {
         CudaMemoryHandle handle = alloc(nBytes);
         cuCheck(cuMemsetD8(handle.getDevicePointer(), (byte) 0, nBytes));
+        registerFinalizer(handle);
         return handle;
     }
 
@@ -46,6 +50,20 @@ public class CudaMemoryManager implements IMemoryManager<CudaMemoryHandle> {
     @Override
     public @NotNull CudaMemoryHandle calloc(long nElements, @NotNull DataType dataType) {
         return calloc(dataType.getSizeOf(nElements));
+    }
+
+    @Override
+    public void free(@NotNull CudaMemoryHandle memoryHandle) {
+        if (memoryHandle.isFreed()) {
+            throw new IllegalArgumentException("Handle already freed: " + memoryHandle);
+        }
+        if (!memoryHandle.canFree()) {
+            throw new IllegalArgumentException("Cannot free a sub-handle: " + memoryHandle);
+        }
+        deactivateFinalizerFor(memoryHandle);
+        CUdeviceptr devicePointer = memoryHandle.getDevicePointer();
+        cuCheck(cuMemFree(devicePointer));
+        memoryHandle.freed = true;
     }
 
     @Override
@@ -79,6 +97,7 @@ public class CudaMemoryManager implements IMemoryManager<CudaMemoryHandle> {
      * If the tensor is already on the device, a reference handle will be returned. This handle cannot be freed,
      * as the parent handle will be responsible for that. If the tensor is not on the device, memory will be allocated
      * and the data will be copied. The returned handle can be freed.
+     *
      * @param tensor the tensor to ensure is on the device.
      * @return a handle to the tensor data on the device.
      */
@@ -91,6 +110,18 @@ public class CudaMemoryManager implements IMemoryManager<CudaMemoryHandle> {
             return viewedCudaTensor.getDataContainer().getDeviceMemoryHandle().offset(offset);
         } else {
             return copyToDevice(tensor);
+        }
+    }
+
+    @Override
+    protected @NotNull IDisposable createDisposableFor(@NotNull CudaMemoryHandle memoryHandle) {
+        return new CudaMemoryHandleDisposable(memoryHandle.getDevicePointer());
+    }
+
+    private record CudaMemoryHandleDisposable(@NotNull CUdeviceptr devicePointer) implements IDisposable {
+        @Override
+        public void dispose() {
+            cuCheck(cuMemFree(devicePointer));
         }
     }
 }

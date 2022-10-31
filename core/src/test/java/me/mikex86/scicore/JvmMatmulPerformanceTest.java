@@ -1,5 +1,8 @@
 package me.mikex86.scicore;
 
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
+
 public class JvmMatmulPerformanceTest {
 
     public static void main(String[] args) {

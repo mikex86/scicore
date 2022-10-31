@@ -1,9 +1,9 @@
 package me.mikex86.scicore.backend.impl.cuda.op;
 
 import jcuda.Pointer;
-import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernel;

@@ -15,6 +15,7 @@ public class DirectMemoryHandle implements IMemoryHandle<DirectMemoryHandle> {
     private final DirectMemoryHandle parent;
 
     private final long nativePtr;
+
     private final long size;
 
     boolean freed = false;
@@ -57,10 +58,10 @@ public class DirectMemoryHandle implements IMemoryHandle<DirectMemoryHandle> {
     @Override
     public void free() {
         if (freed) {
-            return;
+            throw new IllegalArgumentException("Memory already freed: " + this);
         }
         if (parent != null) {
-            return; // parent will free
+            throw new IllegalArgumentException("Cannot free a sub-handle: " + this);
         }
         memoryManager.free(this);
         freed = true;
@@ -103,13 +104,6 @@ public class DirectMemoryHandle implements IMemoryHandle<DirectMemoryHandle> {
             throw new IllegalArgumentException("size must be <= this.size");
         }
         return new DirectMemoryHandle(memoryManager, this, 0, size);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public void finalize() throws Throwable {
-        super.finalize();
-        free();
     }
 
 
@@ -175,10 +169,10 @@ public class DirectMemoryHandle implements IMemoryHandle<DirectMemoryHandle> {
     @Override
     public String toString() {
         return "DirectMemoryHandle{" +
-                "parent=" + parent +
-                ", nativePtr=" + nativePtr +
-                ", size=" + size +
-                ", freed=" + freed +
-                '}';
+               "parent=" + parent +
+               ", nativePtr=" + nativePtr +
+               ", size=" + size +
+               ", freed=" + freed +
+               '}';
     }
 }

@@ -1,7 +1,7 @@
 package me.mikex86.scicore.tests;
 
 import me.mikex86.scicore.ISciCore;
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;

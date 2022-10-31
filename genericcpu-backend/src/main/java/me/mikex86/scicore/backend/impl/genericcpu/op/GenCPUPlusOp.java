@@ -1,8 +1,9 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
-import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.memory.MemoryHandleGuard;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.PlusJNI;
 import me.mikex86.scicore.memory.DirectMemoryHandle;

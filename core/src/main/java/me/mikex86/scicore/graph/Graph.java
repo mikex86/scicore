@@ -1,6 +1,6 @@
 package me.mikex86.scicore.graph;
 
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.OperationRegistry;
 import me.mikex86.scicore.graph.op.IDifferentiableOperation;
@@ -11,7 +11,9 @@ import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Graph implements IGraph {
 
@@ -49,7 +51,7 @@ public class Graph implements IGraph {
                     IGraphNode node = nodesToVisit.poll();
                     pathToNode.push(node);
                     if (node instanceof OperationGraphNode operationNode) {
-                        if (operationNode.getValue().isSame(parameter)) {
+                        if (operationNode.getValue() == parameter) {
                             nodeOpt = Optional.of(node);
                             break;
                         }
@@ -62,7 +64,7 @@ public class Graph implements IGraph {
                             nodesToVisit.addFirst(inputs.get(i));
                         }
                     } else if (node instanceof TensorDeclarationGraphNode tensorDeclarationNode) {
-                        if (tensorDeclarationNode.getValue().isSame(parameter)) {
+                        if (tensorDeclarationNode.getValue() == parameter) {
                             nodeOpt = Optional.of(node);
                             break;
                         } else {
@@ -165,7 +167,7 @@ public class Graph implements IGraph {
         while (!nodesToVisit.isEmpty()) {
             IGraphNode node = nodesToVisit.poll();
             if (node instanceof ITensorNode tensorNode) {
-                if (tensorNode.getValue().isSame(tensor)) {
+                if (tensorNode.getValue() == tensor) {
                     return Optional.of(node);
                 }
             }
@@ -256,7 +258,8 @@ public class Graph implements IGraph {
 
     public static class TensorDeclarationGraphNode extends AbstractTensorNodeWithGradient {
 
-        private final @NotNull ITensor tensor;
+        @Nullable
+        private ITensor tensor;
 
         public TensorDeclarationGraphNode(@NotNull ITensor tensor) {
             this.tensor = tensor;
@@ -265,7 +268,17 @@ public class Graph implements IGraph {
         @NotNull
         @Override
         public ITensor getValue() {
-            return tensor;
+            return Objects.requireNonNull(tensor, "Value has already been nullified");
+        }
+
+        @Override
+        public void deleteValue() {
+            this.tensor = null;
+        }
+
+        @Override
+        public boolean hasValue() {
+            return tensor != null;
         }
 
     }
@@ -275,6 +288,7 @@ public class Graph implements IGraph {
         private final @NotNull OperationType operationType;
 
         private final @NotNull List<@NotNull IGraphNode> inputs;
+
         @Nullable
         private ITensor output;
 
@@ -333,6 +347,16 @@ public class Graph implements IGraph {
             return operationType.name();
         }
 
+        @Override
+        public void deleteValue() {
+            this.output = null;
+        }
+
+        @Override
+        public boolean hasValue() {
+            return output != null;
+        }
+
 
         /**
          * Performs the operation of this node.
@@ -354,6 +378,14 @@ public class Graph implements IGraph {
 
         public boolean hasOutput() {
             return output != null;
+        }
+
+        public void replaceInputs(@NotNull IGraphNode original, @NotNull IGraphNode replacement) {
+            for (int i = 0; i < inputs.size(); i++) {
+                if (inputs.get(i) == original) {
+                    inputs.set(i, replacement);
+                }
+            }
         }
     }
 

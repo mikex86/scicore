@@ -1,8 +1,8 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
-import me.mikex86.scicore.DataType;
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.LazyTensor;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.PowJNI;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
@@ -52,10 +52,12 @@ public class GenCPUPowOp implements IDifferentiableBinaryOperation {
 
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
-        Validator.assertTrue(b.getValue().isScalar(), "Exponent must be scalar"); // Only supporting scalar exponents for now
-        long[] shapeA = a.getValue().getShape();
-        DataType dataTypeA = a.getValue().getDataType();
-        DataType dataTypeB = b.getValue().getDataType();
+        ITensor bValue = b.getValue();
+        Validator.assertTrue(bValue.isScalar(), "Exponent must be scalar"); // Only supporting scalar exponents for now
+        ITensor aValue = a.getValue();
+        long[] shapeA = aValue.getShape();
+        DataType dataTypeA = aValue.getDataType();
+        DataType dataTypeB = bValue.getDataType();
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
         long nElements = ShapeUtils.getNumElements(shapeA);
 
@@ -74,32 +76,32 @@ public class GenCPUPowOp implements IDifferentiableBinaryOperation {
 
         if (a.requiresGradients()) {
             ITensor localGradients = backend.createTensor(resultDataType, shapeA);
-            for (long i = 0; i < nElements; i++) {
-                if (resultDataType.isFloatingPoint()) {
-                    double exponent = b.getValue().elementAsDouble();
-                    double aV = a.getValue().getAsDoubleFlat(i);
-                    localGradients.setByDoubleFlat(exponent * Math.pow(aV, exponent - 1), i); // dP/dA = B * A ^ (B - 1)
-                } else {
-                    long exponent = b.getValue().elementAsLong();
-                    long aV = a.getValue().getAsLongFlat(i);
-                    localGradients.setByLongFlat((long) (exponent * Math.pow(aV, exponent - 1)), i); // dP/dA = B * A ^ (B - 1)
-                }
-            }
-            ITensor globalGradients = upstreamGradient.multiply(localGradients); // dL/dA = dL/dP * dP/dA
+            // dP/dA = B * A ^ (B - 1)
+            ITensor bMinusOne = bValue.minus(1f);
+            DirectMemoryHandle aHandle = aValue.getContentsAsDirectMemory();
+            DirectMemoryHandle bHandle = bMinusOne.getContentsAsDirectMemory();
+            DirectMemoryHandle localGradientsMemory = localGradients.getContentsAsDirectMemory();
+            PowJNI.pow(
+                    aHandle.getNativePtr(), aValue.getShape(), aValue.getStrides(), dataTypeA,
+                    bHandle.getNativePtr(), bValue.getShape(), bValue.getStrides(), dataTypeB,
+                    localGradientsMemory.getNativePtr(), localGradients.getShape(), localGradients.getStrides(), resultDataType
+            );
+            ITensor globalGradients = upstreamGradient.multiply(localGradients.multiply(bValue)); // dL/dA = dL/dP * dP/dA
             a.accumulateGradient(globalGradients);
         }
 
         if (b.requiresGradients()) {
             ITensor localGradients = backend.createTensor(resultDataType, shapeA);
+            // TODO: OPTIMIZE
             for (long i = 0; i < nElements; i++) {
                 if (resultDataType.isFloatingPoint()) {
-                    double exponent = b.getValue().elementAsDouble();
-                    double aV = a.getValue().getAsDoubleFlat(i);
+                    double exponent = bValue.elementAsDouble();
+                    double aV = aValue.getAsDoubleFlat(i);
                     double resultVal = Math.pow(aV, exponent);
                     localGradients.setByDoubleFlat(resultVal * Math.log(aV), i); // dP/dB = A ^ B * ln(A)
                 } else {
-                    long exponent = b.getValue().elementAsLong();
-                    long aV = a.getValue().getAsLongFlat(i);
+                    long exponent = bValue.elementAsLong();
+                    long aV = aValue.getAsLongFlat(i);
                     long resultVal = (long) Math.pow(aV, exponent);
                     localGradients.setByLongFlat((long) (resultVal * Math.log(aV)), i); // dP/dB = A ^ B * ln(A)
                 }

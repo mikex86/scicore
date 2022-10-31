@@ -1,6 +1,6 @@
 package me.mikex86.scicore.nn;
 
-import me.mikex86.scicore.ITensor;
+import me.mikex86.scicore.tensor.ITensor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;

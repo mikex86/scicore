@@ -1,12 +1,13 @@
 package me.mikex86.scicore.backend.impl.genericcpu;
 
-import me.mikex86.scicore.*;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.memory.DirectMemoryManager;
+import me.mikex86.scicore.tensor.AbstractTensor;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.system.MemoryUtil;
 
 import java.nio.*;
 
@@ -83,12 +84,12 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
 
     @Override
     public byte getByteFlat(long flatIndex) {
-        return this.dataContainer.getByteFlat(flatIndex);
+        return this.dataContainer.getInt8Flat(flatIndex);
     }
 
     @Override
     public void setByteFlat(byte value, long flatIndex) {
-        this.dataContainer.setByteFlat(value, flatIndex);
+        this.dataContainer.getInt8Flat(value, flatIndex);
     }
 
     @Override
@@ -234,7 +235,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
         switch (this.getDataType()) {
             case INT8 -> {
                 for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByteFlat(i, j);
+                    dataContainer.getInt8Flat(i, j);
                 }
             }
             case INT16 -> {
@@ -271,7 +272,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
         switch (this.getDataType()) {
             case INT8 -> {
                 for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByteFlat((byte) i, j);
+                    dataContainer.getInt8Flat((byte) i, j);
                 }
             }
             case INT16 -> {
@@ -308,7 +309,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
         switch (this.getDataType()) {
             case INT8 -> {
                 for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByteFlat((byte) i, j);
+                    dataContainer.getInt8Flat((byte) i, j);
                 }
             }
             case INT16 -> {
@@ -345,7 +346,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
         switch (this.getDataType()) {
             case INT8 -> {
                 for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByteFlat((byte) i, j);
+                    dataContainer.getInt8Flat((byte) i, j);
                 }
             }
             case INT16 -> {
@@ -382,7 +383,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
         switch (this.getDataType()) {
             case INT8 -> {
                 for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByteFlat((byte) f, j);
+                    dataContainer.getInt8Flat((byte) f, j);
                 }
             }
             case INT16 -> {
@@ -419,7 +420,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
         switch (this.getDataType()) {
             case INT8 -> {
                 for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByteFlat((byte) d, j);
+                    dataContainer.getInt8Flat((byte) d, j);
                 }
             }
             case INT16 -> {
@@ -456,7 +457,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
         switch (this.getDataType()) {
             case INT8 -> {
                 for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByteFlat((byte) (value ? 1 : 0), j);
+                    dataContainer.getInt8Flat((byte) (value ? 1 : 0), j);
                 }
             }
             case INT16 -> {
@@ -521,5 +522,10 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     @NotNull
     public GenCpuTensorDataContainer getDataContainer() {
         return dataContainer;
+    }
+
+    @Override
+    public void dispose() {
+        this.dataContainer.dispose();
     }
 }

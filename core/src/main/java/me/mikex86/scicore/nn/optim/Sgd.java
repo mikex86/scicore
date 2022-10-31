@@ -1,8 +1,7 @@
 package me.mikex86.scicore.nn.optim;
 
 import me.mikex86.scicore.ISciCore;
-import me.mikex86.scicore.ITensor;
-import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
 
@@ -41,12 +40,17 @@ public class Sgd implements IOptimizer {
         graph.backward();
 
         for (ITensor parameter : parameters) {
-            ITensor gradient = graph.getGradient(parameter).orElseThrow(() -> new IllegalStateException("No gradient for parameter " + parameter));
+            ITensor gradient = graph.getGradient(parameter).orElseThrow(() -> new IllegalStateException("No gradient for parameter"));
             float learningRate = this.learningRate;
             if (adaptiveLearningRate) {
                 learningRate *= (Math.pow(1f - learningRateDecayFactor, nSteps));
             }
-            parameter.subtract(gradient.multiply(learningRate));
+//            parameter.subtract(gradient.multiply(learningRate)); // TODO: TEST IF MULTIPLE INPLACE OPERATIONS BREAK STUFF
+//            sciCore.getBackend().getOperationRecorder().dropHistory(parameter);
+
+            ITensor newParameter = parameter.minus(gradient.multiply(learningRate));
+            parameter.setContents(newParameter);
+            sciCore.getBackend().getOperationRecorder().dropHistory(newParameter);
         }
         nSteps++;
     }

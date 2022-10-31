@@ -1,16 +1,13 @@
-package me.mikex86.scicore;
+package me.mikex86.scicore.tensor;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.graph.IGraphRecorder;
-import me.mikex86.scicore.graph.OperationType;
-import me.mikex86.scicore.graph.OptionBundle;
+import me.mikex86.scicore.graph.*;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 import static me.mikex86.scicore.utils.StringUtils.formatFloat;
@@ -19,6 +16,30 @@ public abstract class AbstractTensor implements ITensor {
 
     // All implementations must set this variable!
     protected long numElements;
+
+    private static long nextId = 0;
+
+    private final long id;
+
+
+    {
+        synchronized (AbstractTensor.class) {
+            id = nextId++;
+        }
+    }
+
+    @Override
+    public long getId() {
+        return id;
+    }
+
+    @Nullable
+    protected IGraph.IGraphNode associatedGraphNode;
+
+    @Override
+    public void setReferenceToAssociatedGraphNode(@Nullable IGraph.IGraphNode graphNode) {
+        this.associatedGraphNode = graphNode;
+    }
 
     @Override
     @NotNull
@@ -67,7 +88,6 @@ public abstract class AbstractTensor implements ITensor {
     public void setShort(short value, long @NotNull ... indices) {
         setShortFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
     }
-
 
     @Override
     public int getInt(long @NotNull ... indices) {
@@ -787,6 +807,11 @@ public abstract class AbstractTensor implements ITensor {
         return newTensor;
     }
 
+    @Override
+    public void dispose() {
+        // Do nothing
+    }
+
     protected void validateDataType(@NotNull DataType requestedDataType) {
         DataType ownDataType = getDataType();
         if (requestedDataType != ownDataType) {
@@ -816,21 +841,6 @@ public abstract class AbstractTensor implements ITensor {
             dataTypeScalar.setIntFlat(dataType.ordinal(), 0);
         }
         return operationRecorder.recordOperation(OperationType.CAST, backend, this, dataTypeScalar);
-    }
-
-    @Override
-    public boolean isSame(@NotNull ITensor tensor) {
-        if (this == tensor) {
-            return true;
-        }
-        ITensor self = this;
-        while (self instanceof IDerivedTensor derivedTensor) {
-            self = derivedTensor.result();
-        }
-        while (tensor instanceof IDerivedTensor derivedTensor) {
-            tensor = derivedTensor.result();
-        }
-        return self == tensor;
     }
 
     @Override
