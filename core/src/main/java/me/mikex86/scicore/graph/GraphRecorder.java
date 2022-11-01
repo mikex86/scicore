@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GraphRecorder implements IGraphRecorder {
 
@@ -233,7 +234,30 @@ public class GraphRecorder implements IGraphRecorder {
         return graph;
     }
 
-    private int nBytesDeletedSinceLastGC = 0;
+    private int nBytesDeletedSinceLastAsyncGC = 0;
+    private int nBytesDeletedSinceLastOnSameThreadGC = 0;
+
+    @NotNull
+    private final AtomicBoolean shouldRunGC = new AtomicBoolean(false);
+
+    @NotNull
+    private final Thread gcThread = new Thread(() -> {
+        while (true) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (shouldRunGC.getAndSet(false)) {
+                System.gc();
+            }
+        }
+    }, "GC-Invoker-Thread");
+
+    {
+        gcThread.setDaemon(true);
+        gcThread.start();
+    }
 
     @Override
     public void dropHistory(@NotNull ITensor tensor) {
@@ -282,7 +306,8 @@ public class GraphRecorder implements IGraphRecorder {
                             valueToNodeMap.remove(value);
                             tensorNode.deleteValue();
                             deleted.add(tensorNode);
-                            nBytesDeletedSinceLastGC += value.getNumBytes();
+                            nBytesDeletedSinceLastAsyncGC += value.getNumBytes();
+                            nBytesDeletedSinceLastOnSameThreadGC += value.getNumBytes();
                             value = null; // help GC
                         }
                     } else {
@@ -300,7 +325,8 @@ public class GraphRecorder implements IGraphRecorder {
                                 valueToNodeMap.remove(value);
                                 tensorNode.deleteValue();
                                 deleted.add(tensorNode);
-                                nBytesDeletedSinceLastGC += value.getNumBytes();
+                                nBytesDeletedSinceLastAsyncGC += value.getNumBytes();
+                                nBytesDeletedSinceLastOnSameThreadGC += value.getNumBytes();
                                 value = null; // help GC
                             }
                         }
@@ -308,9 +334,13 @@ public class GraphRecorder implements IGraphRecorder {
                 }
             }
         }
-        if (nBytesDeletedSinceLastGC > 500_000_000) { // 100 Mb
+        if (nBytesDeletedSinceLastAsyncGC > 100_000_000) { // 100 Mb
+            shouldRunGC.set(true);
+            nBytesDeletedSinceLastAsyncGC = 0;
+        }
+        if (nBytesDeletedSinceLastOnSameThreadGC > 2_000_000_000) { // 2 GB
             System.gc();
-            nBytesDeletedSinceLastGC = 0;
+            nBytesDeletedSinceLastOnSameThreadGC = 0;
         }
     }
 

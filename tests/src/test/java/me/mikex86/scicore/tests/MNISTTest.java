@@ -190,7 +190,7 @@ public class MNISTTest {
 //            Objects.requireNonNull(net.fc2.getBias()).setContents(fc2bias);
 //        }
 
-        long nSteps = 20_000;
+        long nSteps = 30_000;
         int nTestSteps = 10000;
 
         float learningRate = 0.01f;
