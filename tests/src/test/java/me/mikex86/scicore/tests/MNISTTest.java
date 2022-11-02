@@ -190,7 +190,7 @@ public class MNISTTest {
 //            Objects.requireNonNull(net.fc2.getBias()).setContents(fc2bias);
 //        }
 
-        long nSteps = 30_000;
+        long nSteps = 20_000;
         int nTestSteps = 10000;
 
         float learningRate = 0.01f;
@@ -199,7 +199,7 @@ public class MNISTTest {
 
         System.out.println("Start training...");
         long start = System.currentTimeMillis();
-        float lossValue = -1;
+        double lossValue = -1;
         try (ProgressBar progressBar = new ProgressBarBuilder()
                 .setTaskName("Training")
                 .setInitialMax(nSteps)
@@ -240,8 +240,8 @@ public class MNISTTest {
                 optimizer.step(loss);
                 progressBar.step();
 
-                lossValue = loss.elementAsFloat();
-                if (Float.isNaN(lossValue)) {
+                lossValue = loss.elementAsDouble();
+                if (Double.isNaN(lossValue)) {
                     System.out.println("Loss is NaN");
                 }
                 sciCore.getBackend().getOperationRecorder().dropHistory(loss);

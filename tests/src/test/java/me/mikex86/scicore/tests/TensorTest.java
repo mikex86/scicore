@@ -953,50 +953,6 @@ abstract class TensorTest {
         assertEquals(array.getFloat(3), copy.getFloat(3));
     }
 
-
-    @Nested
-    class ToString {
-        @Test
-        void toString_test_scalar() {
-            ITensor scalar = sciCore.scalar(42.0f);
-            String toString = scalar.toString();
-            assertEquals("(dtype=FLOAT32, shape=[], isScalar=true, data=42.0)", toString.substring(toString.indexOf('(')));
-        }
-
-        @Test
-        void toString_test_1dArray() {
-            ITensor array = sciCore.array(new float[]{1.0f, 2.0f, 3.0f, 4.0f, 5.0f});
-            String toString = array.toString();
-            assertEquals("(dtype=FLOAT32, shape=[5], data=[1.0, 2.0, 3.0, 4.0, 5.0])", toString.substring(toString.indexOf('(')));
-        }
-
-        @Test
-        void toString_test_2dMatrix() {
-            ITensor matrix = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}});
-            String toString = matrix.toString();
-            assertEquals("(dtype=FLOAT32, shape=[2, 3], data=[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])", toString.substring(toString.indexOf('(')));
-        }
-
-        @Test
-        void toString_test_2dMatrix_large() {
-            ITensor matrix = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f},
-                    {16.0f, 17.0f, 18.0f, 19.0f, 20.0f, 21.0f, 22.0f, 23.0f, 24.0f, 25.0f, 26.0f, 27.0f, 28.0f, 29.0f, 30.0f}});
-            String toString = matrix.toString();
-            assertEquals("""
-                    (dtype=FLOAT32, shape=[2, 15], data=
-                    \t[[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
-                    \t [16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0]])""", toString.substring(toString.indexOf('(')));
-        }
-
-        @Test
-        void toString_test_view() {
-            ITensor matrix = sciCore.matrix(new float[][]{{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}});
-            ITensor view = matrix.getReshapedView(new long[]{3, 2}, new long[]{1, 3});
-            String toString = view.toString();
-            assertEquals("(dtype=FLOAT32, shape=[3, 2], data=[[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]])", toString.substring(toString.indexOf('(')));
-        }
-    }
-
     @Test
     void exp() {
         ITensor matrix = sciCore.matrix(new float[][]{{3.8f, 46.3f}, {2.7f, 1.9f}, {3.7f, 1.7f}});

@@ -21,15 +21,21 @@ public class GenCPUExpOp implements IDifferentiableUnaryOperation {
         this.backend = backend;
     }
 
-    @Override
-    public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
-        long[] shape = input.getShape();
+    @NotNull
+    private ITensor exp(@NotNull ITensor x) {
+        long[] shape = x.getShape();
         long nElements = ShapeUtils.getNumElements(shape);
-        DataType dataType = input.getDataType();
+        DataType dataType = x.getDataType();
         ITensor result = backend.createTensor(dataType, shape);
-        DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
+        DirectMemoryHandle inputMemoryHandle = x.getContentsAsDirectMemory();
         DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
         ExpJNI.exp(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
+        return result;
+    }
+
+    @Override
+    public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
+        ITensor result = exp(input);
         ctx.saveForBackward("exp", result);
         return result;
     }
@@ -42,7 +48,7 @@ public class GenCPUExpOp implements IDifferentiableUnaryOperation {
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input) {
         if (input.requiresGradients()) {
-            ITensor exp = ctx.getSavedTensor("exp").orElseThrow(() -> new IllegalStateException("No saved tensor named \"exp\" found"));
+            ITensor exp = ctx.getSavedTensorOrPopulateWith("exp", () -> exp(input.getValue()));
             input.accumulateGradient(upstreamGradient.multiply(exp));
         }
     }

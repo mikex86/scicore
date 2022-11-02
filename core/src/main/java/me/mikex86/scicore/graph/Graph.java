@@ -13,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class Graph implements IGraph {
@@ -42,18 +43,33 @@ public class Graph implements IGraph {
     public void requestGradientsFor(@NotNull List<ITensor> parameters) {
         for (ITensor parameter : parameters) {
             Optional<IGraphNode> nodeOpt = Optional.empty();
-            Stack<IGraphNode> pathToNode = new Stack<>();
+            // Stack of all possible paths to the parameter
+            // Top of the stack is always the "unfinished" path, which is the one we're currently exploring
+            Stack<Stack<IGraphNode>> pathsToNode = new Stack<>();
+            pathsToNode.push(new Stack<>());
             {
                 Deque<IGraphNode> nodesToVisit = new LinkedList<>();
                 nodesToVisit.add(outputNode);
 
                 while (!nodesToVisit.isEmpty()) {
                     IGraphNode node = nodesToVisit.poll();
-                    pathToNode.push(node);
+                    {
+                        Stack<IGraphNode> currentPath = pathsToNode.peek();
+                        currentPath.push(node);
+                    }
                     if (node instanceof OperationGraphNode operationNode) {
                         if (operationNode.getValue() == parameter) {
-                            nodeOpt = Optional.of(node);
-                            break;
+                            if (nodeOpt.isEmpty()) {
+                                nodeOpt = Optional.of(node);
+                            }
+                            {
+                                // Found one possible path, keep that path in the stack and create a new path
+                                // that points to where we currently are in the graph, and continue searching for more.
+                                Stack<IGraphNode> currentPath = pathsToNode.peek();
+                                Stack<IGraphNode> newPath = new Stack<>();
+                                newPath.addAll(currentPath);
+                                pathsToNode.push(newPath);
+                            }
                         }
                         // traverse up the topology, if the graph extends upwards
                         List<IGraphNode> inputs = operationNode.getInputs();
@@ -63,20 +79,34 @@ public class Graph implements IGraph {
                         for (int i = inputs.size() - 1; i >= 0; i--) {
                             nodesToVisit.addFirst(inputs.get(i));
                         }
-                    } else if (node instanceof TensorDeclarationGraphNode tensorDeclarationNode) {
-                        if (tensorDeclarationNode.getValue() == parameter) {
+                    } else if (node instanceof TensorDeclarationGraphNode tensorDeclarationNode && tensorDeclarationNode.getValue() == parameter) {
+                        if (nodeOpt.isEmpty()) {
                             nodeOpt = Optional.of(node);
-                            break;
-                        } else {
-                            IGraphNode removed = pathToNode.pop();
-                            IGraphNode prev = pathToNode.peek();
+                        }
+                        {
+                            // See above
+                            Stack<IGraphNode> currentPath = pathsToNode.peek();
+                            Stack<IGraphNode> newPath = new Stack<>();
+                            newPath.addAll(currentPath);
+                            newPath.pop(); // pop off this node from the new path
+                            pathsToNode.push(newPath);
+                        }
+                    } else {
+                        Stack<IGraphNode> currentPath = pathsToNode.peek();
+                        while (true) {
+                            IGraphNode removed = currentPath.pop();
+                            if (currentPath.isEmpty()) {
+                                pathsToNode.pop();
+                                break; // we've reached the end of the graph
+                            }
+                            IGraphNode prev = currentPath.peek();
                             if (!(prev instanceof OperationGraphNode prevOp)) {
                                 throw new IllegalStateException("Unexpected node type: " + prev.getClass().getName());
                             }
                             List<IGraphNode> prevOpInputs = prevOp.getInputs();
                             int index = prevOpInputs.indexOf(removed);
-                            if (index == prevOpInputs.size() - 1) {
-                                pathToNode.pop(); // we just visited the last input of this operation, so we can pop it off the stack
+                            if (index != prevOpInputs.size() - 1) {
+                                break;
                             }
                         }
                     }
@@ -90,11 +120,13 @@ public class Graph implements IGraph {
             ITensorNodeWithGradient nodeWithGradient = (ITensorNodeWithGradient) node;
             nodeWithGradient.requestGradients();
 
-            for (IGraphNode downstreamNode : pathToNode) {
-                if (!(downstreamNode instanceof ITensorNodeWithGradient downStreamNodeWithGradient)) {
-                    throw new IllegalArgumentException("Requested gradient for tensor that cannot hold a gradient: " + downstreamNode);
+            for (Stack<IGraphNode> path : pathsToNode) {
+                for (IGraphNode pathNode : path) {
+                    if (!(pathNode instanceof ITensorNodeWithGradient downStreamNodeWithGradient)) {
+                        throw new IllegalArgumentException("Requested gradient for tensor that cannot hold a gradient: " + pathNode);
+                    }
+                    downStreamNodeWithGradient.setRequireGradients(); // all nodes that depend on this node will have their gradients computed for them
                 }
-                downStreamNodeWithGradient.setRequireGradients(); // all nodes that depend on this node will have their gradients computed for them
             }
         }
     }
@@ -117,6 +149,9 @@ public class Graph implements IGraph {
 
             // apply chain rule
             backPropagate(nodeWithGradient);
+
+            // clear gradients
+            clearUnusedGradients();
         } else {
             throw new IllegalStateException("Output node of graph must be differentiable!");
         }
@@ -124,7 +159,7 @@ public class Graph implements IGraph {
 
 
     /**
-     * Recursively applies chain rule to all leaf nodes
+     * Applies chain rule to all leaf nodes
      * This order of iteration guarantees topological ordering from root to leaf nodes
      * This is important because we need to compute the gradient the output node first before we can compute the
      * gradient of its inputs. This is required because we are applying the chain rule
@@ -134,24 +169,56 @@ public class Graph implements IGraph {
      * to the currently processed node and the gradient of the input node with respect to the currently processed node.
      */
     private void backPropagate(@NotNull ITensorNodeWithGradient node) {
-        // only compute gradient for nodes for which it is required
-        if (node instanceof IDifferentiableNode differentiableNode) {
-            differentiableNode.computeGradients();
+        Set<IGraphNode> topology = new LinkedHashSet<>();
+        // build topology
+        {
+            Queue<IGraphNode> nodesToVisit = new LinkedList<>();
+            nodesToVisit.add(node);
+            while (!nodesToVisit.isEmpty()) {
+                IGraphNode currentNode = nodesToVisit.poll();
+                topology.add(currentNode);
+                if (currentNode instanceof OperationGraphNode operationNode) {
+                    List<IGraphNode> inputs = operationNode.getInputs();
+                    nodesToVisit.addAll(inputs);
+                }
+            }
         }
-        // traverse up the topology, if the graph extends upwards
-        if (node instanceof OperationGraphNode operationNode) {
-            for (IGraphNode inputNode : operationNode.getInputs()) {
-                if (inputNode instanceof ITensorNodeWithGradient inputNodeWithGradient) {
-                    if (inputNodeWithGradient.requiresGradients()) {
-                        backPropagate(inputNodeWithGradient);
+        // back propagate
+        // Breadth first search guarantees that we don't use premature upstream gradients to compute subsequent gradients
+        for (IGraphNode currentNode : topology) {
+            if (currentNode instanceof ITensorNodeWithGradient currentNodeWithGradient) {
+                // only compute gradient for nodes for which it is required
+                if (currentNodeWithGradient.requiresGradients()) {
+                    if (currentNode instanceof IDifferentiableNode differentiableNode) {
+                        differentiableNode.computeGradients();
                     }
                 }
             }
         }
-        if (!node.requestsGradients()) {
-            node.deleteGradient();
+    }
+
+    /**
+     * Clears the gradients of all nodes in the graph that don't require gradients
+     */
+    private void clearUnusedGradients() {
+        Queue<IGraphNode> nodesToVisit = new LinkedList<>();
+        nodesToVisit.add(outputNode);
+
+        while (!nodesToVisit.isEmpty()) {
+            IGraphNode node = nodesToVisit.poll();
+            if (node instanceof ITensorNodeWithGradient nodeWithGradient) {
+                if (!nodeWithGradient.requiresGradients()) {
+                    nodeWithGradient.deleteGradient();
+                }
+            }
+            if (node instanceof OperationGraphNode operationNode) {
+                // traverse up the topology, if the graph extends upwards
+                List<IGraphNode> inputs = operationNode.getInputs();
+                nodesToVisit.addAll(inputs);
+            }
         }
     }
+
 
     @NotNull
     public Optional<ITensor> getGradient(@NotNull ITensor tensor) {
@@ -214,7 +281,9 @@ public class Graph implements IGraph {
                 this.upstreamGradient = gradient;
             } else {
                 Validator.assertTrue(ShapeUtils.equals(this.upstreamGradient.getShape(), gradient.getShape()), "Accumulative gradients must match shape");
-                this.upstreamGradient.add(gradient);
+                // TODO: COMMENT BACK IN WHEN IN-PLACE OPERATIONS ARE FIXED
+                // this.upstreamGradient.add(gradient);
+                this.upstreamGradient.setContents(this.upstreamGradient.plus(gradient));
             }
         }
 
@@ -397,6 +466,8 @@ public class Graph implements IGraph {
         Optional<ITensor> getSavedTensor(@NotNull String name);
 
         @NotNull OptionBundle getOptionBundle();
+
+        @NotNull ITensor getSavedTensorOrPopulateWith(@NotNull String name, @NotNull Supplier<ITensor> defaultSupplier);
     }
 
     public static class OperationContext implements IOperationContext {
@@ -425,6 +496,11 @@ public class Graph implements IGraph {
         @Override
         public OptionBundle getOptionBundle() {
             return optionBundle;
+        }
+
+        @Override
+        public @NotNull ITensor getSavedTensorOrPopulateWith(@NotNull String name, @NotNull Supplier<ITensor> defaultSupplier) {
+            return savedTensors.computeIfAbsent(name, s -> defaultSupplier.get());
         }
     }
 }

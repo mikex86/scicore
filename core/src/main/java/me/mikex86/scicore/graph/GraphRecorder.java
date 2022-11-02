@@ -270,7 +270,9 @@ public class GraphRecorder implements IGraphRecorder {
             lazyTensor.result();
         }
 
-        // TODO: FIX SOME NODES NOT BEING CLEANED
+        // TODO: FIX SOME NODES NOT BEING CLEANED AFTER SOFTMAX FIX
+        // TODO: CREATE MECHANISM FOR DETACHING TENSORS FROM GRAPH
+        //  AUTOMATICALLY FREE TENSORS THAT ONLY EXIST IN THE GRAPH
         if (node instanceof Graph.OperationGraphNode operationNode) {
 
             // Replace the node that computed the tensor with a tensor declaration node that holds a constant tensor with the same value.

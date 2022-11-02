@@ -1119,4 +1119,22 @@ abstract class GradientComputationTest {
 
     // TODO: TEST reduceSum(1)
 
+    @Test
+    void testMatmulWithSoftmaxAndMSE() {
+        ITensor a = sciCore.matrix(new float[][]{{0.1f, 0.2f, 0.13f, 0.24f, 0.345f}, {0.16f, 0.07f, 0.68f, 0.29f, 0.13f}});
+        ITensor b = sciCore.matrix(new float[][]{{0.31f, 0.10f}, {0.34f, 0.52f}, {0.36f, 0.71f}, {0.82f, 0.39f}, {0.10f, 0.03f}});
+        ITensor result = a.matmul(b).softmax(1);
+        ITensor expected = sciCore.array(new float[]{1, 0});
+        ITensor loss = result.minus(expected).pow(2f).reduceSum(-1, false);
+
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, List.of(a, b));
+        graph.backward();
+
+        ITensor dLdA = graph.getGradient(a).orElseThrow();
+        ITensor dLdB = graph.getGradient(b).orElseThrow();
+
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{-0.1014f, 0.0869f, 0.1690f, -0.2076f, -0.0338f}, {-0.1092f, 0.0936f, 0.1820f, -0.2236f, -0.0364f}}), dLdA);
+        Assertions.assertEquals(sciCore.matrix(new float[][]{{-0.1315f, 0.1315f}, {-0.1329f, 0.1329f}, {-0.4163f, 0.4163f}, {-0.2666f, 0.2666f}, {-0.2341f, 0.2341f}}), dLdB);
+    }
+
 }

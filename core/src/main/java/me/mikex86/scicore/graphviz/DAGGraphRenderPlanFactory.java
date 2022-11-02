@@ -121,6 +121,9 @@ public class DAGGraphRenderPlanFactory {
         attributes.put("shape", ShapeUtils.toString(value.getShape()));
         attributes.put("isScalar", Boolean.toString(value.isScalar()));
         attributes.put("backend", value.getSciCoreBackend().getBackendType().name());
+        if (value.isScalar()) {
+            attributes.put("value", value.element(Object.class).toString());
+        }
         return new GraphRenderPlan.IGraphNode.DataNode(tensorNode.getName() + " (Tensor)", attributes);
     }
 

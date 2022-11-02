@@ -75,18 +75,9 @@ public class GenCPUPowOp implements IDifferentiableBinaryOperation {
         // dL/dB = A ^ B * ln(A)  // this is the exponentiation rule
 
         if (a.requiresGradients()) {
-            ITensor localGradients = backend.createTensor(resultDataType, shapeA);
             // dP/dA = B * A ^ (B - 1)
-            ITensor bMinusOne = bValue.minus(1f);
-            DirectMemoryHandle aHandle = aValue.getContentsAsDirectMemory();
-            DirectMemoryHandle bHandle = bMinusOne.getContentsAsDirectMemory();
-            DirectMemoryHandle localGradientsMemory = localGradients.getContentsAsDirectMemory();
-            PowJNI.pow(
-                    aHandle.getNativePtr(), aValue.getShape(), aValue.getStrides(), dataTypeA,
-                    bHandle.getNativePtr(), bValue.getShape(), bValue.getStrides(), dataTypeB,
-                    localGradientsMemory.getNativePtr(), localGradients.getShape(), localGradients.getStrides(), resultDataType
-            );
-            ITensor globalGradients = upstreamGradient.multiply(localGradients.multiply(bValue)); // dL/dA = dL/dP * dP/dA
+            ITensor localGradients = bValue.multiply(aValue.pow(bValue.minus(1f)));
+            ITensor globalGradients = upstreamGradient.multiply(localGradients); // dL/dA = dL/dP * dP/dA
             a.accumulateGradient(globalGradients);
         }
 
