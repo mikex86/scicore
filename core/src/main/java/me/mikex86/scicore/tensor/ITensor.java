@@ -521,6 +521,42 @@ public interface ITensor extends IValue, IDisposable {
 
     @NotNull ITensor divide(double value);
 
+
+    @NotNull
+    default ITensor div(@NotNull ITensor other) {
+        return divide(other);
+    }
+
+    @NotNull
+    default ITensor div(byte value) {
+        return divide(value);
+    }
+
+    @NotNull
+    default ITensor div(short value) {
+        return divide(value);
+    }
+
+    @NotNull
+    default ITensor div(int value) {
+        return divide(value);
+    }
+
+    @NotNull
+    default ITensor div(long value) {
+        return divide(value);
+    }
+
+    @NotNull
+    default ITensor div(float value) {
+        return divide(value);
+    }
+
+    @NotNull
+    default ITensor div(double value) {
+        return divide(value);
+    }
+
     @NotNull ITensor plus(byte value);
 
     @NotNull ITensor plus(short value);
@@ -665,6 +701,14 @@ public interface ITensor extends IValue, IDisposable {
 
     @NotNull ITensor argmax(int dimension);
 
+    /**
+     * Compares the elements of this tensor with the elements of the other tensor.
+     * The tensors must have the same shape.
+     * @param other the other tensor.
+     * @return the result of the comparison.
+     */
+    @NotNull ITensor compareElements(@NotNull ITensor other);
+
     @NotNull ITensor to(@NotNull ISciCoreBackend backend);
 
     /**
@@ -707,4 +751,5 @@ public interface ITensor extends IValue, IDisposable {
     default long getNumBytes() {
         return getDataType().getSizeOf(getNumberOfElements());
     }
+
 }

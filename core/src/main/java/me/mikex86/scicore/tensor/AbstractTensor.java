@@ -801,6 +801,13 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
+    public @NotNull ITensor compareElements(@NotNull ITensor other) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.COMPARE_ELEMENTS, backend, this, other);
+    }
+
+    @Override
     public @NotNull ITensor to(@NotNull ISciCoreBackend backend) {
         ITensor newTensor = backend.createTensor(getDataType(), getShape());
         newTensor.setContents(this);

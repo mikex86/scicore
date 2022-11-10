@@ -1095,9 +1095,9 @@ As the individual operations operate on a tensor-basis, their backward passes ar
 
 The following snippet shows the backward pass of the multiplication operation in Sci-Core:
 
-// TODO
 
-When compared with the scalar counterpart, the expression $globalGradient = upstreamGradient * upstreamGradient$ is still intact. However, we need to handle broadcasting in addition to that.
+
+When compared with the scalar counterpart, the expression $globalGradient = upstreamGradient * localGradient$ is still intact. However, we need to handle broadcasting in addition to that.
 
 
 ### Mnist Training Example
