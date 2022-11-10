@@ -83,8 +83,8 @@ fun main() {
 
     val net = MnistNet(sciCore)
 
-    val nTrainSteps = 100_000L
-    val nTestSteps = 500L
+    val nTrainSteps = 60_000L
+    val nTestSteps = 10_000L
     val learningRate = 0.01f
 
     val optimizer = Sgd(sciCore, learningRate, net.parameters())
@@ -106,13 +106,13 @@ fun main() {
                 val x = batch.first
                 val y = batch.second
                 val yPred = net.forward(x)
-                val loss = yPred.minus(y).pow(2f).reduceSum(-1).divide(yPred.numberOfElements.toFloat())
+                val loss = yPred.minus(y)
+                    .pow(2f)
+                    .reduceSum(-1)
+                    .divide(yPred.numberOfElements.toFloat())
                 optimizer.step(loss)
                 progressBar.step()
                 lossValue = loss.elementAsDouble()
-                if (isNaN(lossValue)) {
-                    println("Loss is NaN")
-                }
                 progressBar.extraMessage = String.format(Locale.US, "loss: %.5f", lossValue)
             }
         }

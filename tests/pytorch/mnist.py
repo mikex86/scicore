@@ -6,6 +6,7 @@ from torchvision.datasets.mnist import MNIST
 from torchvision.transforms import Compose, ToTensor
 from tqdm import trange
 from javarandom import Random
+import time
 
 
 def save_tensor(tensor: torch.tensor, file_path: str):
@@ -73,12 +74,13 @@ if __name__ == '__main__':
 
     net = MnistNet()
 
-    n_steps = 1000
+    n_steps = 60000
     lr = 0.01
 
     train_it = iter(train_loader)
     step_range = trange(n_steps, desc='Training')
 
+    start_time = time.time()
     loss = None
     for i in step_range:
         # next from train_loader
@@ -94,11 +96,28 @@ if __name__ == '__main__':
 
         loss.backward()
 
-        step_range.set_description(f'Training loss: {loss.item():.4f}')
+        step_range.set_description(f'Training loss: {loss.item():.5f}')
 
         with torch.no_grad():
             for param in net.parameters():
                 param -= lr * param.grad
                 param.grad.zero_()
 
-    print("Final loss:", loss.item())
+    print(f'Final loss: {loss.item():.5f}')
+    print(f'Train time: {time.time() - start_time:.2f}s')
+
+    # Test the network
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for images, labels in test_loader:
+            images = images.to('cpu')
+            labels = labels.to('cpu')
+            images = images.view(-1, 28 * 28)
+            outputs = net(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    print(f"Accuracy: {correct / total:.5f}")
+
