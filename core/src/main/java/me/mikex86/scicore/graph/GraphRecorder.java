@@ -23,14 +23,6 @@ public class GraphRecorder implements IGraphRecorder {
             .weakValues()
             .makeMap();
 
-    /**
-     * Maps graph nodes to the list of graph nodes that use them as inputs.
-     */
-    @NotNull
-    private final Map<IGraph.IGraphNode, List<Graph.OperationGraphNode>> nodeToUsages = new MapMaker()
-            .weakKeys()
-            .makeMap();
-
     public GraphRecorder(@NotNull OperationRegistry operationRegistry) {
         this.operationRegistry = operationRegistry;
     }
@@ -73,11 +65,6 @@ public class GraphRecorder implements IGraphRecorder {
     }
 
     public void putGraphNode(@NotNull ITensor tensor, @NotNull IGraph.IGraphNode graphNode) {
-        if (graphNode instanceof Graph.OperationGraphNode operationGraphNode) {
-            for (IGraph.IGraphNode input : operationGraphNode.getInputs()) {
-                nodeToUsages.computeIfAbsent(input, k -> new ArrayList<>()).add(operationGraphNode);
-            }
-        }
         tensor.setReferenceToAssociatedGraphNode(graphNode);
         this.valueToNodeMap.put(tensor, graphNode);
     }
@@ -260,82 +247,16 @@ public class GraphRecorder implements IGraphRecorder {
     }
 
     @Override
-    public void dropHistory(@NotNull ITensor tensor) {
-        IGraph.IGraphNode node = getGraphNode(tensor);
-        if (node == null) {
-            throw new IllegalArgumentException("Tensor was not recorded as an output computed by this graph");
-        }
-
-        if (tensor instanceof LazyTensor lazyTensor) {
-            lazyTensor.result();
-        }
-
-        // TODO: FIX SOME NODES NOT BEING CLEANED AFTER SOFTMAX FIX
-        // TODO: CREATE MECHANISM FOR DETACHING TENSORS FROM GRAPH
-        //  AUTOMATICALLY FREE TENSORS THAT ONLY EXIST IN THE GRAPH
-        if (node instanceof Graph.OperationGraphNode operationNode) {
-
-            // Replace the node that computed the tensor with a tensor declaration node that holds a constant tensor with the same value.
-            {
-                Graph.TensorDeclarationGraphNode constantReplacement = new Graph.TensorDeclarationGraphNode(tensor);
-                List<Graph.OperationGraphNode> usages = nodeToUsages.get(operationNode);
-                if (usages != null) {
-                    for (Graph.OperationGraphNode usage : usages) {
-                        usage.replaceInputs(node, constantReplacement);
-                    }
-                }
-                putGraphNode(tensor, constantReplacement);
-            }
-
-            // Nullify tensors of all nodes that are now detached from the graph.
-            Queue<IGraph.IGraphNode> toVisit = new LinkedList<>();
-            toVisit.add(operationNode);
-
-            Set<IGraph.IGraphNode> deleted = new HashSet<>();
-
-            while (!toVisit.isEmpty()) {
-                IGraph.IGraphNode currentNode = toVisit.remove();
-                if (currentNode instanceof Graph.OperationGraphNode operationGraphNode) {
-                    toVisit.addAll(operationGraphNode.getInputs());
-                }
-                if (currentNode instanceof IGraph.ITensorNode tensorNode) {
-                    List<Graph.OperationGraphNode> usages = nodeToUsages.get(tensorNode);
-                    if (usages == null || usages.isEmpty()) {
-                        nodeToUsages.remove(tensorNode);
-
-                        if (tensorNode.hasValue()) {
-                            ITensor value = tensorNode.getValue();
-                            valueToNodeMap.remove(value);
-                            tensorNode.deleteValue();
-                            deleted.add(tensorNode);
-                            nBytesDeletedSinceLastAsyncGC += value.getNumBytes();
-                            nBytesDeletedSinceLastOnSameThreadGC += value.getNumBytes();
-                            value = null; // help GC
-                        }
-                    } else {
-                        Iterator<Graph.OperationGraphNode> iterator = usages.iterator();
-                        while (iterator.hasNext()) {
-                            Graph.OperationGraphNode usage = iterator.next();
-                            if (deleted.contains(usage)) {
-                                iterator.remove();
-                            }
-                        }
-                        if (usages.isEmpty()) {
-                            nodeToUsages.remove(tensorNode);
-                            if (tensorNode.hasValue()) {
-                                ITensor value = tensorNode.getValue();
-                                valueToNodeMap.remove(value);
-                                tensorNode.deleteValue();
-                                deleted.add(tensorNode);
-                                nBytesDeletedSinceLastAsyncGC += value.getNumBytes();
-                                nBytesDeletedSinceLastOnSameThreadGC += value.getNumBytes();
-                                value = null; // help GC
-                            }
-                        }
-                    }
-                }
+    public void resetRecording() {
+        for (Map.Entry<ITensor, IGraph.IGraphNode> entry : this.valueToNodeMap.entrySet()) {
+            IGraph.IGraphNode node = entry.getValue();
+            if (node instanceof IGraph.ITensorNode tensorNode) {
+                nBytesDeletedSinceLastAsyncGC += tensorNode.getValue().getNumBytes();
+                nBytesDeletedSinceLastOnSameThreadGC += tensorNode.getValue().getNumBytes();
+                tensorNode.deleteValue();
             }
         }
+        this.valueToNodeMap.clear();
         if (nBytesDeletedSinceLastAsyncGC > 100_000_000) { // 100 Mb
             shouldRunGC.set(true);
             nBytesDeletedSinceLastAsyncGC = 0;

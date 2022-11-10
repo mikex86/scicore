@@ -4,6 +4,7 @@ import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.nn.IModule;
+import me.mikex86.scicore.tensor.LazyTensor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,9 +28,9 @@ public class Linear implements IModule {
         this.sciCore = sciCore;
         this.inputSize = inputSize;
         float k = (float) (1.0 / Math.sqrt(inputSize));
-        this.weights = sciCore.uniform(dataType, outputSize, inputSize).multiply(2 * k).minus(k);
+        this.weights = ((LazyTensor) sciCore.uniform(dataType, outputSize, inputSize).multiply(2 * k).minus(k)).result();
         if (useBias) {
-            this.bias = sciCore.uniform(dataType, outputSize).multiply(2 * k).minus(k);
+            this.bias = ((LazyTensor) sciCore.uniform(dataType, outputSize).multiply(2 * k).minus(k)).result();
         } else {
             this.bias = null;
         }

@@ -51,7 +51,6 @@ public class Sgd implements IOptimizer {
 
             ITensor newParameter = parameter.minus(gradient.multiply(learningRate));
             parameter.setContents(newParameter);
-            sciCore.getBackend().getOperationRecorder().dropHistory(newParameter);
         }
         nSteps++;
     }
