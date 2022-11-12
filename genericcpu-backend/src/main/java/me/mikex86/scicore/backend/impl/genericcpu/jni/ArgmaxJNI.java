@@ -9,13 +9,13 @@ public class ArgmaxJNI {
     private static native void nargmax(long aPtr, long[] shapeA, long[] stridesA,
                                        long cPtr, long[] shapeC, long[] stridesC,
                                        int dataType,
-                                       long dim);
+                                       int dim);
 
 
     public static void argmax(long aPtr, long[] shapeA, long[] stridesA,
                               long cPtr, long[] shapeC, long[] stridesC,
                               DataType dataType,
-                              long dim) {
+                              int dim) {
         nargmax(
                 aPtr, shapeA, stridesA,
                 cPtr, shapeC, stridesC,

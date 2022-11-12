@@ -1,5 +1,6 @@
 #include <argmax.h>
 #include <cstring>
+#include <iostream>
 #include "shapeutils.h"
 
 template<typename T>
@@ -24,6 +25,7 @@ void tblas_argmax(const T *a, uint64_t *c,
     } else {
         auto *aIndex = new size_t[nDimsA];
         memset(aIndex, 0, nDimsA * sizeof(size_t));
+
         auto *outputIndex = new size_t[nDimsC];
         memset(outputIndex, 0, sizeof(size_t) * nDimsC);
 

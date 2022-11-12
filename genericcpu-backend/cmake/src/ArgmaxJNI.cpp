@@ -1,6 +1,5 @@
 #include "ArgmaxJNI.h"
 #include "jnidatatypes.h"
-#include <stdexcept>
 #include <cstdint>
 #include <argmax.h>
 

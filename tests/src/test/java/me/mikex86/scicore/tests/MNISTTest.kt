@@ -84,7 +84,7 @@ fun main() {
 
     val net = MnistNet(sciCore)
 
-    val nTrainSteps = 20_000L
+    val nTrainSteps = 60_000L
     val nTestSteps = 10_000L
     val learningRate = 0.01f
 
