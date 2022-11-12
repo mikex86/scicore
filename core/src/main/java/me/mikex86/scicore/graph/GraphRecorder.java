@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GraphRecorder implements IGraphRecorder {
@@ -22,6 +23,13 @@ public class GraphRecorder implements IGraphRecorder {
             .weakKeys()
             .weakValues()
             .makeMap();
+
+    @NotNull
+    private final Stack<Map<ITensor, IGraph.IGraphNode>> recordingScopes = new Stack<>();
+
+    {
+        recordingScopes.push(new IdentityHashMap<>());
+    }
 
     public GraphRecorder(@NotNull OperationRegistry operationRegistry) {
         this.operationRegistry = operationRegistry;
@@ -67,6 +75,7 @@ public class GraphRecorder implements IGraphRecorder {
     public void putGraphNode(@NotNull ITensor tensor, @NotNull IGraph.IGraphNode graphNode) {
         tensor.setReferenceToAssociatedGraphNode(graphNode);
         this.valueToNodeMap.put(tensor, graphNode);
+        this.recordingScopes.peek().put(tensor, graphNode);
     }
 
     @Override
@@ -221,8 +230,8 @@ public class GraphRecorder implements IGraphRecorder {
         return graph;
     }
 
-    private int nBytesDeletedSinceLastAsyncGC = 0;
-    private int nBytesDeletedSinceLastOnSameThreadGC = 0;
+    private int nBytesProbablyDeletedSinceLastAsyncGC = 0;
+    private int nBytesProbablyDeletedSinceLastOnSameThreadGC = 0;
 
     @NotNull
     private final AtomicBoolean shouldRunGC = new AtomicBoolean(false);
@@ -246,25 +255,56 @@ public class GraphRecorder implements IGraphRecorder {
         gcThread.start();
     }
 
+    private void checkShouldRunGC() {
+        if (nBytesProbablyDeletedSinceLastAsyncGC > 100_000_000) { // 100 Mb
+            shouldRunGC.set(true);
+            nBytesProbablyDeletedSinceLastAsyncGC = 0;
+        }
+        if (nBytesProbablyDeletedSinceLastOnSameThreadGC > 2_000_000_000) { // 2 GB
+            System.gc();
+            nBytesProbablyDeletedSinceLastOnSameThreadGC = 0;
+        }
+    }
+
     @Override
     public void resetRecording() {
         for (Map.Entry<ITensor, IGraph.IGraphNode> entry : this.valueToNodeMap.entrySet()) {
-            IGraph.IGraphNode node = entry.getValue();
-            if (node instanceof IGraph.ITensorNode tensorNode) {
-                nBytesDeletedSinceLastAsyncGC += tensorNode.getValue().getNumBytes();
-                nBytesDeletedSinceLastOnSameThreadGC += tensorNode.getValue().getNumBytes();
-                tensorNode.deleteValue();
-            }
+            disposeIfPossible(entry);
         }
         this.valueToNodeMap.clear();
-        if (nBytesDeletedSinceLastAsyncGC > 100_000_000) { // 100 Mb
-            shouldRunGC.set(true);
-            nBytesDeletedSinceLastAsyncGC = 0;
+        checkShouldRunGC();
+    }
+
+    @Override
+    public void recordWithScope(@NotNull Callable<Void> recording) {
+        this.recordingScopes.push(new IdentityHashMap<>());
+        try {
+            recording.call();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        if (nBytesDeletedSinceLastOnSameThreadGC > 2_000_000_000) { // 2 GB
-            System.gc();
-            nBytesDeletedSinceLastOnSameThreadGC = 0;
+        Map<ITensor, IGraph.IGraphNode> scope = this.recordingScopes.pop();
+        for (Map.Entry<ITensor, IGraph.IGraphNode> entry : scope.entrySet()) {
+            disposeIfPossible(entry);
         }
+        checkShouldRunGC();
+    }
+
+    private void disposeIfPossible(@NotNull Map.Entry<ITensor, IGraph.IGraphNode> entry) {
+        ITensor value = entry.getKey();
+        IGraph.IGraphNode node = entry.getValue();
+
+        // dispose tensors in option bundles
+        if (node instanceof Graph.OperationGraphNode operationGraphNode) {
+            operationGraphNode.getOperationContext().getOptionBundle().dispose();
+        }
+        if (value.isDeReferenced()) {
+            value.dispose();
+        } else {
+            nBytesProbablyDeletedSinceLastAsyncGC += value.getNumBytes();
+            nBytesProbablyDeletedSinceLastOnSameThreadGC += value.getNumBytes();
+        }
+        this.valueToNodeMap.remove(value);
     }
 
 

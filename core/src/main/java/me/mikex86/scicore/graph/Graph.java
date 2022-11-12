@@ -5,16 +5,15 @@ import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.OperationRegistry;
 import me.mikex86.scicore.graph.op.IDifferentiableOperation;
 import me.mikex86.scicore.graph.op.IOperation;
+import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.utils.OptionalUtils;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class Graph implements IGraph {
 
@@ -139,21 +138,55 @@ public class Graph implements IGraph {
             if (!tensor.isScalar()) {
                 throw new IllegalStateException("Cannot compute gradient of non-scalar tensor");
             }
-            ITensor gradient;
-            {
-                // ones like tensor
-                gradient = backend.createTensor(tensor.getDataType(), tensor.getShape());
+
+            try (ITensor gradient = backend.createTensor(tensor.getDataType(), tensor.getShape())) {
                 gradient.fill(1);
+                nodeWithGradient.accumulateGradient(gradient); // dL/dL = 1
             }
-            nodeWithGradient.accumulateGradient(gradient);
 
             // apply chain rule
             backPropagate(nodeWithGradient);
 
+            // collect results
+            collectGradientResults();
+
             // clear gradients
-            clearUnusedGradients();
+            //clearUnusedGradients();
         } else {
             throw new IllegalStateException("Output node of graph must be differentiable!");
+        }
+    }
+
+    /**
+     * This function invokes .result() on all nodes that explicitly request gradients.
+     * This is done such that we can delete the required, but not requested gradients from the graph, that would otherwise
+     * have to be kept in memory until the lazy value of the requested gradient is computed.
+     */
+    private void collectGradientResults() {
+        Queue<IGraphNode> nodesToVisit = new LinkedList<>();
+        nodesToVisit.add(outputNode);
+
+        Set<IGraphNode> visited = new HashSet<>();
+
+        while (!nodesToVisit.isEmpty()) {
+            IGraphNode node = nodesToVisit.poll();
+            if (visited.contains(node)) {
+                continue;
+            }
+            visited.add(node);
+            if (node instanceof ITensorNodeWithGradient nodeWithGradient) {
+                if (nodeWithGradient.requestsGradients()) {
+                    ITensor value = nodeWithGradient.getGradient();
+                    if (value instanceof LazyTensor lazyTensor) {
+                        lazyTensor.result();
+                    }
+                }
+                if (nodeWithGradient.requiresGradients()) {
+                    if (node instanceof OperationGraphNode operationNode) {
+                        nodesToVisit.addAll(operationNode.getInputs());
+                    }
+                }
+            }
         }
     }
 
@@ -204,12 +237,48 @@ public class Graph implements IGraph {
         Queue<IGraphNode> nodesToVisit = new LinkedList<>();
         nodesToVisit.add(outputNode);
 
+        Set<IGraphNode> visited = new HashSet<>();
+
         while (!nodesToVisit.isEmpty()) {
             IGraphNode node = nodesToVisit.poll();
+            if (visited.contains(node)) {
+                continue;
+            }
             if (node instanceof ITensorNodeWithGradient nodeWithGradient) {
-                if (!nodeWithGradient.requiresGradients()) {
+                if (!nodeWithGradient.requestsGradients()) {
                     nodeWithGradient.deleteGradient();
                 }
+                if (node instanceof OperationGraphNode operationNode) {
+                    // traverse up the topology, if the graph extends upwards
+                    List<IGraphNode> inputs = operationNode.getInputs();
+                    for (IGraphNode input : inputs) {
+                        if (input instanceof ITensorNodeWithGradient inputWithGradient) {
+                            if (inputWithGradient.requiresGradients()) {
+                                nodesToVisit.add(input);
+                            }
+                        }
+                    }
+                }
+            }
+            visited.add(node);
+        }
+    }
+
+    @Override
+    public void dispose() {
+        Queue<IGraphNode> nodesToVisit = new LinkedList<>();
+        nodesToVisit.add(outputNode);
+
+        Set<IGraphNode> visited = new HashSet<>();
+
+        while (!nodesToVisit.isEmpty()) {
+            IGraphNode node = nodesToVisit.poll();
+            if (visited.contains(node)) {
+                continue;
+            }
+            visited.add(node);
+            if (node instanceof ITensorNodeWithGradient nodeWithGradient) {
+                nodeWithGradient.deleteGradient();
             }
             if (node instanceof OperationGraphNode operationNode) {
                 // traverse up the topology, if the graph extends upwards
@@ -218,7 +287,6 @@ public class Graph implements IGraph {
             }
         }
     }
-
 
     @NotNull
     public Optional<ITensor> getGradient(@NotNull ITensor tensor) {
@@ -272,19 +340,23 @@ public class Graph implements IGraph {
 
         @Override
         public void deleteGradient() {
-            this.upstreamGradient = null;
+            if (this.upstreamGradient == null) {
+                return;
+            }
+            this.upstreamGradient.dispose();
+            // don't set to null, because we want to know that this node has been disposed
+            // otherwise we can't differentiate from zeroGrad
         }
 
         @Override
         public void accumulateGradient(@NotNull ITensor gradient) {
             if (this.upstreamGradient == null) {
-                this.upstreamGradient = gradient;
-            } else {
-                Validator.assertTrue(ShapeUtils.equals(this.upstreamGradient.getShape(), gradient.getShape()), "Accumulative gradients must match shape");
-                // TODO: COMMENT BACK IN WHEN IN-PLACE OPERATIONS ARE FIXED
-                // this.upstreamGradient.add(gradient);
-                this.upstreamGradient.setContents(this.upstreamGradient.plus(gradient));
+                this.upstreamGradient = gradient.getSciCoreBackend().createTensor(gradient.getDataType(), gradient.getShape());
             }
+            Validator.assertTrue(ShapeUtils.equals(this.upstreamGradient.getShape(), gradient.getShape()), "Accumulative gradients must match shape");
+            // TODO: COMMENT BACK IN WHEN IN-PLACE OPERATIONS ARE FIXED
+            // this.upstreamGradient.add(gradient);
+            this.upstreamGradient.setContents(this.upstreamGradient.plus(gradient));
         }
 
         @Nullable

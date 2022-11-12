@@ -1,12 +1,13 @@
 package me.mikex86.scicore.graph;
 
 import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.utils.dispose.IDisposable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public interface IGraph {
+public interface IGraph extends IDisposable, AutoCloseable {
 
     @NotNull IGraphNode getOutputNode();
 
@@ -20,6 +21,11 @@ public interface IGraph {
     void backward();
 
     @NotNull Optional<ITensor> getGradient(@NotNull ITensor value);
+
+    @Override
+    default void close() {
+        dispose();
+    }
 
     interface IGraphNode {
 

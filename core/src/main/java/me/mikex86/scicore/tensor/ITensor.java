@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.nio.*;
 import java.util.List;
 
-public interface ITensor extends IValue, IDisposable {
+public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     float EPSILON = 1E-4f;
 
@@ -752,4 +752,14 @@ public interface ITensor extends IValue, IDisposable {
         return getDataType().getSizeOf(getNumberOfElements());
     }
 
+    /**
+     * Close method invoked on the tensor will mark it "de-referenced" and will be immediately disposed, once the recording scope is closed.
+     */
+    @Override
+    void close();
+
+    /**
+     * @return true if the tensor was closed
+     */
+    boolean isDeReferenced();
 }

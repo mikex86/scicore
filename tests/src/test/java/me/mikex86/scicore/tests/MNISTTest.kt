@@ -3,6 +3,7 @@ package me.mikex86.scicore.tests
 import me.mikex86.scicore.ISciCore
 import me.mikex86.scicore.SciCore
 import me.mikex86.scicore.data.DatasetIterator
+import me.mikex86.scicore.graph.scopedRecording
 import me.mikex86.scicore.nn.IModule
 import me.mikex86.scicore.nn.layers.Linear
 import me.mikex86.scicore.nn.layers.ReLU
@@ -11,13 +12,12 @@ import me.mikex86.scicore.nn.optim.Sgd
 import me.mikex86.scicore.tensor.DataType
 import me.mikex86.scicore.tensor.ITensor
 import me.mikex86.scicore.utils.Pair
+import me.mikex86.scicore.utils.use
 import me.tongfei.progressbar.ProgressBar
 import me.tongfei.progressbar.ProgressBarBuilder
 import me.tongfei.progressbar.ProgressBarStyle
-import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
-import java.lang.Double.isNaN
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -26,8 +26,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import java.util.function.Supplier
-import java.util.stream.Collectors
-import java.util.stream.Stream
 import java.util.zip.GZIPInputStream
 
 
@@ -102,18 +100,18 @@ fun main() {
         .setUpdateIntervalMillis(100)
         .build().use { progressBar ->
             for (step in 0 until nTrainSteps) {
-                sciCore.backend.operationRecorder.resetRecording()
-                val batch = trainIt.next()
-                val x = batch.first
-                val y = batch.second
-                val yPred = net.forward(x)
-                val loss = yPred.minus(y)
-                    .pow(2f)
-                    .reduceSum(-1)
-                    .divide(yPred.numberOfElements.toFloat())
-                optimizer.step(loss)
+                sciCore.backend.operationRecorder.scopedRecording {
+                    val batch = trainIt.next()
+                    batch.use { x, y ->
+                        lossValue = net.forward(x)
+                            .use { yPred -> yPred.minus(y) }
+                            .use { diff -> diff.pow(2f) }
+                            .use { diffSquared -> diffSquared.reduceSum(-1) }
+                            .use { sum -> sum.divide(BATCH_SIZE.toFloat()) }
+                            .use { loss -> optimizer.step(loss); loss.elementAsDouble() }
+                    }
+                }
                 progressBar.step()
-                lossValue = loss.elementAsDouble()
                 progressBar.extraMessage = String.format(Locale.US, "loss: %.5f", lossValue)
             }
         }
@@ -134,19 +132,25 @@ fun main() {
         .setUpdateIntervalMillis(100)
         .build().use { progressBar ->
             for (testStep in 0 until nTestSteps) {
-                sciCore.backend.operationRecorder.resetRecording()
-                val batch = testIt.next()
-                val x = batch.first
-                val y = batch.second
-                val yPred = net.forward(x)
-                val yPredMax = yPred.argmax(1)
-                val yMax = y.argmax(1)
-                correct += yPredMax.compareElements(yMax).cast(DataType.INT32).reduceSum(-1).elementAsInt()
+                sciCore.backend.operationRecorder.scopedRecording {
+                    val batch = testIt.next()
+                    batch.use { x, y ->
+                        net.forward(x)
+                            .use { yPred -> yPred.argmax(1) }
+                            .use { yPredMax ->
+                                correct += y.argmax(1)
+                                    .use { yMax -> yPredMax.compareElements(yMax) }
+                                    .use { yCmpBool -> yCmpBool.cast(DataType.INT32) }
+                                    .use { yCmpInt -> yCmpInt.reduceSum(-1) }
+                                    .use { yCmpSum -> yCmpSum.elementAsInt() }
+                            }
+                    }
+                }
                 progressBar.step()
-                progressBar.extraMessage = String.format(Locale.US, "accuracy: %.5f", correct.toFloat() / testStep / BATCH_SIZE)
+                progressBar.extraMessage =
+                    String.format(Locale.US, "accuracy: %.5f", correct.toFloat() / testStep / BATCH_SIZE)
             }
         }
-
     println("Final Accuracy: " + correct.toFloat() / nTestSteps / BATCH_SIZE)
 }
 
@@ -158,10 +162,10 @@ class MnistNet(sciCore: ISciCore) : IModule {
     private val softmax = Softmax(sciCore, 1)
 
     override fun forward(input: ITensor): ITensor {
-        var h = fc1.forward(input)
-        h = act.forward(h)
-        h = fc2.forward(h)
-        return softmax.forward(h)
+        return fc1.forward(input)
+            .use { h -> act.forward(h) }
+            .use { h -> fc2.forward(h) }
+            .use { h -> softmax.forward(h) }
     }
 
     override fun parameters(): List<ITensor> {

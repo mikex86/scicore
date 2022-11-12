@@ -3,13 +3,14 @@ package me.mikex86.scicore.graph;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.utils.dispose.IDisposable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class OptionBundle {
+public class OptionBundle implements IDisposable {
 
     @NotNull
     private final Map<String, ITensor> options;
@@ -121,4 +122,8 @@ public class OptionBundle {
         set(name, tensor);
     }
 
+    @Override
+    public void dispose() {
+        options.values().forEach(IDisposable::dispose);
+    }
 }

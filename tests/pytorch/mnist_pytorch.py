@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
         Y_pred = net(X.view(-1, 28 * 28))
         Y_one_hot = torch.nn.functional.one_hot(Y, num_classes=10).float()
-        loss = (Y_pred - Y_one_hot).pow(2).sum() / float(Y_pred.numel())
+        loss = (Y_pred - Y_one_hot).pow(2).sum() / float(batch_size)
 
         loss.backward()
 

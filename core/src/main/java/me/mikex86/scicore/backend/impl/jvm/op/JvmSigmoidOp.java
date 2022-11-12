@@ -19,8 +19,7 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
         this.backend = backend;
     }
 
-    @Override
-    public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
+    private @NotNull ITensor sigmoid(@NotNull ITensor input) {
         long[] shape = input.getShape();
         long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
@@ -40,6 +39,12 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
             }
         }
         result = result.getReshapedView(shape, strides);
+        return result;
+    }
+
+    @Override
+    public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
+        ITensor result = sigmoid(input);
         ctx.saveForBackward("sigmoid", result);
         return result;
     }
@@ -52,7 +57,7 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input) {
         if (input.requiresGradients()) {
-            ITensor sigmoid = ctx.getSavedTensor("sigmoid").orElseThrow();
+            ITensor sigmoid = ctx.getSavedTensorOrPopulateWith("sigmoid", () -> sigmoid(input.getValue()));
             ITensor gradients = sigmoid.multiply(sigmoid.multiply(-1.0f).plus(1.0f));
             input.accumulateGradient(gradients.multiply(upstreamGradient));
         }

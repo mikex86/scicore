@@ -19,8 +19,7 @@ public class JvmExpOp implements IDifferentiableUnaryOperation {
         this.backend = backend;
     }
 
-    @Override
-    public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
+    private @NotNull ITensor exp(@NotNull ITensor input) {
         long[] shape = input.getShape();
         long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
@@ -31,6 +30,12 @@ public class JvmExpOp implements IDifferentiableUnaryOperation {
             result.setByDoubleFlat(Math.exp(value), i);
         }
         result = result.getReshapedView(shape, strides);
+        return result;
+    }
+
+    @Override
+    public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
+        ITensor result = exp(input);
         ctx.saveForBackward("exp", result);
         return result;
     }
@@ -43,7 +48,7 @@ public class JvmExpOp implements IDifferentiableUnaryOperation {
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input) {
         if (input.requiresGradients()) {
-            ITensor exp = ctx.getSavedTensor("exp").orElseThrow(() -> new IllegalStateException("No saved tensor named \"exp\" found"));
+            ITensor exp = ctx.getSavedTensorOrPopulateWith("exp", () -> exp(input.getValue()));
             input.accumulateGradient(upstreamGradient.multiply(exp));
         }
     }

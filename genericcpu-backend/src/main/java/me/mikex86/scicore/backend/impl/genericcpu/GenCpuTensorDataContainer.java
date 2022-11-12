@@ -24,6 +24,8 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     @NotNull
     private final DirectMemoryManager memoryManager;
 
+    private boolean disposed = false;
+
     public GenCpuTensorDataContainer(@NotNull DirectMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
         this.memoryManager = memoryManager;
         long nBytes = dataType.getSizeOf(nElements);
@@ -32,80 +34,99 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
         this.dataType = dataType;
     }
 
+    private void checkDisposed() {
+        if (disposed) {
+            throw new IllegalStateException("GenCpuTensorDataContainer has already been disposed");
+        }
+    }
+
     @Override
     public byte getInt8Flat(long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex;
         return MemoryUtil.memGetByte(finalPtr);
     }
 
     @Override
     public void getInt8Flat(byte value, long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex;
         MemoryUtil.memPutByte(finalPtr, value);
     }
 
     @Override
     public short getInt16Flat(long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 2;
         return MemoryUtil.memGetShort(finalPtr);
     }
 
     @Override
     public void setInt16Flat(short value, long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 2;
         MemoryUtil.memPutShort(finalPtr, value);
     }
 
     @Override
     public int getInt32Flat(long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         return MemoryUtil.memGetInt(finalPtr);
     }
 
     @Override
     public void setInt32Flat(int value, long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         MemoryUtil.memPutInt(finalPtr, value);
     }
 
     @Override
     public long getInt64Flat(long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         return MemoryUtil.memGetLong(finalPtr);
     }
 
     @Override
     public void setInt64Flat(long value, long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         MemoryUtil.memPutLong(finalPtr, value);
     }
 
     @Override
     public float getFloat32Flat(long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         return MemoryUtil.memGetFloat(finalPtr);
     }
 
     @Override
     public void setFloat32Flat(float value, long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         MemoryUtil.memPutFloat(finalPtr, value);
     }
 
     @Override
     public double getFloat64Flat(long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         return MemoryUtil.memGetDouble(finalPtr);
     }
 
     @Override
     public void setFloat64Flat(double value, long flatIndex) {
+        checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         MemoryUtil.memPutDouble(finalPtr, value);
     }
 
     @Override
     public void setBooleanFlat(boolean value, long flatIndex) {
+        checkDisposed();
         long byteIndex = flatIndex / 8;
         int bitIndex = (int) (flatIndex % 8);
         byte byteValue = getInt8Flat(byteIndex);
@@ -118,6 +139,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public boolean getBooleanFlat(long flatIndex) {
+        checkDisposed();
         long byteIndex = flatIndex / 8;
         int bitIndex = (int) (flatIndex % 8);
         byte byteValue = getInt8Flat(byteIndex);
@@ -126,6 +148,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(@NotNull ByteBuffer buffer) {
+        checkDisposed();
         if (buffer.remaining() > this.dataSize) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
@@ -145,6 +168,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(@NotNull ShortBuffer buffer) {
+        checkDisposed();
         if (buffer.remaining() > this.dataSize / Short.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
@@ -165,6 +189,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(@NotNull IntBuffer buffer) {
+        checkDisposed();
         if (buffer.remaining() > this.dataSize / Integer.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
@@ -185,6 +210,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(@NotNull LongBuffer buffer) {
+        checkDisposed();
         if (buffer.remaining() > this.dataSize / Long.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
@@ -205,6 +231,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(@NotNull FloatBuffer buffer) {
+        checkDisposed();
         if (buffer.remaining() > this.dataSize / Float.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
@@ -225,6 +252,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(@NotNull DoubleBuffer buffer) {
+        checkDisposed();
         if (buffer.remaining() > this.dataSize / Double.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
@@ -245,6 +273,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(boolean @NotNull [] data) {
+        checkDisposed();
         if (data.length > this.dataSize * 8) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize * 8 + " bits with buffer of size " + data.length + " bits");
         }
@@ -263,11 +292,13 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void fill(byte value) {
+        checkDisposed();
         MemoryUtil.memSet(this.memoryHandle.getNativePtr(), value & 0xFF, this.dataSize);
     }
 
     @Override
     public void fill(short value) {
+        checkDisposed();
         if (this.dataSize % Short.BYTES != 0) {
             throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with short value");
         }
@@ -280,6 +311,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void fill(int value) {
+        checkDisposed();
         if (this.dataSize % Integer.BYTES != 0) {
             throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with int value");
         }
@@ -292,6 +324,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void fill(long value) {
+        checkDisposed();
         if (this.dataSize % Long.BYTES != 0) {
             throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with long value");
         }
@@ -304,6 +337,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void fill(float value) {
+        checkDisposed();
         if (this.dataSize % Float.BYTES != 0) {
             throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with float value");
         }
@@ -316,6 +350,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void fill(double value) {
+        checkDisposed();
         if (this.dataSize % Double.BYTES != 0) {
             throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with double value");
         }
@@ -328,6 +363,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void fill(boolean value) {
+        checkDisposed();
         byte byteValue = value ? (byte) 0xFF : (byte) 0x00;
         fill(byteValue);
     }
@@ -335,6 +371,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     @Override
     @NotNull
     public DirectMemoryHandle getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
+        checkDisposed();
         long containerSize = this.dataSize;
         if (startFlatIndex < 0 || endFlatIndex > containerSize) {
             throw new IndexOutOfBoundsException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (data container length " + containerSize + ")");
@@ -349,6 +386,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     @Override
     @NotNull
     public DirectMemoryHandle getAsDirectBuffer() {
+        checkDisposed();
         return this.memoryHandle.createReference();
     }
 
@@ -360,6 +398,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @NotNull
     public DirectMemoryHandle getMemoryHandle() {
+        checkDisposed();
         return memoryHandle;
     }
 
@@ -370,6 +409,10 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void dispose() {
+        if (this.disposed) {
+            throw new IllegalStateException("Data container already disposed");
+        }
         this.memoryHandle.free();
+        this.disposed = true;
     }
 }

@@ -311,4 +311,9 @@ public class View extends AbstractTensor {
         }
         return this.viewed.getContentsAsDirectMemory(this.offset + startFlatIndex, this.offset + endFlatIndex);
     }
+
+    @Override
+    public void dispose() {
+        // Do nothing
+    }
 }

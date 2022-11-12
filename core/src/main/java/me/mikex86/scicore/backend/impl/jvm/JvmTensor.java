@@ -7,6 +7,7 @@ import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
+import me.mikex86.scicore.utils.dispose.IDisposable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -496,7 +497,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     }
 
 
-    private static class JvmTensorDataContainer {
+    private static class JvmTensorDataContainer implements IDisposable {
 
         @NotNull
         private final JvmBackend backend;
@@ -895,6 +896,17 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             }
             return memoryHandle;
         }
+
+        @Override
+        public void dispose() {
+            this.bitSetData = null;
+            this.byteData = null;
+            this.shortData = null;
+            this.intData = null;
+            this.longData = null;
+            this.floatData = null;
+            this.doubleData = null;
+        }
     }
 
     @Override
@@ -920,6 +932,11 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             throw new UnsupportedOperationException("JvmTensors cannot have more than Integer.MAX_VALUE elements");
         }
         return this.dataContainer.getAsDirectBuffer(Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex));
+    }
+
+    @Override
+    public void dispose() {
+        this.dataContainer.dispose();
     }
 
     @Override

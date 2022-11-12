@@ -76,9 +76,14 @@ public class GenCPUPowOp implements IDifferentiableBinaryOperation {
 
         if (a.requiresGradients()) {
             // dP/dA = B * A ^ (B - 1)
-            ITensor localGradients = bValue.multiply(aValue.pow(bValue.minus(1f)));
-            ITensor globalGradients = upstreamGradient.multiply(localGradients); // dL/dA = dL/dP * dP/dA
-            a.accumulateGradient(globalGradients);
+            try (ITensor bMinusOne = bValue.minus(1f)) {
+                try (ITensor aPowBMinusOne = aValue.pow(bMinusOne)) {
+                    try (ITensor localGradients = bValue.multiply(aPowBMinusOne)) {
+                        ITensor globalGradients = upstreamGradient.multiply(localGradients); // dL/dA = dL/dP * dP/dA
+                        a.accumulateGradient(globalGradients);
+                    }
+                }
+            }
         }
 
         if (b.requiresGradients()) {
@@ -97,7 +102,8 @@ public class GenCPUPowOp implements IDifferentiableBinaryOperation {
                     localGradients.setByLongFlat((long) (resultVal * Math.log(aV)), i); // dP/dB = A ^ B * ln(A)
                 }
             }
-            ITensor globalGradients = upstreamGradient.matmul(localGradients, false, true); // dL/dB = dL/dP * dP/dB
+            // dL/dB = dL/dP * dP/dB
+            ITensor globalGradients = upstreamGradient.matmul(localGradients, false, true); // multiply and sum = matmul in this case
             b.accumulateGradient(globalGradients);
         }
     }

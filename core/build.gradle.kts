@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    kotlin("jvm") version "1.7.21"
 //    id("com.google.protobuf") version "0.8.17"
 }
 
@@ -97,6 +98,8 @@ dependencies {
     // LWJGL natives
     runtimeOnly("org.lwjgl", "lwjgl", classifier = lwjglNatives)
     runtimeOnly("org.lwjgl", "lwjgl-jemalloc", classifier = lwjglNatives)
+
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 tasks.getByName<Test>("test") {

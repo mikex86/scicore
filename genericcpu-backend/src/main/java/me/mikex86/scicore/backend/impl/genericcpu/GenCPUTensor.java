@@ -23,6 +23,8 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
 
     private final long @NotNull [] shape;
 
+    private boolean disposed = false;
+
     public GenCPUTensor(@NotNull GenCPUBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
         this.numElements = ShapeUtils.getNumElements(shape);
         this.dataContainer = new GenCpuTensorDataContainer(backend.getMemoryManager(), this.numElements, dataType);

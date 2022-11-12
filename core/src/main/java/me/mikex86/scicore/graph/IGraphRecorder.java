@@ -3,8 +3,10 @@ package me.mikex86.scicore.graph;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 
 public interface IGraphRecorder {
 
@@ -29,9 +31,8 @@ public interface IGraphRecorder {
      * @param parameters     all tensors that the graph must span to, even though they may already be computed.
      * @return the graph spanning from the specified root tensor up to all parameters, which the root is a function of.
      * Already computed tensors will be present as operation nodes, but with computed outputs.
-     * @throws IllegalArgumentException
-     * if the root tensor was not recorded as an output computed by this graph or
-     * if root is not a function of all parameters
+     * @throws IllegalArgumentException if the root tensor was not recorded as an output computed by this graph or
+     *                                  if root is not a function of all parameters
      */
     @NotNull Graph getBackpropagationGraphTo(@NotNull ISciCoreBackend sciCoreBackend, @NotNull ITensor root, @NotNull List<ITensor> parameters);
 
@@ -39,4 +40,11 @@ public interface IGraphRecorder {
      * Creates a fresh graph to populate with operations.
      */
     void resetRecording();
+
+    /**
+     * Performs a scoped recording. The graph recorder will drop all recorded operations of the scope after the scope is closed.
+     *
+     * @param recording the recording to perform
+     */
+    void recordWithScope(@NotNull Callable<@Nullable Void> recording);
 }

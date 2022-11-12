@@ -49,12 +49,13 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     @Override
     public ITensor result() {
         if (lazyResult == null) {
-            Objects.requireNonNull(associatedGraphNode);
+            Objects.requireNonNull(associatedGraphNode, "Lazy tensor must be associated with a graph node. This could mean the tensor was already disposed.");
             ISciCoreBackend backend = getSciCoreBackend();
             IGraphRecorder graphRecorder = backend.getOperationRecorder();
-            Graph graph = graphRecorder.getExecutionGraphTo(backend, this);
-            GraphExecutor graphExecutor = new GraphExecutor();
-            graphExecutor.execute(graph);
+            try (Graph graph = graphRecorder.getExecutionGraphTo(backend, this)) {
+                GraphExecutor graphExecutor = new GraphExecutor();
+                graphExecutor.execute(graph);
+            }
         }
         return lazyResult;
     }
@@ -292,13 +293,13 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     public String toString() {
         if (hasResult()) {
             return "LazyTensor(" +
-                   "result=" + result() +
-                   ')';
+                    "result=" + result() +
+                    ')';
         } else {
             return "LazyTensor(" +
-                   "shape=" + ShapeUtils.toString(resultShape) +
-                   ", dataType=" + resultDataType +
-                   ", hasResult=false)";
+                    "shape=" + ShapeUtils.toString(resultShape) +
+                    ", dataType=" + resultDataType +
+                    ", hasResult=false)";
         }
     }
 
@@ -322,5 +323,14 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     @Override
     public <T extends ITensor> @Nullable T getIfIsType(@NotNull Class<T> typeClass) {
         return result().getIfIsType(typeClass);
+    }
+
+    @Override
+    public void dispose() {
+        if (hasResult()) {
+            result().dispose();
+        } else {
+            associatedGraphNode = null;
+        }
     }
 }
