@@ -12,9 +12,9 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
                                  const size_t *shapeC, const size_t *stridesC, size_t nDimsC) { \
     size_t vecSize = OPERANDS_SIZE / sizeof(type); \
     /* if a has altered strides, return false */ \
-    if (nDimsA <= 1 || nDimsB <= 1) { \
-        return false; /* tblas_##op_name##_nd_by_scalar handles this */\
-    } \
+    if (!unalteredStrides(stridesA, shapeA, nDimsA)) {\
+        return false;                                       \
+    }\
     /* if c has altered strides, return false */ \
     if (!unalteredStrides(stridesC, shapeC, nDimsC)) {\
         return false;\
@@ -55,26 +55,8 @@ bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
     if (nDimsC != nDimsA && nDimsC != nDimsB) { \
         return false; \
     } \
-    /* if shapeA != shapeC && shapeB != shapeC, return false */\
-    bool shouldCheckB = true; \
-    if (nDimsC == nDimsA) { \
-        for (int i = 0; i < nDimsC; i++) { \
-            if (shapeA[i] != shapeC[i]) { \
-                break; \
-            } \
-        } \
-        shouldCheckB = false; \
-    } \
-    if (shouldCheckB) { \
-        if (nDimsC == nDimsB) { \
-            for (int i = 0; i < nDimsC; i++) { \
-                if (shapeB[i] != shapeC[i]) { \
-                    return false; \
-                } \
-            } \
-        } else { \
-            return false; \
-        } \
+    if (nDimsA <= 1 || nDimsB <= 1) { \
+        return false; /* tblas_##op_name##_nd_by_scalar handles this */\
     } \
     if (!unalteredStrides(stridesC, shapeC, nDimsC)) { \
         return false; \

@@ -11,10 +11,10 @@ void Java_me_mikex86_scicore_backend_impl_genericcpu_jni_ReduceSumJNI_nreduceSum
     size_t nDimsA = jniEnv->GetArrayLength(shapeA);
     size_t nDimsC = jniEnv->GetArrayLength(shapeC);
     if (nDimsA != jniEnv->GetArrayLength(stridesA)) {
-        throw std::runtime_error("nDimsA != jniEnv->GetArrayLength(stridesA)");
+        jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"), "shapeA and stridesA must have the same length");
     }
     if (nDimsC != jniEnv->GetArrayLength(stridesC)) {
-        throw std::runtime_error("nDimsC != jniEnv->GetArrayLength(stridesC)");
+        jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"), "shapeC and stridesC must have the same length");
     }
     auto *shapeA_ = new size_t[nDimsA];
     auto *stridesA_ = new size_t[nDimsA];
@@ -63,7 +63,8 @@ void Java_me_mikex86_scicore_backend_impl_genericcpu_jni_ReduceSumJNI_nreduceSum
                             static_cast<int64_t>(dimension), static_cast<bool>(keepDims));
             break;
         default:
-            throw std::runtime_error("Unknown data type");
+            jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"), "Unsupported data type");
+            break;
     }
 
     delete[] shapeA_;

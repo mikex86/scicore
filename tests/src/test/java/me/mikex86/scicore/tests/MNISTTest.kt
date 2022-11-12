@@ -84,7 +84,7 @@ fun main() {
 
     val net = MnistNet(sciCore)
 
-    val nTrainSteps = 1_000L
+    val nTrainSteps = 20_000L
     val nTestSteps = 10_000L
     val learningRate = 0.01f
 
@@ -165,7 +165,7 @@ class MnistNet(sciCore: ISciCore) : IModule {
     }
 
     override fun parameters(): List<ITensor> {
-        return Stream.concat(fc1.parameters().stream(), fc2.parameters().stream()).collect(Collectors.toList())
+        return collectParameters(fc1, fc2)
     }
 }
 

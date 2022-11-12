@@ -103,7 +103,7 @@ if __name__ == '__main__':
                 param -= lr * param.grad
                 param.grad.zero_()
 
-    print(f'Final loss: {loss.item():.5f}')
+    print(f'Final loss: {loss.item()}')
     print(f'Train time: {time.time() - start_time:.2f}s')
 
     # Test the network
@@ -119,5 +119,5 @@ if __name__ == '__main__':
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    print(f"Accuracy: {correct / total:.5f}")
+    print(f"Accuracy: {correct / total}")
 
