@@ -151,7 +151,7 @@ public class Graph implements IGraph {
             collectGradientResults();
 
             // clear gradients
-            //clearUnusedGradients();
+            clearUnusedGradients();
         } else {
             throw new IllegalStateException("Output node of graph must be differentiable!");
         }
@@ -190,7 +190,6 @@ public class Graph implements IGraph {
         }
     }
 
-
     /**
      * Applies chain rule to all leaf nodes
      * This order of iteration guarantees topological ordering from root to leaf nodes
@@ -202,22 +201,13 @@ public class Graph implements IGraph {
      * to the currently processed node and the gradient of the input node with respect to the currently processed node.
      */
     private void backPropagate(@NotNull ITensorNodeWithGradient node) {
-        Set<IGraphNode> topology = new LinkedHashSet<>();
+        Deque<IGraphNode> topology = new LinkedList<>();
+        Set<IGraphNode> visited = new HashSet<>();
         // build topology
         {
-            Queue<IGraphNode> nodesToVisit = new LinkedList<>();
-            nodesToVisit.add(node);
-            while (!nodesToVisit.isEmpty()) {
-                IGraphNode currentNode = nodesToVisit.poll();
-                topology.add(currentNode);
-                if (currentNode instanceof OperationGraphNode operationNode) {
-                    List<IGraphNode> inputs = operationNode.getInputs();
-                    nodesToVisit.addAll(inputs);
-                }
-            }
+            buildTopo(node, topology, visited);
         }
         // back propagate
-        // Breadth first search guarantees that we don't use premature upstream gradients to compute subsequent gradients
         for (IGraphNode currentNode : topology) {
             if (currentNode instanceof ITensorNodeWithGradient currentNodeWithGradient) {
                 // only compute gradient for nodes for which it is required
@@ -227,6 +217,20 @@ public class Graph implements IGraph {
                     }
                 }
             }
+        }
+    }
+
+    private void buildTopo(IGraphNode node, Deque<IGraphNode> topology, Set<IGraphNode> visited) {
+        if (visited.contains(node)) {
+            return;
+        }
+        visited.add(node);
+        // This ordering guarantees that we don't use premature upstream gradients to compute subsequent gradients
+        if (node instanceof OperationGraphNode operationNode) {
+            for (IGraphNode input : operationNode.getInputs()) {
+                buildTopo(input, topology, visited);
+            }
+            topology.addFirst(node); // add node AFTER all its inputs have been added
         }
     }
 
