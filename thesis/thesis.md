@@ -1106,7 +1106,4 @@ When compared with the scalar counterpart, the expression $globalGradient = upst
 
 # Language Modelling using NNs
 
-
-# Language modeling using RNNs
-
 # Language modeling using Transformers

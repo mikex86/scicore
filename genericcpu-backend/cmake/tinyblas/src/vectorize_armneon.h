@@ -13,7 +13,7 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
     size_t vecSize = OPERANDS_SIZE / sizeof(type); \
     /* if a has altered strides, return false */ \
     if (!unalteredStrides(stridesA, shapeA, nDimsA)) {\
-        return false;\
+        return false;                                       \
     }\
     /* if b is not a scalar, return false */ \
     if (!(nDimsB == 0 || (nDimsB == 1 && shapeB[0] == 1))) {\
@@ -64,32 +64,11 @@ bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
                              const size_t *shapeA, const size_t *stridesA, size_t nDimsA, \
                              const size_t *shapeB, const size_t *stridesB, size_t nDimsB, \
                              const size_t *shapeC, const size_t *stridesC, size_t nDimsC) { \
-    size_t vecSize = OPERANDS_SIZE / sizeof(type); \
+    size_t vecSize = OPERANDS_SIZE / sizeof(type);      \
     auto *outputIndex = new size_t[nDimsC]; \
-    memset(outputIndex, 0, sizeof(size_t) * nDimsC); \
-    if (nDimsC != nDimsA && nDimsC != nDimsB) { \
-        return false; \
-    } \
-    /* if shapeA != shapeC && shapeB != shapeC, return false */\
-    bool shouldCheckB = true; \
-    if (nDimsC == nDimsA) { \
-        for (int i = 0; i < nDimsC; i++) { \
-            if (shapeA[i] != shapeC[i]) { \
-                break; \
-            } \
-        } \
-        shouldCheckB = false; \
-    } \
-    if (shouldCheckB) { \
-        if (nDimsC == nDimsB) { \
-            for (int i = 0; i < nDimsC; i++) { \
-                if (shapeB[i] != shapeC[i]) { \
-                    return false; \
-                } \
-            } \
-        } else { \
-            return false; \
-        } \
+    memset(outputIndex, 0, sizeof(size_t) * nDimsC);    \
+    if (nDimsA <= 1 || nDimsB <= 1) { \
+        return false; /* tblas_##op_name##_nd_by_scalar handles this */\
     } \
     if (!unalteredStrides(stridesC, shapeC, nDimsC)) { \
         return false; \
@@ -125,6 +104,7 @@ bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
         do { \
             size_t aIndexFlat = getFlatIndexConstrained(outputIndex, shapeA, stridesA, nDimsA, nDimsC); \
             size_t bIndexFlat = getFlatIndexConstrained(outputIndex, shapeB, stridesB, nDimsB, nDimsC); \
+\
             for (int i = 0; i < nChunks; i++) {\
                 float32x4_t aVec = vld1q_f32(&a[aIndexFlat + i * vecSize]);\
                 float32x4_t bVec = vld1q_f32(&b[bIndexFlat + i * vecSize]);\
@@ -136,7 +116,7 @@ bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
                 c[cFlatIndex + nChunks * vecSize + i] = a[aIndexFlat + nChunks * vecSize + i] scalar_op b[bIndexFlat + nChunks * vecSize + i]; \
             } \
             cFlatIndex += nElementsInLastDim; \
-            outputIndex[nDimsC - 1] += nElementsInLastDim; \
+            outputIndex[nDimsC - 1] = nElementsInLastDim - 1; \
             incrementIndex(outputIndex, shapeC, nDimsC); \
         } while (cFlatIndex < nElementsC); \
     } else if (!aIsScalarInLastDim) { \
@@ -155,7 +135,7 @@ bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
                 c[cFlatIndex + nChunks * vecSize + i] = a[aIndexFlat + nChunks * vecSize + i] scalar_op b[bIndexFlat]; \
             } \
             cFlatIndex += nElementsInLastDim; \
-            outputIndex[nDimsC - 1] += nElementsInLastDim; \
+            outputIndex[nDimsC - 1] = nElementsInLastDim - 1; \
             incrementIndex(outputIndex, shapeC, nDimsC); \
         } while (cFlatIndex < nElementsC); \
     } else if (!bIsScalarInLastDim) { \
@@ -172,7 +152,7 @@ bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
                 c[cFlatIndex + nChunks * vecSize + i] = a[aIndexFlat] scalar_op b[bIndexFlat + nChunks * vecSize + i]; \
             } \
             cFlatIndex += nElementsInLastDim; \
-            outputIndex[nDimsC - 1] += nElementsInLastDim; \
+            outputIndex[nDimsC - 1] = nElementsInLastDim - 1; \
             incrementIndex(outputIndex, shapeC, nDimsC); \
         } while (cFlatIndex < nElementsC); \
     } else { \

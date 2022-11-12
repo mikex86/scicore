@@ -12,24 +12,9 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
                                  const size_t *shapeC, const size_t *stridesC, size_t nDimsC) { \
     size_t vecSize = OPERANDS_SIZE / sizeof(type); \
     /* if a has altered strides, return false */ \
-    if (!unalteredStrides(stridesA, shapeA, nDimsA)) {\
-        return false;\
-    }\
-    /* if b is not a scalar, return false */ \
-    if (!(nDimsB == 0 || (nDimsB == 1 && shapeB[0] == 1))) {\
-        return false;\
-    }\
-    /* if c is different shape than 'a', return false */ \
-    {\
-        if (nDimsA != nDimsC) {\
-            return false;\
-        }\
-        for (int i = 0; i < nDimsA; i++) {\
-            if (shapeA[i] != shapeC[i]) {\
-                return false;\
-            }\
-        }\
-    }\
+    if (nDimsA <= 1 || nDimsB <= 1) { \
+        return false; /* tblas_##op_name##_nd_by_scalar handles this */\
+    } \
     /* if c has altered strides, return false */ \
     if (!unalteredStrides(stridesC, shapeC, nDimsC)) {\
         return false;\
@@ -137,7 +122,7 @@ bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
                 c[cFlatIndex + nChunks * vecSize + i] = a[aIndexFlat + nChunks * vecSize + i] scalar_op b[bIndexFlat + nChunks * vecSize + i]; \
             } \
             cFlatIndex += nElementsInLastDim; \
-            outputIndex[nDimsC - 1] += nElementsInLastDim; \
+            outputIndex[nDimsC - 1] = nElementsInLastDim - 1; \
             incrementIndex(outputIndex, shapeC, nDimsC); \
         } while (cFlatIndex < nElementsC); \
     } else if (!aIsScalarInLastDim) { \
@@ -156,7 +141,7 @@ bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
                 c[cFlatIndex + nChunks * vecSize + i] = a[aIndexFlat + nChunks * vecSize + i] scalar_op b[bIndexFlat]; \
             } \
             cFlatIndex += nElementsInLastDim; \
-            outputIndex[nDimsC - 1] += nElementsInLastDim; \
+            outputIndex[nDimsC - 1] = nElementsInLastDim - 1; \
             incrementIndex(outputIndex, shapeC, nDimsC); \
         } while (cFlatIndex < nElementsC); \
     } else if (!bIsScalarInLastDim) { \
@@ -175,7 +160,7 @@ bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
                 c[cFlatIndex + nChunks * vecSize + i] = a[aIndexFlat] scalar_op b[bIndexFlat + nChunks * vecSize + i]; \
             } \
             cFlatIndex += nElementsInLastDim; \
-            outputIndex[nDimsC - 1] += nElementsInLastDim; \
+            outputIndex[nDimsC - 1] = nElementsInLastDim - 1; \
             incrementIndex(outputIndex, shapeC, nDimsC); \
         } while (cFlatIndex < nElementsC); \
     } else { \

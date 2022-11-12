@@ -70,12 +70,9 @@ Java_me_mikex86_scicore_backend_impl_genericcpu_jni_ArgmaxJNI_nargmax(JNIEnv *jn
                          static_cast<int64_t>(dimension));
             break;
         }
-        default: {
-            jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"), "Unsupported data type");
-        }
+        default:
+            throw std::runtime_error("Unsupported data type");
     }
-    delete[] shapeA;
-    delete[] stridesA;
-    delete[] shapeC;
-    delete[] stridesC;
+
+
 }

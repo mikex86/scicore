@@ -1,6 +1,7 @@
 #include "multiply.h"
 #include "shapeutils.h"
 #include <cstring>
+#include <iostream>
 
 template<typename A, typename B, typename C>
 void tblas_multiply(const A *a, const B *b, C *c,
@@ -21,6 +22,7 @@ void tblas_multiply(const A *a, const B *b, C *c,
 
 // Arm Neon specific implementation
 #ifdef __ARM_NEON__
+
 #include "vectorize_armneon.h"
 
 nd_by_scalar_op(multiply, float, vmulq_f32, *);

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdlib>
-#include <cstdint>
 
 void tblas_reducesum(const int8_t *a, int8_t *c,
                      size_t *shapeA, size_t *stridesA, size_t nDimsA,

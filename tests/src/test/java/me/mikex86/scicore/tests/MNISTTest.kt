@@ -14,6 +14,7 @@ import me.mikex86.scicore.utils.Pair
 import me.tongfei.progressbar.ProgressBar
 import me.tongfei.progressbar.ProgressBarBuilder
 import me.tongfei.progressbar.ProgressBarStyle
+import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.lang.Double.isNaN
@@ -83,7 +84,7 @@ fun main() {
 
     val net = MnistNet(sciCore)
 
-    val nTrainSteps = 60_000L
+    val nTrainSteps = 1_000L
     val nTestSteps = 10_000L
     val learningRate = 0.01f
 

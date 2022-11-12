@@ -13,15 +13,15 @@ void tblas_reducesum(const T *a, T *c,
         // reduce all dimensions
         if (!keepDims) {
             if (!(nDimsC == 0 || (nDimsC == 1 && shapeC[0] == 1))) {
-                throw std::invalid_argument("tblas_reducesum: when reducing all dimensions and keepDims is false, the output shape must be a scalar");
+                throw std::runtime_error("tblas_reducesum: when reducing all dimensions and keepDims is false, the output shape must be a scalar");
             }
         } else {
             if (nDimsC != nDimsA) {
-                throw std::invalid_argument("tblas_reducesum: when reducing all dimensions and keepDims is true, the number of output dimensions must be the same as the number of input dimensions");
+                throw std::runtime_error("tblas_reducesum: when reducing all dimensions and keepDims is true, the number of output dimensions must be the same as the number of input dimensions");
             }
             for (size_t i = 0; i < nDimsC; i++) {
                 if (shapeC[i] != 1) {
-                    throw std::invalid_argument("tblas_reducesum: when reducing all dimensions and keepDims is true, the output shape must be 1 in all dimensions");
+                    throw std::runtime_error("tblas_reducesum: when reducing all dimensions and keepDims is true, the output shape must be 1 in all dimensions");
                 }
             }
         }
@@ -35,16 +35,16 @@ void tblas_reducesum(const T *a, T *c,
     } else {
         // reduce one dimension
         if (dimension < 0 || dimension >= nDimsA) {
-            throw std::invalid_argument("tblas_reducesum: dimension out of range");
+            throw std::runtime_error("tblas_reducesum: dimension out of range");
         }
         // check n dims
         if (!keepDims) {
             if (nDimsC != nDimsA - 1) {
-                throw std::invalid_argument("tblas_reducesum: nDimsC != nDimsA - 1");
+                throw std::runtime_error("tblas_reducesum: nDimsC != nDimsA - 1");
             }
         } else {
             if (nDimsC != nDimsA) {
-                throw std::invalid_argument("tblas_reducesum: nDimsC != nDimsA");
+                throw std::runtime_error("tblas_reducesum: nDimsC != nDimsA");
             }
         }
         // check shape if shapeC is expected reduced shape.
@@ -54,14 +54,14 @@ void tblas_reducesum(const T *a, T *c,
             if (i == dimension) {
                 if (keepDims) {
                     if (shapeC[i + j] != 1) {
-                        throw std::invalid_argument("tblas_reducesum: shapeC[dimension] != 1 when keepDims=true");
+                        throw std::runtime_error("tblas_reducesum: shapeC[dimension] != 1 when keepDims=true");
                     }
                 } else {
                     j++;
                 }
             } else {
                 if (shapeC[i - j] != shapeA[i]) {
-                    throw std::invalid_argument("tblas_reducesum: shapeC[i + j] != shapeA[i]");
+                    throw std::runtime_error("tblas_reducesum: shapeC[i + j] != shapeA[i]");
                 }
             }
         }
