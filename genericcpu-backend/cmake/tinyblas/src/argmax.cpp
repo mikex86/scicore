@@ -45,7 +45,7 @@ void tblas_argmax(const T *a, uint64_t *c,
 
             // increment aIndex on all dimensions except the dimension we're reducing
             for (size_t i = 0; i < nDimsA; i++) {
-                if (i != dimension) {
+                if (nDimsA - i - 1 != dimension) {
                     aIndex[nDimsA - i - 1]++;
                     if (aIndex[nDimsA - i - 1] < shapeA[nDimsA - i - 1]) {
                         break;

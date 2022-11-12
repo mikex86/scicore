@@ -14,12 +14,15 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
     /* if a has altered strides, return false */ \
     if (!unalteredStrides(stridesA, shapeA, nDimsA)) {\
         return false;                                       \
-    }\
+    }                                                     \
     /* if c has altered strides, return false */ \
     if (!unalteredStrides(stridesC, shapeC, nDimsC)) {\
         return false;\
     }\
-\
+    /* if b is not a scalar, return false */ \
+    if (!(nDimsB == 0 || (nDimsB == 1 && shapeB[0] == 1))) {\
+        return false;\
+    }\
     size_t nElements = 1;\
     for (int i = 0; i < nDimsA; i++) {\
         nElements *= shapeA[i];\

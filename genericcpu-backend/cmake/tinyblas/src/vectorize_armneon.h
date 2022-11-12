@@ -15,7 +15,7 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
     if (!unalteredStrides(stridesA, shapeA, nDimsA)) {\
         return false;\
     } \
-    /* if chas altered strides, return false */ \
+    /* if c has altered strides, return false */ \
     if (!unalteredStrides(stridesC, shapeC, nDimsC)) {\
         return false;\
     }\
