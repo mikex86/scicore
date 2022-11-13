@@ -50,10 +50,12 @@ public class JvmPowOp implements IDifferentiableBinaryOperation {
 
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
-        Validator.assertTrue(b.getValue().isScalar(), "Exponent must be scalar"); // Only supporting scalar exponents for now
-        long[] shapeA = a.getValue().getShape();
-        DataType dataTypeA = a.getValue().getDataType();
-        DataType dataTypeB = b.getValue().getDataType();
+        ITensor bValue = b.getValue();
+        Validator.assertTrue(bValue.isScalar(), "Exponent must be scalar"); // Only supporting scalar exponents for now
+        ITensor aValue = a.getValue();
+        long[] shapeA = aValue.getShape();
+        DataType dataTypeA = aValue.getDataType();
+        DataType dataTypeB = bValue.getDataType();
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
         long nElements = ShapeUtils.getNumElements(shapeA);
 
@@ -71,39 +73,39 @@ public class JvmPowOp implements IDifferentiableBinaryOperation {
         // dL/dB = A ^ B * ln(A)  // this is the exponentiation rule
 
         if (a.requiresGradients()) {
-            ITensor localGradients = backend.createTensor(resultDataType, shapeA);
-            for (long i = 0; i < nElements; i++) {
-                if (resultDataType.isFloatingPoint()) {
-                    double exponent = b.getValue().elementAsDouble();
-                    double aV = a.getValue().getAsDoubleFlat(i);
-                    localGradients.setByDoubleFlat(exponent * Math.pow(aV, exponent - 1), i); // dP/dA = B * A ^ (B - 1)
-                } else {
-                    long exponent = b.getValue().elementAsLong();
-                    long aV = a.getValue().getAsLongFlat(i);
-                    localGradients.setByLongFlat((long) (exponent * Math.pow(aV, exponent - 1)), i); // dP/dA = B * A ^ (B - 1)
+            // dP/dA = B * A ^ (B - 1)
+            try (ITensor bMinusOne = bValue.minus(1f)) {
+                try (ITensor aPowBMinusOne = aValue.pow(bMinusOne)) {
+                    try (ITensor localGradients = bValue.multiply(aPowBMinusOne)) {
+                        try (ITensor globalGradients = upstreamGradient.multiply(localGradients)) { // dL/dA = dL/dP * dP/dA
+                            a.accumulateGradient(globalGradients);
+                        }
+                    }
                 }
             }
-            ITensor globalGradients = upstreamGradient.multiply(localGradients); // dL/dA = dL/dP * dP/dA
-            a.accumulateGradient(globalGradients);
         }
 
         if (b.requiresGradients()) {
-            ITensor localGradients = backend.createTensor(resultDataType, shapeA);
-            for (long i = 0; i < nElements; i++) {
-                if (resultDataType.isFloatingPoint()) {
-                    double exponent = b.getValue().elementAsDouble();
-                    double aV = a.getValue().getAsDoubleFlat(i);
-                    double resultVal = Math.pow(aV, exponent);
-                    localGradients.setByDoubleFlat(resultVal * Math.log(aV), i); // dP/dB = A ^ B * ln(A)
-                } else {
-                    long exponent = b.getValue().elementAsLong();
-                    long aV = a.getValue().getAsLongFlat(i);
-                    long resultVal = (long) Math.pow(aV, exponent);
-                    localGradients.setByLongFlat((long) (resultVal * Math.log(aV)), i); // dP/dB = A ^ B * ln(A)
+            try (ITensor localGradients = backend.createTensor(resultDataType, shapeA)) {
+                // TODO: OPTIMIZE
+                for (long i = 0; i < nElements; i++) {
+                    if (resultDataType.isFloatingPoint()) {
+                        double exponent = bValue.elementAsDouble();
+                        double aV = aValue.getAsDoubleFlat(i);
+                        double resultVal = Math.pow(aV, exponent);
+                        localGradients.setByDoubleFlat(resultVal * Math.log(aV), i); // dP/dB = A ^ B * ln(A)
+                    } else {
+                        long exponent = bValue.elementAsLong();
+                        long aV = aValue.getAsLongFlat(i);
+                        long resultVal = (long) Math.pow(aV, exponent);
+                        localGradients.setByLongFlat((long) (resultVal * Math.log(aV)), i); // dP/dB = A ^ B * ln(A)
+                    }
+                }
+                // dL/dB = dL/dP * dP/dB
+                try (ITensor globalGradients = upstreamGradient.matmul(localGradients, false, true)) { // multiply and sum = matmul in this case
+                    b.accumulateGradient(globalGradients);
                 }
             }
-            ITensor globalGradients = upstreamGradient.matmul(localGradients.transpose()); // dL/dB = dL/dP * dP/dB
-            b.accumulateGradient(globalGradients);
         }
     }
 }

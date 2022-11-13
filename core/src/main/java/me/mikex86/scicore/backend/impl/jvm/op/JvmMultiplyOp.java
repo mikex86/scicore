@@ -88,14 +88,16 @@ public class JvmMultiplyOp implements IDifferentiableBinaryOperation {
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
         if (a.requiresGradients()) {
-            ITensor gradients = upstreamGradient.multiply(b.getValue());
-            gradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, a.getValue().getShape());
-            a.accumulateGradient(gradients);
+            try (ITensor gradients = upstreamGradient.multiply(b.getValue())) {
+                ITensor finalGradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, a.getValue().getShape());
+                a.accumulateGradient(finalGradients);
+            }
         }
         if (b.requiresGradients()) {
-            ITensor gradients = upstreamGradient.multiply(a.getValue());
-            gradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, b.getValue().getShape());
-            b.accumulateGradient(gradients);
+            try (ITensor gradients = upstreamGradient.multiply(a.getValue())) {
+                ITensor finalGradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, b.getValue().getShape());
+                b.accumulateGradient(finalGradients);
+            }
         }
     }
 }

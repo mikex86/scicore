@@ -110,11 +110,12 @@ public class JvmReduceSumOp implements IDifferentiableBiParametricOperation<Inte
         Validator.validateNotNull(keepDimensions, "KeepDimensions must not be null");
 
         if (node.requiresGradients()) {
-            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), node.getValue().getShape());
-            gradients.fill(1);
-            gradients = gradients.multiply(upstreamGradient);
+            try (ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), node.getValue().getShape())) {
+                gradients.fill(1);
+                ITensor finalGradients = gradients.multiply(upstreamGradient);
 
-            node.accumulateGradient(gradients);
+                node.accumulateGradient(finalGradients);
+            }
         }
     }
 

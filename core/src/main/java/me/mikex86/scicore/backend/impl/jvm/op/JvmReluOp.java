@@ -53,19 +53,20 @@ public class JvmReluOp implements IDifferentiableUnaryOperation {
             long[] shape = inputTensor.getShape();
             long nElements = ShapeUtils.getNumElements(shape);
             DataType dataType = inputTensor.getDataType();
-            ITensor gradient = this.backend.createTensor(dataType, shape);
-            if (dataType.isFloatingPoint()) {
-                for (long i = 0; i < nElements; i++) {
-                    double value = inputTensor.getAsDoubleFlat(i);
-                    gradient.setByDoubleFlat(value > 0 ? 1 : 0, i);
+            try (ITensor gradient = this.backend.createTensor(dataType, shape)) {
+                if (dataType.isFloatingPoint()) {
+                    for (long i = 0; i < nElements; i++) {
+                        double value = inputTensor.getAsDoubleFlat(i);
+                        gradient.setByDoubleFlat(value > 0 ? 1 : 0, i);
+                    }
+                } else {
+                    for (long i = 0; i < nElements; i++) {
+                        long value = inputTensor.getAsLongFlat(i);
+                        gradient.setByLongFlat(value > 0 ? 1 : 0, i);
+                    }
                 }
-            } else {
-                for (long i = 0; i < nElements; i++) {
-                    long value = inputTensor.getAsLongFlat(i);
-                    gradient.setByLongFlat(value > 0 ? 1 : 0, i);
-                }
+                input.accumulateGradient(gradient.multiply(upstreamGradient));
             }
-            input.accumulateGradient(gradient.multiply(upstreamGradient));
         }
     }
 }

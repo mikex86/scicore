@@ -98,9 +98,10 @@ public class JvmPlusInplaceOp implements IDifferentiableBinaryOperation, IInplac
             ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient, aValue.getShape());
             a.accumulateGradient(gradients);
         }
+
         if (b.requiresGradients()) {
             ITensor bValue = b.getValue();
-            ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient.multiply(-1.0f), bValue.getShape());
+            ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient, bValue.getShape());
             b.accumulateGradient(gradients);
         }
     }

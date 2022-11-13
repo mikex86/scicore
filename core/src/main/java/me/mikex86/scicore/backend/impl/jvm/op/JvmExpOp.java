@@ -10,6 +10,8 @@ import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Optional;
+
 public class JvmExpOp implements IDifferentiableUnaryOperation {
 
     @NotNull
@@ -35,9 +37,14 @@ public class JvmExpOp implements IDifferentiableUnaryOperation {
 
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
-        ITensor result = exp(input);
-        ctx.saveForBackward("exp", result);
-        return result;
+        Optional<ITensor> expOpt = ctx.getSavedTensor("exp");
+        if (expOpt.isPresent()) {
+            return expOpt.get();
+        } else {
+            ITensor result = exp(input);
+            ctx.saveForBackward("exp", result);
+            return result;
+        }
     }
 
     @Override
