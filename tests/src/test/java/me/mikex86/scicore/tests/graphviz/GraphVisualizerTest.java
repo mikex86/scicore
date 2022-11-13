@@ -35,12 +35,8 @@ class GraphVisualizerTest {
         ITensor b = sciCore.matrix(new float[][]{{5, 6}, {8, 9}, {11, 13}, {15, 17}});
         ITensor c = a.matmul(b);
 
-        assertEquals(sciCore.matrix(new float[][]{{114, 131.0f}}), c);
-
         ITensor d = sciCore.matrix(new float[][]{{1}, {3}});
         ITensor e = c.matmul(d);
-
-        assertEquals(sciCore.matrix(new float[][]{{507.0f}}), e);
 
         IGraph graph = sciCore.getExecutionGraphUpTo(e);
 
