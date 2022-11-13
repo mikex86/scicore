@@ -8,13 +8,17 @@
 #define nd_by_scalar_op(op_name, type, vec_inst, scalar_op) \
 bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
                                  const size_t *shapeA, const size_t *stridesA, size_t nDimsA,\
-                                 const size_t *shapeB, const size_t *, size_t nDimsB,\
+                                 const size_t *shapeB, const size_t *stridesB, size_t nDimsB,\
                                  const size_t *shapeC, const size_t *stridesC, size_t nDimsC) { \
     size_t vecSize = OPERANDS_SIZE / sizeof(type); \
     /* if a has altered strides, return false */ \
     if (!unalteredStrides(stridesA, shapeA, nDimsA)) {\
         return false; \
-    } \
+    }\
+    /* if b has altered strides, return false */ \
+    if (!unalteredStrides(stridesB, shapeB, nDimsB)) {\
+        return false; \
+    }\
     /* if c has altered strides, return false */ \
     if (!unalteredStrides(stridesC, shapeC, nDimsC)) {\
         return false;\
@@ -41,13 +45,13 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
         __m256 scalar = _mm256_set1_ps(*a);\
         for (int i = 0; i < nChunks; i++) {\
             __m256 bChunk = _mm256_load_ps(b);\
-            __m256 cChunk = vec_inst(bChunk, scalar);\
+            __m256 cChunk = vec_inst(scalar, bChunk);\
             _mm256_store_ps(c, cChunk);\
             b += vecSize;\
             c += vecSize;\
         }\
         for (int i = 0; i < nRemainder; i++) {\
-            *c = *a scalar_op *b;\
+            *c = (*a) scalar_op (*b);\
             b++;\
             c++;\
         }\
@@ -61,7 +65,7 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
             c += vecSize;\
         }\
         for (int i = 0; i < nRemainder; i++) {\
-            *c = *a scalar_op *b;\
+            *c = (*a) scalar_op (*b);\
             a++;\
             c++;\
         }\

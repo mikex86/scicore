@@ -1,12 +1,13 @@
 #include "divide.h"
 #include "shapeutils.h"
 #include <cstring>
+#include <iostream>
 
 template<typename A, typename B, typename C>
 void tblas_divide(const A *a, const B *b, C *c,
-                 const size_t *shapeA, const size_t *stridesA, size_t nDimsA,
-                 const size_t *shapeB, const size_t *stridesB, size_t nDimsB,
-                 const size_t *shapeC, const size_t *stridesC, size_t nDimsC) {
+                  const size_t *shapeA, const size_t *stridesA, size_t nDimsA,
+                  const size_t *shapeB, const size_t *stridesB, size_t nDimsB,
+                  const size_t *shapeC, const size_t *stridesC, size_t nDimsC) {
     auto *outputIndex = new size_t[nDimsC];
     memset(outputIndex, 0, sizeof(size_t) * nDimsC);
 
@@ -29,10 +30,11 @@ op_hook_optimizations(
         divide, float,
         {
             if (tblas_divide_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
-                                         shapeC, stridesC, nDimsC))
+                                          shapeC, stridesC, nDimsC)) {
                 return;
+            }
             if (tblas_divide_nd_by_nd(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
-                                     shapeC, stridesC, nDimsC))
+                                      shapeC, stridesC, nDimsC))
                 return;
         },
         {

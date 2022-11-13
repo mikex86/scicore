@@ -41,7 +41,7 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
         float32x4_t scalar = vdupq_n_f32(*a);\
         for (int i = 0; i < nChunks; i++) {\
             float32x4_t bChunk = vld1q_f32(b);\
-            float32x4_t cChunk = vec_inst(bChunk, scalar);\
+            float32x4_t cChunk = vec_inst(scalar, bChunk);\
             vst1q_f32(c, cChunk);\
             b += vecSize;\
             c += vecSize;\
@@ -61,7 +61,7 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
             c += vecSize;\
         }\
         for (int i = 0; i < nRemainder; i++) {\
-            *c = *a scalar_op *b;\
+            *c = (*a) scalar_op (*b);\
             a++;\
             c++;\
         }\

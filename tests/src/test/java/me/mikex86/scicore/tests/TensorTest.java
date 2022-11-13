@@ -1287,6 +1287,19 @@ abstract class TensorTest {
     }
 
     @Nested
+    class LeftDivide {
+
+        @Test
+        void left_divide_test_1by2x2x2() {
+            ITensor a = sciCore.ndarray(new float[][][]{{{1.0f, 2.0f}, {3.0f, 4.0f}}, {{5.0f, 6.0f}, {7.0f, 8.0f}}});
+            ITensor b = sciCore.scalar(1.0f);
+            ITensor result = a.leftDivide(b);
+            assertEquals(sciCore.ndarray(new float[][][]{{{1.0f, 1.0f / 2.0f}, {1.0f / 3.0f, 1.0f / 4.0f}}, {{1.0f / 5.0f, 1.0f / 6.0f}, {1.0f / 7.0f, 1.0f / 8.0f}}}), result);
+        }
+
+    }
+
+    @Nested
     class Softmax {
         @Test
         void softmax_test_dim1() {

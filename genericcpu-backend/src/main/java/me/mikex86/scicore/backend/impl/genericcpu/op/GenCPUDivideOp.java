@@ -74,13 +74,10 @@ public class GenCPUDivideOp implements IDifferentiableBinaryOperation {
             // dL/dA = dL/dR * dR/dA
             // dR/dA = 1/dB
             // dL/dA = dL/dR * 1/B
-            try (ITensor ones = backend.createTensor(DataType.getLarger(A.getDataType(), B.getDataType()), B.getShape());) {
-                ones.fill(1f);
-                try (ITensor dRdA = ones.divide(B)) {
-                    try (ITensor dLdATmp = upstreamGradients.multiply(dRdA)) {
-                        ITensor dLdAFinal = GradientUtil.sumGradientsOnBroadcastDims(dLdATmp, A.getShape());
-                        a.accumulateGradient(dLdAFinal);
-                    }
+            try (ITensor dRdA = B.leftDivide(1f)) {
+                try (ITensor dLdATmp = upstreamGradients.multiply(dRdA)) {
+                    ITensor dLdAFinal = GradientUtil.sumGradientsOnBroadcastDims(dLdATmp, A.getShape());
+                    a.accumulateGradient(dLdAFinal);
                 }
             }
         }
