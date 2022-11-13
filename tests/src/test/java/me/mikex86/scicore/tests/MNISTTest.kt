@@ -101,7 +101,7 @@ fun main() {
         .build().use { progressBar ->
             for (step in 0 until nTrainSteps) {
                 sciCore.backend.operationRecorder.resetRecording()
-//                sciCore.backend.operationRecorder.scopedRecording {
+                sciCore.backend.operationRecorder.scopedRecording {
                     val batch = trainIt.next()
                     batch.use { x, y ->
                         lossValue = net.forward(x)
@@ -111,7 +111,7 @@ fun main() {
                             .use { sum -> sum.divide(BATCH_SIZE.toFloat()) }
                             .use { loss -> optimizer.step(loss); loss.elementAsDouble() }
                     }
-//                }
+                }
                 progressBar.step()
                 progressBar.extraMessage = String.format(Locale.US, "loss: %.5f", lossValue)
             }
@@ -122,37 +122,37 @@ fun main() {
 
     System.out.flush()
 
-//    println("Start testing...")
-//
-//    var correct = 0
-//
-//    ProgressBarBuilder()
-//        .setTaskName("Testing")
-//        .setInitialMax(nTestSteps)
-//        .setStyle(ProgressBarStyle.UNICODE_BLOCK)
-//        .setUpdateIntervalMillis(100)
-//        .build().use { progressBar ->
-//            for (testStep in 0 until nTestSteps) {
-//                sciCore.backend.operationRecorder.scopedRecording {
-//                    val batch = testIt.next()
-//                    batch.use { x, y ->
-//                        net.forward(x)
-//                            .use { yPred -> yPred.argmax(1) }
-//                            .use { yPredMax ->
-//                                correct += y.argmax(1)
-//                                    .use { yMax -> yPredMax.compareElements(yMax) }
-//                                    .use { yCmpBool -> yCmpBool.cast(DataType.INT32) }
-//                                    .use { yCmpInt -> yCmpInt.reduceSum(-1) }
-//                                    .use { yCmpSum -> yCmpSum.elementAsInt() }
-//                            }
-//                    }
-//                }
-//                progressBar.step()
-//                progressBar.extraMessage =
-//                    String.format(Locale.US, "accuracy: %.5f", correct.toFloat() / testStep / BATCH_SIZE)
-//            }
-//        }
-//    println("Final Accuracy: " + correct.toFloat() / nTestSteps / BATCH_SIZE)
+    println("Start testing...")
+
+    var correct = 0
+
+    ProgressBarBuilder()
+        .setTaskName("Testing")
+        .setInitialMax(nTestSteps)
+        .setStyle(ProgressBarStyle.UNICODE_BLOCK)
+        .setUpdateIntervalMillis(100)
+        .build().use { progressBar ->
+            for (testStep in 0 until nTestSteps) {
+                sciCore.backend.operationRecorder.scopedRecording {
+                    val batch = testIt.next()
+                    batch.use { x, y ->
+                        net.forward(x)
+                            .use { yPred -> yPred.argmax(1) }
+                            .use { yPredMax ->
+                                correct += y.argmax(1)
+                                    .use { yMax -> yPredMax.compareElements(yMax) }
+                                    .use { yCmpBool -> yCmpBool.cast(DataType.INT32) }
+                                    .use { yCmpInt -> yCmpInt.reduceSum(-1) }
+                                    .use { yCmpSum -> yCmpSum.elementAsInt() }
+                            }
+                    }
+                }
+                progressBar.step()
+                progressBar.extraMessage =
+                    String.format(Locale.US, "accuracy: %.5f", correct.toFloat() / testStep / BATCH_SIZE)
+            }
+        }
+    println("Final Accuracy: " + correct.toFloat() / nTestSteps / BATCH_SIZE)
 }
 
 class MnistNet(sciCore: ISciCore) : IModule {

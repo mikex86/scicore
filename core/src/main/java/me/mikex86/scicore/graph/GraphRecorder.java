@@ -297,19 +297,19 @@ public class GraphRecorder implements IGraphRecorder {
         IGraph.ITensorNode node = entry.getValue();
 
         // dispose tensors in option bundles
-//        if (node instanceof Graph.OperationGraphNode operationGraphNode) {
-//            operationGraphNode.getOperationContext().getOptionBundle().dispose();
-//        }
-//        if (value.isDeReferenced()) {
-//            if (!value.isDisposed()) {
-//                value.dispose();
-//            }
-//        } else {
+        if (node instanceof Graph.OperationGraphNode operationGraphNode) {
+            operationGraphNode.getOperationContext().getOptionBundle().dispose();
+        }
+        if (value.isDeReferenced()) {
+            if (!value.isDisposed()) {
+                value.dispose();
+            }
+        } else {
             nBytesProbablyDeletedSinceLastAsyncGC += value.getNumBytes();
             nBytesProbablyDeletedSinceLastOnSameThreadGC += value.getNumBytes();
             node.deleteValue();
-//        }
-//        this.valueToNodeMap.remove(value);
+        }
+        this.valueToNodeMap.remove(value);
     }
 
 

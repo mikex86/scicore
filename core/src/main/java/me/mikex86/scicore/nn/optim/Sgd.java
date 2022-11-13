@@ -38,7 +38,7 @@ public class Sgd implements IOptimizer {
     @Override
     public void step(@NotNull ITensor loss) {
         try (IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, parameters)) {
-//            sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
+            sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
                 graph.backward();
                 for (ITensor parameter : parameters) {
                     try (ITensor gradient = graph.getGradient(parameter)
@@ -54,8 +54,8 @@ public class Sgd implements IOptimizer {
                         parameter.setContents(newParameter);
                     }
                 }
-//                return null;
-//            });
+                return null;
+            });
             nSteps++;
         }
     }
