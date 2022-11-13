@@ -126,6 +126,9 @@ public class Graph implements IGraph {
                     if (!(pathNode instanceof ITensorNodeWithGradient downStreamNodeWithGradient)) {
                         throw new IllegalArgumentException("Requested gradient for tensor that cannot hold a gradient: " + pathNode);
                     }
+                    if (pathNode instanceof OperationGraphNode operationGraphNode && operationGraphNode.getOperationType().isInplace()) {
+                        throw new IllegalStateException("One of the variables needed for gradient computation has been modified by an inplace operation");
+                    }
                     downStreamNodeWithGradient.setRequireGradients(); // all nodes that depend on this node will have their gradients computed for them
                 }
             }

@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 @Disabled // this test is disabled because it is abstract
 abstract class GradientComputationTest {
 
@@ -1142,6 +1144,15 @@ abstract class GradientComputationTest {
 
     @Nested
     class TestInplaceOperations {
+
+        @Test
+        void testOperationWithInplaceOperationFailure() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}});
+            ITensor exp = a.exp();
+            ITensor b = sciCore.matrix(new float[][]{{6, 7, 8, 9, 10}, {11, 12, 13, 14, 15}});
+            exp.add(b);
+            assertThrows(IllegalStateException.class, () -> sciCore.getBackpropagationGraphUpTo(exp, List.of(a, exp, b)));
+        }
 
     }
 

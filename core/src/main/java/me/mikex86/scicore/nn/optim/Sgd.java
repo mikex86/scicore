@@ -47,8 +47,6 @@ public class Sgd implements IOptimizer {
                         if (adaptiveLearningRate) {
                             learningRate *= (Math.pow(1f - learningRateDecayFactor, nSteps));
                         }
-                        // TODO: COMMENT BACK IN WHEN IN-PLACE OPERATIONS ARE FIXED
-//                        parameter.subtract(gradient.multiply(learningRate)); // TODO: TEST IF MULTIPLE INPLACE OPERATIONS BREAK STUFF
                         try (ITensor scaledGradient = gradient.multiply(learningRate)) {
                             try (ITensor newParameter = parameter.minus(scaledGradient)) {
                                 parameter.setContents(newParameter);

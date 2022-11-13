@@ -358,7 +358,7 @@ public class GraphRecorder implements IGraphRecorder {
             optionBundle.dispose();
         }
 
-        if (value.isDeReferenced()) {
+        if (value.isDeReferenced() && (!(node instanceof Graph.OperationGraphNode operationGraphNode) || !operationGraphNode.getOperationType().isInplace())) {
             if (!value.isDisposed()) {
                 value.dispose();
             }
