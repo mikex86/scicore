@@ -27,6 +27,7 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.DIVIDE, new GenCPUDivideOp(this));
         operationTable.put(OperationType.EXP, new GenCPUExpOp(this));
         operationTable.put(OperationType.RELU, new GenCPUReluOp(this));
+        operationTable.put(OperationType.SIGMOID, new GenCPUSigmoidOp(this));
         operationTable.put(OperationType.POW, new GenCPUPowOp(this));
         operationTable.put(OperationType.TRANSPOSE, new GenCPUTransposeOp(this));
         operationTable.put(OperationType.CAST, new GenCPUCastOp(this));
