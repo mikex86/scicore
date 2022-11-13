@@ -100,7 +100,6 @@ fun main() {
         .setUpdateIntervalMillis(100)
         .build().use { progressBar ->
             for (step in 0 until nTrainSteps) {
-//                sciCore.backend.operationRecorder.resetRecording()
                 sciCore.backend.operationRecorder.scopedRecording {
                     val batch = trainIt.next()
                     batch.use { x, y ->

@@ -1,10 +1,10 @@
 package me.mikex86.scicore.tests;
 
 import me.mikex86.matplotlib.jplot.JPlot;
+import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.tensor.ITensor;
-import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
@@ -13,7 +13,7 @@ import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
 import me.mikex86.scicore.utils.Pair;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
@@ -22,16 +22,18 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Random;
 
+@Disabled
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
-public class ApproxNonlinearFuncTrainingTest {
+public abstract class ApproxNonlinearFuncTrainingTest {
 
-    ISciCore sciCore;
+    @NotNull
+    private final ISciCore sciCore;
 
-    @BeforeEach
-    void setUp() {
+    protected ApproxNonlinearFuncTrainingTest(@NotNull ISciCore.BackendType backendType) {
         sciCore = new SciCore();
-        sciCore.setBackend(SciCore.BackendType.JVM);
+        sciCore.setBackend(backendType);
         sciCore.seed(123);
+        sciCore.disableBackendFallback();
     }
 
     @NotNull
