@@ -6,6 +6,7 @@ import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 
 public class Sgd implements IOptimizer {
 
@@ -37,22 +38,24 @@ public class Sgd implements IOptimizer {
     @Override
     public void step(@NotNull ITensor loss) {
         try (IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, parameters)) {
-            graph.backward();
-            for (ITensor parameter : parameters) {
-                try (ITensor gradient = graph.getGradient(parameter)
-                        .orElseThrow(() -> new IllegalStateException("No gradient for parameter"))) {
-                    float learningRate = this.learningRate;
-                    if (adaptiveLearningRate) {
-                        learningRate *= (Math.pow(1f - learningRateDecayFactor, nSteps));
-                    }
-                    // TODO: COMMENT BACK IN WHEN IN-PLACE OPERATIONS ARE FIXED
-//            parameter.subtract(gradient.multiply(learningRate)); // TODO: TEST IF MULTIPLE INPLACE OPERATIONS BREAK STUFF
-//            sciCore.getBackend().getOperationRecorder().dropHistory(parameter);
+//            sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
+                graph.backward();
+                for (ITensor parameter : parameters) {
+                    try (ITensor gradient = graph.getGradient(parameter)
+                            .orElseThrow(() -> new IllegalStateException("No gradient for parameter"))) {
+                        float learningRate = this.learningRate;
+                        if (adaptiveLearningRate) {
+                            learningRate *= (Math.pow(1f - learningRateDecayFactor, nSteps));
+                        }
+                        // TODO: COMMENT BACK IN WHEN IN-PLACE OPERATIONS ARE FIXED
+//                        parameter.subtract(gradient.multiply(learningRate)); // TODO: TEST IF MULTIPLE INPLACE OPERATIONS BREAK STUFF
 
-                    ITensor newParameter = parameter.minus(gradient.multiply(learningRate));
-                    parameter.setContents(newParameter);
+                        ITensor newParameter = parameter.minus(gradient.multiply(learningRate));
+                        parameter.setContents(newParameter);
+                    }
                 }
-            }
+//                return null;
+//            });
             nSteps++;
         }
     }

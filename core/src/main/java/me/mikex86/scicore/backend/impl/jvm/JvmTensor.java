@@ -936,6 +936,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
 
     @Override
     public void dispose() {
+        super.dispose();
         this.dataContainer.dispose();
     }
 

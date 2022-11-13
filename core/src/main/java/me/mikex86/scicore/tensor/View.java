@@ -314,6 +314,6 @@ public class View extends AbstractTensor {
 
     @Override
     public void dispose() {
-        // Do nothing
+        // Do nothing, not even call super.dispose() which would mark the tensor as disposed, which we don't want
     }
 }

@@ -13,9 +13,6 @@ import java.util.List;
 
 public class Linear implements IModule {
 
-    @NotNull
-    private final ISciCore sciCore;
-
     private final long inputSize;
 
     @NotNull
@@ -25,7 +22,6 @@ public class Linear implements IModule {
     private final ITensor bias;
 
     public Linear(@NotNull ISciCore sciCore, @NotNull DataType dataType, long inputSize, long outputSize, boolean useBias) {
-        this.sciCore = sciCore;
         this.inputSize = inputSize;
         float k = (float) (1.0 / Math.sqrt(inputSize));
         this.weights = ((LazyTensor) sciCore.uniform(dataType, outputSize, inputSize).multiply(2 * k).minus(k)).result();

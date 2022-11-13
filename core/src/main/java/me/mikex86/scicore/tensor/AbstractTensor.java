@@ -20,6 +20,7 @@ public abstract class AbstractTensor implements ITensor {
     private static long nextId = 0;
 
     private final long id;
+    private boolean disposed = false;
 
 
     {
@@ -230,6 +231,73 @@ public abstract class AbstractTensor implements ITensor {
         try (ITensor valueScalar = backend.createTensor(DataType.FLOAT64, new long[0])) {
             valueScalar.setDoubleFlat(value, 0);
             return operationRecorder.recordOperation(OperationType.DIVIDE, backend, this, valueScalar);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftDivide(@NotNull ITensor other) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.DIVIDE, backend, other, this);
+    }
+
+    @Override
+    public @NotNull ITensor leftDivide(byte value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.INT8, new long[0])) {
+            valueScalar.setIntFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.DIVIDE, backend, valueScalar, this);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftDivide(short value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.INT16, new long[0])) {
+            valueScalar.setIntFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.DIVIDE, backend, valueScalar, this);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftDivide(int value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.INT32, new long[0])) {
+            valueScalar.setIntFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.DIVIDE, backend, valueScalar, this);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftDivide(long value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.INT64, new long[0])) {
+            valueScalar.setLongFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.DIVIDE, backend, valueScalar, this);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftDivide(float value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.FLOAT32, new long[0])) {
+            valueScalar.setFloatFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.DIVIDE, backend, valueScalar, this);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftDivide(double value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.FLOAT64, new long[0])) {
+            valueScalar.setDoubleFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.DIVIDE, backend, valueScalar, this);
         }
     }
 
@@ -718,6 +786,16 @@ public abstract class AbstractTensor implements ITensor {
         ITensor newTensor = backend.createTensor(getDataType(), getShape());
         newTensor.setContents(this);
         return newTensor;
+    }
+
+    @Override
+    public boolean isDisposed() {
+        return disposed;
+    }
+
+    @Override
+    public void dispose() {
+        this.disposed = true;
     }
 
     protected void validateDataType(@NotNull DataType requestedDataType) {

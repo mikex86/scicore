@@ -327,6 +327,7 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
 
     @Override
     public void dispose() {
+        super.dispose();
         if (hasResult()) {
             result().dispose();
         } else {

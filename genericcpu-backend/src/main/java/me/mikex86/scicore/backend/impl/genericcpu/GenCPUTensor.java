@@ -528,6 +528,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
 
     @Override
     public void dispose() {
+        super.dispose();
         this.dataContainer.dispose();
     }
 }

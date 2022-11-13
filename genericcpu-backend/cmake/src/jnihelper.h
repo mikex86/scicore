@@ -85,39 +85,192 @@ JNIEXPORT void JNICALL jniMethodName(JNIEnv *jniEnv, jclass,\
         jniEnv->ReleaseLongArrayElements(stridesCArr, stridesCLongArray, JNI_ABORT);\
     }\
     if (dataTypeA == DATA_TYPE_INT8 && dataTypeB == DATA_TYPE_INT8) {\
-        auto *a = (int8_t *) aPtr;\
-        auto *b = (int8_t *) bPtr;\
+        auto *a = (const int8_t *) aPtr;\
+        auto *b = (const int8_t *) bPtr;\
         auto *c = (int8_t *) cPtr;\
-        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
-    } else if (dataTypeA == DATA_TYPE_INT16 && dataTypeB == DATA_TYPE_INT16) {\
-        auto *a = (int16_t *) aPtr;\
-        auto *b = (int16_t *) bPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT8 && dataTypeB == DATA_TYPE_INT16) {  \
+        auto *a = (const int8_t *) aPtr;\
+        auto *b = (const int16_t *) bPtr;\
         auto *c = (int16_t *) cPtr;\
-        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
-    } else if (dataTypeA == DATA_TYPE_INT32 && dataTypeB == DATA_TYPE_INT32) {\
-        auto *a = (int32_t *) aPtr;\
-        auto *b = (int32_t *) bPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT8 && dataTypeB == DATA_TYPE_INT32) {  \
+        auto *a = (const int8_t *) aPtr;\
+        auto *b = (const int32_t *) bPtr;\
         auto *c = (int32_t *) cPtr;\
-        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
-    } else if (dataTypeA == DATA_TYPE_INT64 && dataTypeB == DATA_TYPE_INT64) {\
-        auto *a = (int64_t *) aPtr;\
-        auto *b = (int64_t *) bPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT8 && dataTypeB == DATA_TYPE_INT64) {  \
+        auto *a = (const int8_t *) aPtr;\
+        auto *b = (const int64_t *) bPtr;\
         auto *c = (int64_t *) cPtr;\
-        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
-    } else if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_FLOAT32) {\
-        auto *a = (float *) aPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT8 && dataTypeB == DATA_TYPE_FLOAT32) {    \
+        auto *a = (const int8_t *) aPtr;\
         auto *b = (float *) bPtr;\
         auto *c = (float *) cPtr;\
-        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
-    } else if (dataTypeA == DATA_TYPE_FLOAT64 && dataTypeB == DATA_TYPE_FLOAT64) {\
-        auto *a = (double *) aPtr;\
-        auto *b = (double *) bPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT8 && dataTypeB == DATA_TYPE_FLOAT64) {    \
+        auto *a = (const int8_t *) aPtr;\
+        auto *b = (const double *) bPtr;\
         auto *c = (double *) cPtr;\
-        operationFunction(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT16 && dataTypeB == DATA_TYPE_INT8) { \
+        auto *a = (const int16_t *) aPtr;\
+        auto *b = (const int8_t *) bPtr;\
+        auto *c = (int16_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT16 && dataTypeB == DATA_TYPE_INT16) {    \
+        auto *a = (const int16_t *) aPtr;\
+        auto *b = (const int16_t *) bPtr;\
+        auto *c = (int16_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT16 && dataTypeB == DATA_TYPE_INT32) {    \
+        auto *a = (const int16_t *) aPtr;\
+        auto *b = (const int32_t *) bPtr;\
+        auto *c = (int32_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT16 && dataTypeB == DATA_TYPE_INT64) {    \
+        auto *a = (const int16_t *) aPtr;\
+        auto *b = (const int64_t *) bPtr;\
+        auto *c = (int64_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT16 && dataTypeB == DATA_TYPE_FLOAT32) {  \
+        auto *a = (const int16_t *) aPtr;\
+        auto *b = (float *) bPtr;\
+        auto *c = (float *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT16 && dataTypeB == DATA_TYPE_FLOAT64) {  \
+        auto *a = (const int16_t *) aPtr;\
+        auto *b = (const double *) bPtr;\
+        auto *c = (double *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT32 && dataTypeB == DATA_TYPE_INT8) { \
+        auto *a = (const int32_t *) aPtr;\
+        auto *b = (const int8_t *) bPtr;\
+        auto *c = (int32_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT32 && dataTypeB == DATA_TYPE_INT16) {    \
+        auto *a = (const int32_t *) aPtr;\
+        auto *b = (const int16_t *) bPtr;\
+        auto *c = (int32_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT32 && dataTypeB == DATA_TYPE_INT32) {    \
+        auto *a = (const int32_t *) aPtr;\
+        auto *b = (const int32_t *) bPtr;\
+        auto *c = (int32_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT32 && dataTypeB == DATA_TYPE_INT64) {    \
+        auto *a = (const int32_t *) aPtr;\
+        auto *b = (const int64_t *) bPtr;\
+        auto *c = (int64_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT32 && dataTypeB == DATA_TYPE_FLOAT32) {  \
+        auto *a = (const int32_t *) aPtr;\
+        auto *b = (float *) bPtr;\
+        auto *c = (float *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT32 && dataTypeB == DATA_TYPE_FLOAT64) {  \
+        auto *a = (const int32_t *) aPtr;\
+        auto *b = (const double *) bPtr;\
+        auto *c = (double *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT64 && dataTypeB == DATA_TYPE_INT8) { \
+        auto *a = (const int64_t *) aPtr;\
+        auto *b = (const int8_t *) bPtr;\
+        auto *c = (int64_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT64 && dataTypeB == DATA_TYPE_INT16) {    \
+        auto *a = (const int64_t *) aPtr;\
+        auto *b = (const int16_t *) bPtr;\
+        auto *c = (int64_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT64 && dataTypeB == DATA_TYPE_INT32) {    \
+        auto *a = (const int64_t *) aPtr;\
+        auto *b = (const int32_t *) bPtr;\
+        auto *c = (int64_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT64 && dataTypeB == DATA_TYPE_INT64) {    \
+        auto *a = (const int64_t *) aPtr;\
+        auto *b = (const int64_t *) bPtr;\
+        auto *c = (int64_t *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT64 && dataTypeB == DATA_TYPE_FLOAT32) {  \
+        auto *a = (const int64_t *) aPtr;\
+        auto *b = (float *) bPtr;\
+        auto *c = (float *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT64 && dataTypeB == DATA_TYPE_FLOAT64) {  \
+        auto *a = (const int64_t *) aPtr;\
+        auto *b = (const double *) bPtr;\
+        auto *c = (double *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_INT8) {   \
+        auto *a = (const float *) aPtr;\
+        auto *b = (const int8_t *) bPtr;\
+        auto *c = (float *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_INT16) {  \
+        auto *a = (const float *) aPtr;\
+        auto *b = (const int16_t *) bPtr;\
+        auto *c = (float *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_INT32) {  \
+        auto *a = (const float *) aPtr;\
+        auto *b = (const int32_t *) bPtr;\
+        auto *c = (float *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_INT64) {  \
+        auto *a = (const float *) aPtr;\
+        auto *b = (const int64_t *) bPtr;\
+        auto *c = (float *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_FLOAT32) {                        \
+        auto *a = (const float *) aPtr;\
+        auto *b = (const float *) bPtr;\
+        auto *c = (float *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_FLOAT64) {                        \
+        auto *a = (const float *) aPtr;\
+        auto *b = (const double *) bPtr;\
+        auto *c = (double *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT64 && dataTypeB == DATA_TYPE_INT8) {   \
+        auto *a = (const double *) aPtr;\
+        auto *b = (const int8_t *) bPtr;\
+        auto *c = (double *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT64 && dataTypeB == DATA_TYPE_INT16) {  \
+        auto *a = (const double *) aPtr;\
+        auto *b = (const int16_t *) bPtr;\
+        auto *c = (double *) cPtr; \
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC); \
+    } else if (dataTypeA == DATA_TYPE_FLOAT64 && dataTypeB == DATA_TYPE_INT32) {  \
+        auto *a = (const double *) aPtr;\
+        auto *b = (const int32_t *) bPtr;\
+        auto *c = (double *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT64 && dataTypeB == DATA_TYPE_INT64) {  \
+        auto *a = (const double *) aPtr;\
+        auto *b = (const int64_t *) bPtr;\
+        auto *c = (double *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT64 && dataTypeB == DATA_TYPE_FLOAT32) { \
+        auto *a = (const double *) aPtr;\
+        auto *b = (const float *) bPtr;\
+        auto *c = (double *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_FLOAT64 && dataTypeB == DATA_TYPE_FLOAT64) { \
+        auto *a = (const double *) aPtr;\
+        auto *b = (const double *) bPtr;\
+        auto *c = (double *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
     } else {\
-        jclass exceptionClass = jniEnv->FindClass("java/lang/IllegalArgumentException");\
-        jniEnv->ThrowNew(exceptionClass, "Unsupported data type");\
+        jniEnv->ThrowNew(jniEnv->FindClass("java/lang/IllegalArgumentException"), "Unknown data type");\
     }\
     delete[] shapeA;\
     delete[] shapeB;\
+    delete[] shapeC;\
+    delete[] stridesA;\
+    delete[] stridesB;\
+    delete[] stridesC;\
 }

@@ -4,9 +4,10 @@
 #include <cmath>
 
 template<typename A, typename B, typename C>
-void tblas_pow(const A *a, const B *b, C *c, size_t *shapeA, size_t *stridesA, size_t nDimsA, size_t *shapeB,
-                size_t *stridesB, size_t nDimsB,
-                size_t *shapeC, size_t *, size_t nDimsC) {
+void tblas_pow(const A *a, const B *b, C *c,
+               const size_t *shapeA, const size_t *stridesA, size_t nDimsA,
+               const size_t *shapeB, const size_t *stridesB, size_t nDimsB,
+               size_t *shapeC, size_t *, size_t nDimsC) {
     auto *outputIndex = new size_t[nDimsC];
     memset(outputIndex, 0, sizeof(size_t) * nDimsC);
 

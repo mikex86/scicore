@@ -522,6 +522,20 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
     @NotNull ITensor divide(double value);
 
 
+    @NotNull ITensor leftDivide(@NotNull ITensor other);
+
+    @NotNull ITensor leftDivide(byte value);
+
+    @NotNull ITensor leftDivide(short value);
+
+    @NotNull ITensor leftDivide(int value);
+
+    @NotNull ITensor leftDivide(long value);
+
+    @NotNull ITensor leftDivide(float value);
+
+    @NotNull ITensor leftDivide(double value);
+
     @NotNull
     default ITensor div(@NotNull ITensor other) {
         return divide(other);
@@ -735,6 +749,11 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
      */
     @Override
     void dispose();
+
+    /**
+     * @return true, if the tensor is disposed.
+     */
+    boolean isDisposed();
 
     /**
      * Makes the tensor reference its associated graph node to prevent it from being garbage collected before this tensor is.

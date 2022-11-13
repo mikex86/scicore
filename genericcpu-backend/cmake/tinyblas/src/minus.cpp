@@ -55,9 +55,7 @@ op_hook_optimizations(
 #ifdef __AVX__
 
 #include "vectorize_avx.h"
-
 nd_by_scalar_op(minus, float, _mm256_sub_ps, -);
-
 nd_by_nd_op(minus, float, _mm256_sub_ps, -);
 
 op_hook_optimizations(

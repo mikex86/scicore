@@ -19,13 +19,13 @@ public class GraphRecorder implements IGraphRecorder {
     private final OperationRegistry operationRegistry;
 
     @NotNull
-    private final Map<ITensor, Graph.IGraphNode> valueToNodeMap = new MapMaker()
+    private final Map<ITensor, Graph.ITensorNode> valueToNodeMap = new MapMaker()
             .weakKeys()
             .weakValues()
             .makeMap();
 
     @NotNull
-    private final Stack<Map<ITensor, IGraph.IGraphNode>> recordingScopes = new Stack<>();
+    private final Stack<Map<ITensor, IGraph.ITensorNode>> recordingScopes = new Stack<>();
 
     {
         recordingScopes.push(new IdentityHashMap<>());
@@ -40,7 +40,7 @@ public class GraphRecorder implements IGraphRecorder {
         IOperation operation = operationRegistry.getOperation(operationType);
         List<Graph.IGraphNode> inputNodes = new ArrayList<>();
         for (ITensor input : inputs) {
-            Graph.IGraphNode node = getGraphNode(input);
+            Graph.ITensorNode node = getGraphNode(input);
             if (node == null) {
                 if (input instanceof LazyTensor lazyTensor && !lazyTensor.hasResult()) {
                     throw new IllegalArgumentException("Lost track of tensor");
@@ -64,7 +64,7 @@ public class GraphRecorder implements IGraphRecorder {
     }
 
     @Nullable
-    private IGraph.IGraphNode getGraphNode(@NotNull ITensor input) {
+    private IGraph.ITensorNode getGraphNode(@NotNull ITensor input) {
         return this.valueToNodeMap.get(input);
     }
 
@@ -72,7 +72,7 @@ public class GraphRecorder implements IGraphRecorder {
         return this.valueToNodeMap.containsKey(input);
     }
 
-    public void putGraphNode(@NotNull ITensor tensor, @NotNull IGraph.IGraphNode graphNode) {
+    public void putGraphNode(@NotNull ITensor tensor, @NotNull IGraph.ITensorNode graphNode) {
         tensor.setReferenceToAssociatedGraphNode(graphNode);
         this.valueToNodeMap.put(tensor, graphNode);
         this.recordingScopes.peek().put(tensor, graphNode);
@@ -256,7 +256,7 @@ public class GraphRecorder implements IGraphRecorder {
     }
 
     private void checkShouldRunGC() {
-        if (nBytesProbablyDeletedSinceLastAsyncGC > 100_000_000) { // 100 Mb
+        if (nBytesProbablyDeletedSinceLastAsyncGC > 200_000_000) { // 200 Mb
             shouldRunGC.set(true);
             nBytesProbablyDeletedSinceLastAsyncGC = 0;
         }
@@ -268,10 +268,12 @@ public class GraphRecorder implements IGraphRecorder {
 
     @Override
     public void resetRecording() {
-        for (Map.Entry<ITensor, IGraph.IGraphNode> entry : this.valueToNodeMap.entrySet()) {
+        for (Map.Entry<ITensor, IGraph.ITensorNode> entry : this.valueToNodeMap.entrySet()) {
             disposeIfPossible(entry);
         }
         this.valueToNodeMap.clear();
+        this.recordingScopes.clear();
+        this.recordingScopes.push(new IdentityHashMap<>());
         checkShouldRunGC();
     }
 
@@ -283,28 +285,31 @@ public class GraphRecorder implements IGraphRecorder {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        Map<ITensor, IGraph.IGraphNode> scope = this.recordingScopes.pop();
-        for (Map.Entry<ITensor, IGraph.IGraphNode> entry : scope.entrySet()) {
+        Map<ITensor, IGraph.ITensorNode> scope = this.recordingScopes.pop();
+        for (Map.Entry<ITensor, IGraph.ITensorNode> entry : scope.entrySet()) {
             disposeIfPossible(entry);
         }
         checkShouldRunGC();
     }
 
-    private void disposeIfPossible(@NotNull Map.Entry<ITensor, IGraph.IGraphNode> entry) {
+    private void disposeIfPossible(@NotNull Map.Entry<ITensor, IGraph.ITensorNode> entry) {
         ITensor value = entry.getKey();
-        IGraph.IGraphNode node = entry.getValue();
+        IGraph.ITensorNode node = entry.getValue();
 
         // dispose tensors in option bundles
-        if (node instanceof Graph.OperationGraphNode operationGraphNode) {
-            operationGraphNode.getOperationContext().getOptionBundle().dispose();
-        }
-        if (value.isDeReferenced()) {
-            value.dispose();
-        } else {
+//        if (node instanceof Graph.OperationGraphNode operationGraphNode) {
+//            operationGraphNode.getOperationContext().getOptionBundle().dispose();
+//        }
+//        if (value.isDeReferenced()) {
+//            if (!value.isDisposed()) {
+//                value.dispose();
+//            }
+//        } else {
             nBytesProbablyDeletedSinceLastAsyncGC += value.getNumBytes();
             nBytesProbablyDeletedSinceLastOnSameThreadGC += value.getNumBytes();
-        }
-        this.valueToNodeMap.remove(value);
+            node.deleteValue();
+//        }
+//        this.valueToNodeMap.remove(value);
     }
 
 

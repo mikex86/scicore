@@ -13,52 +13,58 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
     size_t vecSize = OPERANDS_SIZE / sizeof(type); \
     /* if a has altered strides, return false */ \
     if (!unalteredStrides(stridesA, shapeA, nDimsA)) {\
-        return false;\
+        return false; \
     } \
     /* if c has altered strides, return false */ \
     if (!unalteredStrides(stridesC, shapeC, nDimsC)) {\
         return false;\
     }\
-    /* if b is not a scalar, return false */ \
-    if (!(nDimsB == 0 || (nDimsB == 1 && shapeB[0] == 1))) {\
+    /* if either 'a' or 'b' is a scalar, we continue. We return false, if both are scalars, or neither of them are scalars. */ \
+    bool aIsScalar = nDimsA == 0 || (nDimsA == 1 && shapeA[0] == 1); \
+    bool bIsScalar = nDimsB == 0 || (nDimsB == 1 && shapeB[0] == 1); \
+    if (!(aIsScalar ^ bIsScalar)) {\
         return false;\
-    }\
-    /* if c is different shape than 'a', return false */ \
-    {\
-        if (nDimsA != nDimsC) {\
-            return false;\
+    } \
+    size_t nElements = 1; \
+    if (aIsScalar) {\
+        for (int i = 0; i < nDimsB; i++) {\
+            nElements *= shapeB[i];\
         }\
+    } else { \
         for (int i = 0; i < nDimsA; i++) {\
-            if (shapeA[i] != shapeC[i]) {\
-                return false;\
-            }\
+            nElements *= shapeA[i];\
         }\
-    }\
-    /* if c has altered strides, return false */ \
-    if (!unalteredStrides(stridesC, shapeC, nDimsC)) {\
-        return false;\
-    }\
-\
-    size_t nElements = 1;\
-    for (int i = 0; i < nDimsA; i++) {\
-        nElements *= shapeA[i];\
     }\
     size_t nChunks = nElements / vecSize;\
     size_t nRemainder = nElements % vecSize;\
-\
-    float32x4_t scalar = vdupq_n_f32(*b);\
-    for (int i = 0; i < nChunks; i++) {\
-        float32x4_t aChunk = vld1q_f32(a);\
-        float32x4_t cChunk = vec_inst(aChunk, scalar);\
-        vst1q_f32(c, cChunk);\
-        a += vecSize;\
-        c += vecSize;\
-    }\
-\
-    for (int i = 0; i < nRemainder; i++) {\
-        *c = *a scalar_op *b;\
-        a++;\
-        c++;\
+    if (aIsScalar) {\
+        float32x4_t scalar = vdupq_n_f32(*a);\
+        for (int i = 0; i < nChunks; i++) {\
+            float32x4_t bChunk = vld1q_f32(b);\
+            float32x4_t cChunk = vec_inst(bChunk, scalar);\
+            vst1q_f32(c, cChunk);\
+            b += vecSize;\
+            c += vecSize;\
+        }\
+        for (int i = 0; i < nRemainder; i++) {\
+            *c = *a scalar_op *b;\
+            b++;\
+            c++;\
+        }\
+    } else {\
+        float32x4_t scalar = vdupq_n_f32(*b);\
+        for (int i = 0; i < nChunks; i++) {\
+            float32x4_t aChunk = vld1q_f32(a);\
+            float32x4_t cChunk = vec_inst(aChunk, scalar);\
+            vst1q_f32(c, cChunk);\
+            a += vecSize;\
+            c += vecSize;\
+        }\
+        for (int i = 0; i < nRemainder; i++) {\
+            *c = *a scalar_op *b;\
+            a++;\
+            c++;\
+        }\
     }\
     return true;\
 }

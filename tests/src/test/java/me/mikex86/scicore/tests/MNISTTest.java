@@ -178,17 +178,17 @@ public class MNISTTest {
 
         MnistNet net = new MnistNet(sciCore);
         // set initial weights
-        {
-            ITensor fc1weight = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.weight_0.bin"));
-            ITensor fc1bias = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.bias_0.bin"));
-            net.fc1.getWeights().setContents(fc1weight);
-            Objects.requireNonNull(net.fc1.getBias()).setContents(fc1bias);
-
-            ITensor fc2weight = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.weight_0.bin"));
-            ITensor fc2bias = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.bias_0.bin"));
-            net.fc2.getWeights().setContents(fc2weight);
-            Objects.requireNonNull(net.fc2.getBias()).setContents(fc2bias);
-        }
+//        {
+//            ITensor fc1weight = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.weight_0.bin"));
+//            ITensor fc1bias = readTensor(sciCore, MNIST_DIR.resolve("progress/fc1.bias_0.bin"));
+//            net.fc1.getWeights().setContents(fc1weight);
+//            Objects.requireNonNull(net.fc1.getBias()).setContents(fc1bias);
+//
+//            ITensor fc2weight = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.weight_0.bin"));
+//            ITensor fc2bias = readTensor(sciCore, MNIST_DIR.resolve("progress/fc2.bias_0.bin"));
+//            net.fc2.getWeights().setContents(fc2weight);
+//            Objects.requireNonNull(net.fc2.getBias()).setContents(fc2bias);
+//        }
 
         long nSteps = 20_000;
         int nTestSteps = 10000;
@@ -204,7 +204,7 @@ public class MNISTTest {
                 .setTaskName("Training")
                 .setInitialMax(nSteps)
                 .setStyle(ProgressBarStyle.UNICODE_BLOCK)
-                .setUpdateIntervalMillis(1000)
+                .setUpdateIntervalMillis(100)
                 .build()) {
             for (long step = 0; step < nSteps; step++) {
                 sciCore.getBackend().getOperationRecorder().resetRecording();

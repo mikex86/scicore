@@ -258,6 +258,7 @@ public class CudaTensor extends AbstractTensor {
 
     @Override
     public void dispose() {
+        super.dispose();
         this.dataContainer.dispose();
     }
 }

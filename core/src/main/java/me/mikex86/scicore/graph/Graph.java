@@ -342,9 +342,13 @@ public class Graph implements IGraph {
             return this.upstreamGradient;
         }
 
+
         @Override
         public void deleteGradient() {
             if (this.upstreamGradient == null) {
+                return;
+            }
+            if (this.upstreamGradient.isDisposed()) {
                 return;
             }
             this.upstreamGradient.dispose();
