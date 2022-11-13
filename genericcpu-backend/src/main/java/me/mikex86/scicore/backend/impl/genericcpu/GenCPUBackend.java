@@ -9,6 +9,7 @@ import me.mikex86.scicore.backend.impl.genericcpu.op.*;
 import me.mikex86.scicore.nativelib.LibraryLoader;
 import me.mikex86.scicore.graph.op.IOperation;
 import me.mikex86.scicore.graph.OperationType;
+import me.mikex86.scicore.tensor.LazyTensor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -44,7 +45,7 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
 
     @Override
     public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
-        return new GenCPUTensor(this, dataType, shape);
+        return LazyTensor.wrap(new GenCPUTensor(this, dataType, shape));
     }
 
     @NotNull

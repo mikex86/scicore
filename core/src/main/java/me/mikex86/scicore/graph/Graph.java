@@ -535,7 +535,7 @@ public class Graph implements IGraph {
         public ITensor perform() {
             OperationType operationType = getOperationType();
             IOperation operation = operationRegistry.getOperation(operationType);
-            List<ITensor> inputTensors = new ArrayList<>();
+            List<ITensor> inputTensors = new ArrayList<>(inputs.size());
             for (IGraphNode input : inputs) {
                 if (input instanceof ITensorNode tensorNode) {
                     inputTensors.add(tensorNode.getValue());

@@ -3,7 +3,6 @@ package me.mikex86.scicore.tensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.GraphExecutor;
-import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.IGraphRecorder;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.ShapeUtils;
@@ -60,11 +59,19 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
         return lazyResult;
     }
 
-    public void setResult(@NotNull ITensor result) {
+    public void setResult(@Nullable ITensor result) {
         while (result instanceof IDerivedTensor lazyTensor) {
             result = lazyTensor.result();
         }
         this.lazyResult = result;
+    }
+
+    @NotNull
+    public ITensor lazyCopy() {
+        LazyTensor lazyTensor = new LazyTensor(sciCoreBackend, resultShape, resultDataType);
+        lazyTensor.setResult(lazyResult);
+        lazyTensor.setAssociatedGraphNode(associatedGraphNode);
+        return lazyTensor;
     }
 
     public void forceReevaluation() {

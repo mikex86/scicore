@@ -755,13 +755,6 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
      */
     boolean isDisposed();
 
-    /**
-     * Makes the tensor reference its associated graph node to prevent it from being garbage collected before this tensor is.
-     *
-     * @param graphNode the graph node
-     */
-    void setReferenceToAssociatedGraphNode(@Nullable IGraph.IGraphNode graphNode);
-
     @NotNull ITensor cast(@NotNull DataType dataType);
 
     /**
@@ -781,4 +774,15 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
      * @return true if the tensor was closed
      */
     boolean isDeReferenced();
+
+
+    /**
+     * Makes the tensor reference its associated graph node to prevent it from being garbage collected before this tensor is.
+     *
+     * @param graphNode the graph node
+     */
+    void setAssociatedGraphNode(@Nullable IGraph.ITensorNode graphNode);
+
+    @Nullable
+    IGraph.ITensorNode getAssociatedGraphNode();
 }

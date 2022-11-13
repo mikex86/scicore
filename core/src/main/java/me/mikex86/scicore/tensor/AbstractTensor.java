@@ -35,11 +35,16 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Nullable
-    protected IGraph.IGraphNode associatedGraphNode;
+    protected IGraph.ITensorNode associatedGraphNode;
 
     @Override
-    public void setReferenceToAssociatedGraphNode(@Nullable IGraph.IGraphNode graphNode) {
+    public void setAssociatedGraphNode(@Nullable IGraph.ITensorNode graphNode) {
         this.associatedGraphNode = graphNode;
+    }
+
+    @Nullable
+    public IGraph.ITensorNode getAssociatedGraphNode() {
+        return associatedGraphNode;
     }
 
     @Override

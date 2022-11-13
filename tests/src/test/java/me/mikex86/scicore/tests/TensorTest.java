@@ -2430,6 +2430,75 @@ abstract class TensorTest {
             });
             assertThrows(IllegalArgumentException.class, a::transpose);
         }
+    }
 
+    @Nested
+    class InplaceOperationChains {
+
+        @Test
+        void test_two_inplace_operations_chain() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1, 5, 3}, {6, 3, 2}
+            });
+            ITensor b = sciCore.matrix(new float[][]{
+                    {3, 2, 5}, {2, 4, 6}
+            });
+            ITensor c = sciCore.matrix(new float[][]{
+                    {9, 2, 4}, {5, 2, 9}
+            });
+            a.add(b);
+            a.add(c);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {13, 9, 12}, {13, 9, 17}
+            }), a);
+        }
+
+        @Test
+        void test_three_inplace_operations_chain() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1, 5, 3}, {6, 3, 2}
+            });
+            ITensor b = sciCore.matrix(new float[][]{
+                    {3, 2, 5}, {2, 4, 6}
+            });
+            ITensor c = sciCore.matrix(new float[][]{
+                    {9, 2, 4}, {5, 2, 9}
+            });
+            ITensor d = sciCore.matrix(new float[][]{
+                    {1, 2, 3}, {4, 5, 6}
+            });
+            a.add(b);
+            a.add(c);
+            a.add(d);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {14, 11, 15}, {17, 14, 23}
+            }), a);
+        }
+
+        @Test
+        void test_four_inplace_operations_chain() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1, 5, 3}, {6, 3, 2}
+            });
+            ITensor b = sciCore.matrix(new float[][]{
+                    {3, 2, 5}, {2, 4, 6}
+            });
+            ITensor c = sciCore.matrix(new float[][]{
+                    {9, 2, 4}, {5, 2, 9}
+            });
+            ITensor d = sciCore.matrix(new float[][]{
+                    {1, 2, 3}, {4, 5, 6}
+            });
+            ITensor e = sciCore.matrix(new float[][]{
+                    {3, 2, 6}, {3, 1, 2}
+            });
+            a.add(b);
+            a.add(c);
+            a.add(d);
+            a.add(e);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {17, 13, 21}, {20, 15, 25}
+            }), a);
+        }
     }
 }

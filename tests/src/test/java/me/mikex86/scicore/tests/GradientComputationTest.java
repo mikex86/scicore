@@ -8,6 +8,7 @@ import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -1136,6 +1137,12 @@ abstract class GradientComputationTest {
 
         Assertions.assertEquals(sciCore.matrix(new float[][]{{-0.1014f, 0.0869f, 0.1690f, -0.2076f, -0.0338f}, {-0.1092f, 0.0936f, 0.1820f, -0.2236f, -0.0364f}}), dLdA);
         Assertions.assertEquals(sciCore.matrix(new float[][]{{-0.1315f, 0.1315f}, {-0.1329f, 0.1329f}, {-0.4163f, 0.4163f}, {-0.2666f, 0.2666f}, {-0.2341f, 0.2341f}}), dLdB);
+    }
+
+
+    @Nested
+    class TestInplaceOperations {
+
     }
 
 }
