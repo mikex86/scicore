@@ -30,15 +30,10 @@ jobs:
         uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
         with:
           arguments: build --info
-      - name: SciCore-Core
-        uses: actions/upload-artifact@v3.1.1
-        with:
-          name: scicore-core
-          path: core/build/libs/core-*.jar
       - name: Generic-CPU backend
         uses: actions/upload-artifact@v3.1.1
         with:
-          name: scicore-genericcpu-backend
+          name: scicore-genericcpu-backend-macos
           path: genericcpu-backend/build/libs/genericcpu-backend-*.jar
 
   build_x86_64_windows:
@@ -54,15 +49,10 @@ jobs:
         uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
         with:
           arguments: build --info
-      - name: SciCore-Core
-        uses: actions/upload-artifact@v3.1.1
-        with:
-          name: scicore-core
-          path: core/build/libs/core-*.jar
       - name: Generic-CPU backend
         uses: actions/upload-artifact@v3.1.1
         with:
-          name: scicore-genericcpu-backend
+          name: scicore-genericcpu-backend-windows
           path: genericcpu-backend/build/libs/genericcpu-backend-*.jar
 
   build_x86_64_linux:
@@ -86,5 +76,5 @@ jobs:
       - name: Generic-CPU backend
         uses: actions/upload-artifact@v3.1.1
         with:
-          name: scicore-genericcpu-backend
+          name: scicore-genericcpu-backend-linux
           path: genericcpu-backend/build/libs/genericcpu-backend-*.jar
