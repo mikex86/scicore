@@ -1,4 +1,5 @@
 #include "sigmoid.h"
+#include <cmath>
 
 template<typename T>
 void tblas_sigmoid(const T *in, T *out, size_t nElements) {
