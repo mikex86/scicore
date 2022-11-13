@@ -45,11 +45,14 @@ public class GenCPUReluOp implements IDifferentiableUnaryOperation {
             long[] shape = inputTensor.getShape();
             long nElements = ShapeUtils.getNumElements(shape);
             DataType dataType = inputTensor.getDataType();
-            ITensor gradient = this.backend.createTensor(dataType, shape);
-            DirectMemoryHandle inputHandle = inputTensor.getContentsAsDirectMemory();
-            DirectMemoryHandle gradientHandle = gradient.getContentsAsDirectMemory();
-            ReluJNI.reluGradients(inputHandle.getNativePtr(), gradientHandle.getNativePtr(), nElements, dataType);
-            input.accumulateGradient(gradient.multiply(upstreamGradient));
+            try (ITensor gradient = this.backend.createTensor(dataType, shape)) {
+                DirectMemoryHandle inputHandle = inputTensor.getContentsAsDirectMemory();
+                DirectMemoryHandle gradientHandle = gradient.getContentsAsDirectMemory();
+                ReluJNI.reluGradients(inputHandle.getNativePtr(), gradientHandle.getNativePtr(), nElements, dataType);
+
+                ITensor finalGradient = gradient.multiply(upstreamGradient);
+                input.accumulateGradient(finalGradient);
+            }
         }
     }
 }

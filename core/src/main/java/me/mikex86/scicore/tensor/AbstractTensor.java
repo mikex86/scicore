@@ -583,9 +583,11 @@ public abstract class AbstractTensor implements ITensor {
     @Override
     @NotNull
     public ITensor softmax(int dimension) {
-        ITensor exponentiated = exp();
-        ITensor sum = exponentiated.reduceSum(dimension, true);
-        return exponentiated.divide(sum);
+        try (ITensor exponentiated = exp()) {
+            try (ITensor sum = exponentiated.reduceSum(dimension, true)) {
+                return exponentiated.divide(sum);
+            }
+        }
     }
 
     @Override

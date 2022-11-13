@@ -73,25 +73,17 @@ public class GenCPUMinusInplaceOp implements IDifferentiableBinaryOperation, IIn
 
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
-        // Note that the upstream gradient dL/dz where z is the output of the current node
-        // is with respect to all parameters a(p11,p12,...p1n) and b(p21,p22,...p2n) where a and b are the
-        // inputs to the current node.
-        // When computing the gradient for a, we need to sum over all the other parameters in b, and vice versa.
         if (a.requiresGradients()) {
             ITensor aValue = a.getValue();
-            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), aValue.getShape());
-            gradients.fill(1);
-            gradients = gradients.multiply(upstreamGradient);
-            gradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, aValue.getShape());
+            ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient, aValue.getShape());
             a.accumulateGradient(gradients);
         }
         if (b.requiresGradients()) {
             ITensor bValue = b.getValue();
-            ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), b.getValue().getShape());
-            gradients.fill(-1);
-            gradients = gradients.multiply(upstreamGradient);
-            gradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, bValue.getShape());
-            b.accumulateGradient(gradients);
+            try (ITensor negativeUpstreamGradient = upstreamGradient.multiply(-1.0f)) {
+                ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(negativeUpstreamGradient, bValue.getShape());
+                b.accumulateGradient(gradients);
+            }
         }
     }
 }

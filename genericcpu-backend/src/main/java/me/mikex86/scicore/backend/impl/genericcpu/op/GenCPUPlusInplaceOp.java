@@ -80,7 +80,7 @@ public class GenCPUPlusInplaceOp implements IDifferentiableBinaryOperation, IInp
         }
         if (b.requiresGradients()) {
             ITensor bValue = b.getValue();
-            ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient.multiply(-1), bValue.getShape());
+            ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient, bValue.getShape());
             b.accumulateGradient(gradients);
         }
     }

@@ -9,6 +9,7 @@ import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.utils.OptionalUtils;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
+import me.mikex86.scicore.utils.dispose.IDisposable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -140,10 +141,9 @@ public class Graph implements IGraph {
                 throw new IllegalStateException("Cannot compute gradient of non-scalar tensor");
             }
 
-            try (ITensor gradient = backend.createTensor(tensor.getDataType(), tensor.getShape())) {
-                gradient.fill(1);
-                nodeWithGradient.accumulateGradient(gradient); // dL/dL = 1
-            }
+            ITensor gradient = backend.createTensor(tensor.getDataType(), tensor.getShape());
+            gradient.fill(1);
+            nodeWithGradient.accumulateGradient(gradient); // dL/dL = 1
 
             // apply chain rule
             backPropagate(nodeWithGradient);
@@ -184,10 +184,8 @@ public class Graph implements IGraph {
                 if (nodeWithGradient.requestsGradients()) {
                     ITensor value = nodeWithGradient.getGradient();
                     if (value instanceof LazyTensor lazyTensor) {
-                        ITensor result = lazyTensor.result();
-                        if (nodeWithGradient.requiresGradients()) {
-                            gradients.add(result);
-                        }
+                        lazyTensor.result(); // force computation of gradient
+                        gradients.add(lazyTensor); // the instance in the set returned is the lazy wrapper
                     }
                 }
                 if (nodeWithGradient.requiresGradients()) {
@@ -370,6 +368,11 @@ public class Graph implements IGraph {
             // otherwise we can't differentiate from zeroGrad
         }
 
+        /**
+         * Accumulates the tensor to the gradient of this node.
+         *
+         * @param gradient the gradient to accumulate. Do not auto-close this tensor!
+         */
         @Override
         public void accumulateGradient(@NotNull ITensor gradient) {
             if (this.upstreamGradient == null) {
@@ -378,7 +381,10 @@ public class Graph implements IGraph {
                 Validator.assertTrue(ShapeUtils.equals(this.upstreamGradient.getShape(), gradient.getShape()), "Accumulative gradients must match shape");
                 // TODO: COMMENT BACK IN WHEN IN-PLACE OPERATIONS ARE FIXED
                 // this.upstreamGradient.add(gradient);
-                this.upstreamGradient.setContents(this.upstreamGradient.plus(gradient));
+                try (ITensor newValue = this.upstreamGradient.plus(gradient)) {
+                    this.upstreamGradient.setContents(newValue);
+                }
+                gradient.close();
             }
         }
 
@@ -563,6 +569,10 @@ public class Graph implements IGraph {
         @NotNull OptionBundle getOptionBundle();
 
         @NotNull ITensor getSavedTensorOrPopulateWith(@NotNull String name, @NotNull Supplier<ITensor> defaultSupplier);
+
+        boolean hasSavedTensor(@NotNull String name);
+
+        @NotNull Map<String, ITensor> getSavedTensors();
     }
 
     public static class OperationContext implements IOperationContext {
@@ -596,6 +606,16 @@ public class Graph implements IGraph {
         @Override
         public @NotNull ITensor getSavedTensorOrPopulateWith(@NotNull String name, @NotNull Supplier<ITensor> defaultSupplier) {
             return savedTensors.computeIfAbsent(name, s -> defaultSupplier.get());
+        }
+
+        @Override
+        public boolean hasSavedTensor(@NotNull String name) {
+            return savedTensors.containsKey(name);
+        }
+
+        @Override
+        public @NotNull Map<String, ITensor> getSavedTensors() {
+            return savedTensors;
         }
     }
 }

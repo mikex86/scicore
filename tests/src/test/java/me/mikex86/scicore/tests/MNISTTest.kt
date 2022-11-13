@@ -82,7 +82,7 @@ fun main() {
 
     val net = MnistNet(sciCore)
 
-    val nTrainSteps = 20_000L
+    val nTrainSteps = 60_000L
     val nTestSteps = 10_000L
     val learningRate = 0.01f
 
@@ -100,7 +100,7 @@ fun main() {
         .setUpdateIntervalMillis(100)
         .build().use { progressBar ->
             for (step in 0 until nTrainSteps) {
-                sciCore.backend.operationRecorder.resetRecording()
+//                sciCore.backend.operationRecorder.resetRecording()
                 sciCore.backend.operationRecorder.scopedRecording {
                     val batch = trainIt.next()
                     batch.use { x, y ->

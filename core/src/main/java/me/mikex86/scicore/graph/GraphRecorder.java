@@ -296,10 +296,32 @@ public class GraphRecorder implements IGraphRecorder {
         ITensor value = entry.getKey();
         IGraph.ITensorNode node = entry.getValue();
 
-        // dispose tensors in option bundles
         if (node instanceof Graph.OperationGraphNode operationGraphNode) {
-            operationGraphNode.getOperationContext().getOptionBundle().dispose();
+            // dispose operation context
+            Graph.IOperationContext ctx = operationGraphNode.getOperationContext();
+            Map<String, ITensor> savedTensors = ctx.getSavedTensors();
+            OptionBundle optionBundle = ctx.getOptionBundle();
+            // Get the node value
+            ITensor nodeValue = node.getValue();
+            while (nodeValue instanceof LazyTensor lazyTensor) {
+                if (lazyTensor.hasResult()) {
+                    nodeValue = lazyTensor.result();
+                } else {
+                    nodeValue = null;
+                }
+            }
+            for (ITensor savedTensor : savedTensors.values()) {
+                // We only dispose the saved tensors if the same tensor instance is not also the output of the operation.
+                // if the node value is null (meaning the lazy result was not yet computed), we can't know if the saved tensor is the same as the node value, so we dispose it anyway.
+                // We can do that, because we are at the end of the scope. Here, if the lazy result is not yet computed, it will never be computed, so we can safely dispose the saved tensors.
+                if (nodeValue == null || savedTensor != nodeValue) {
+                    savedTensor.dispose();
+                }
+            }
+            savedTensors.clear();
+            optionBundle.dispose();
         }
+
         if (value.isDeReferenced()) {
             if (!value.isDisposed()) {
                 value.dispose();

@@ -74,26 +74,31 @@ public class GenCPUDivideOp implements IDifferentiableBinaryOperation {
             // dL/dA = dL/dR * dR/dA
             // dR/dA = 1/dB
             // dL/dA = dL/dR * 1/B
-            ITensor dRdA = backend.createTensor(DataType.getLarger(A.getDataType(), B.getDataType()), B.getShape());
-            dRdA.fill(1f);
-            dRdA = dRdA.divide(B); // TODO: optimize this with an leftDivide operation so that you can do B.leftDiv(1) to express 1/B
-            ITensor dLdA = upstreamGradients.multiply(dRdA);
-            dLdA = GradientUtil.sumGradientsOnBroadcastDims(dLdA, A.getShape());
-            a.accumulateGradient(dLdA);
+            try (ITensor ones = backend.createTensor(DataType.getLarger(A.getDataType(), B.getDataType()), B.getShape());) {
+                ones.fill(1f);
+                try (ITensor dRdA = ones.divide(B)) {
+                    try (ITensor dLdATmp = upstreamGradients.multiply(dRdA)) {
+                        ITensor dLdAFinal = GradientUtil.sumGradientsOnBroadcastDims(dLdATmp, A.getShape());
+                        a.accumulateGradient(dLdAFinal);
+                    }
+                }
+            }
         }
         if (b.requiresGradients()) {
             // dL/dB = dL/dR * dR/dB
             // R = A * B^-1
             // dR/dB = -A * (B^-2)
-            // dR/dB = -A * (1/B^2)
-            // dL/dB = dL/dR * -A * (1/B^2)
-            ITensor dRdB = backend.createTensor(B.getDataType(), B.getShape());
-            dRdB.fill(1f);
-            dRdB = dRdB.divide(B.pow(2f));
-            dRdB = A.multiply(-1f).multiply(dRdB);
-            ITensor dLdB = upstreamGradients.multiply(dRdB);
-            dLdB = GradientUtil.sumGradientsOnBroadcastDims(dLdB, B.getShape());
-            b.accumulateGradient(dLdB);
+            // dL/dB = dL/dR * -A * (B^-2)
+            try (ITensor bPowNeg2 = B.pow(-2f)) {
+                try (ITensor negativeA = A.multiply(-1)) {
+                    try (ITensor dRdB = negativeA.multiply(bPowNeg2)) {
+                        try (ITensor dLdBTmp = upstreamGradients.multiply(dRdB)) {
+                            ITensor dLdB = GradientUtil.sumGradientsOnBroadcastDims(dLdBTmp, B.getShape());
+                            b.accumulateGradient(dLdB);
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -73,8 +73,10 @@ public class GenCPUMinusOp implements IDifferentiableBinaryOperation {
         }
         if (b.requiresGradients()) {
             ITensor bValue = b.getValue();
-            ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient.multiply(-1.0f), bValue.getShape());
-            b.accumulateGradient(gradients);
+            try (ITensor negativeUpstreamGradient = upstreamGradient.multiply(-1.0f)) {
+                ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(negativeUpstreamGradient, bValue.getShape());
+                b.accumulateGradient(gradients);
+            }
         }
     }
 }

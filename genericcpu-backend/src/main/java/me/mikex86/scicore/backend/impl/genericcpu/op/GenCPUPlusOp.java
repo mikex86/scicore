@@ -75,7 +75,6 @@ public class GenCPUPlusOp implements IDifferentiableBinaryOperation {
         if (b.requiresGradients()) {
             ITensor bValue = b.getValue();
             ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient, bValue.getShape());
-            gradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, bValue.getShape());
             b.accumulateGradient(gradients);
         }
     }

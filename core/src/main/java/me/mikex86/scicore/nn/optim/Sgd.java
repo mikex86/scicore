@@ -49,9 +49,11 @@ public class Sgd implements IOptimizer {
                         }
                         // TODO: COMMENT BACK IN WHEN IN-PLACE OPERATIONS ARE FIXED
 //                        parameter.subtract(gradient.multiply(learningRate)); // TODO: TEST IF MULTIPLE INPLACE OPERATIONS BREAK STUFF
-
-                        ITensor newParameter = parameter.minus(gradient.multiply(learningRate));
-                        parameter.setContents(newParameter);
+                        try (ITensor scaledGradient = gradient.multiply(learningRate)) {
+                            try (ITensor newParameter = parameter.minus(scaledGradient)) {
+                                parameter.setContents(newParameter);
+                            }
+                        }
                     }
                 }
                 return null;
