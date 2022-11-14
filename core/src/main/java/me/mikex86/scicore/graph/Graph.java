@@ -382,11 +382,7 @@ public class Graph implements IGraph {
                 this.upstreamGradient = gradient;
             } else {
                 Validator.assertTrue(ShapeUtils.equals(this.upstreamGradient.getShape(), gradient.getShape()), "Accumulative gradients must match shape");
-                // TODO: COMMENT BACK IN WHEN IN-PLACE OPERATIONS ARE FIXED
-                // this.upstreamGradient.add(gradient);
-                try (ITensor newValue = this.upstreamGradient.plus(gradient)) {
-                    this.upstreamGradient.setContents(newValue);
-                }
+                this.upstreamGradient.add(gradient);
                 gradient.close();
             }
         }

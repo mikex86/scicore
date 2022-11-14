@@ -86,10 +86,10 @@ public class GraphRecorder implements IGraphRecorder {
                 // Therefore, we need different LazyTensor instances for each operation in the chain.
                 // We set the output of the graph node of this operation to the original inputs[0], which is the tensor that the user handles and destination for the inplace operation.
                 // At this point in time, this operation is the last operation in the chain, so this is the correct output.
-                // As we find ourselves in invocations of recordOperation(), where the output of an inplace operation is the input of the next inplace operation,
-                // we set the output of these previous inplace operations to new LazyTensor instances to ensure that the GraphExecutor works correctly.
+                // As we find ourselves in invocations of recordOperation(), where the output of an operation is the input of the next inplace operation,
+                // we set the output of these previous operations to new LazyTensor instances to ensure that the GraphExecutor works correctly.
                 operationGraphNode.setOutput(originalLazyDst);
-                if (originalLazyDst.getAssociatedGraphNode() instanceof Graph.OperationGraphNode prevOperation && prevOperation.getOperationType().isInplace()) {
+                if (originalLazyDst.getAssociatedGraphNode() instanceof Graph.OperationGraphNode prevOperation) {
                     prevOperation.setOutput(new LazyTensor(originalLazyDst.getSciCoreBackend(), originalLazyDst.getShape(), originalLazyDst.getDataType()));
                 }
                 putGraphNode(originalLazyDst, operationGraphNode);

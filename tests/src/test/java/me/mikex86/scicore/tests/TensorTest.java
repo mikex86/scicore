@@ -2500,5 +2500,82 @@ abstract class TensorTest {
                     {17, 13, 21}, {20, 15, 25}
             }), a);
         }
+
+
+        @Test
+        void test_inplace_after_op_without_result() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1, 5, 3}, {6, 3, 2}
+            });
+            ITensor b = sciCore.matrix(new float[][]{
+                    {3, 2, 5}, {2, 4, 6}
+            });
+            ITensor c = sciCore.matrix(new float[][]{
+                    {9, 2, 4}, {5, 2, 9}
+            });
+            ITensor d = a.multiply(b);
+            d.add(c);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {12, 12, 19}, {17, 14, 21}
+            }), d);
+        }
+
+        @Test
+        void test_inplace_after_op_with_result() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1, 5, 3}, {6, 3, 2}
+            });
+            ITensor b = sciCore.matrix(new float[][]{
+                    {3, 2, 5}, {2, 4, 6}
+            });
+            ITensor c = sciCore.matrix(new float[][]{
+                    {9, 2, 4}, {5, 2, 9}
+            });
+            ITensor d = a.multiply(b);
+            d.getAsFloatFlat(0); // force computation
+            d.add(c);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {12, 12, 19}, {17, 14, 21}
+            }), d);
+        }
+
+        @Test
+        void test_multiple_inplace_with_same_second_input_tensor_after_op_without_result() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1, 5, 3}, {6, 3, 2}
+            });
+            ITensor b = sciCore.matrix(new float[][]{
+                    {3, 2, 5}, {2, 4, 6}
+            });
+            ITensor c = sciCore.matrix(new float[][]{
+                    {9, 2, 4}, {5, 2, 9}
+            });
+            ITensor d = a.multiply(b);
+            d.add(c);
+            d.add(c);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {21, 14, 23}, {22, 16, 30}
+            }), d);
+        }
+
+        @Test
+        void test_multiple_inplace_with_same_second_input_tensor_after_op_with_result() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1, 5, 3}, {6, 3, 2}
+            });
+            ITensor b = sciCore.matrix(new float[][]{
+                    {3, 2, 5}, {2, 4, 6}
+            });
+            ITensor c = sciCore.matrix(new float[][]{
+                    {9, 2, 4}, {5, 2, 9}
+            });
+            ITensor d = a.multiply(b);
+            d.getAsFloatFlat(0); // force computation
+            d.add(c);
+            d.add(c);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {21, 14, 23}, {22, 16, 30}
+            }), d);
+        }
     }
 }

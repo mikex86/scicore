@@ -48,9 +48,7 @@ public class Sgd implements IOptimizer {
                             learningRate *= (Math.pow(1f - learningRateDecayFactor, nSteps));
                         }
                         try (ITensor scaledGradient = gradient.multiply(learningRate)) {
-                            try (ITensor newParameter = parameter.minus(scaledGradient)) {
-                                parameter.setContents(newParameter);
-                            }
+                            parameter.subtract(scaledGradient);
                         }
                     }
                 }
