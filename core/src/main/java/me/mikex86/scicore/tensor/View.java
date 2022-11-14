@@ -5,6 +5,8 @@ import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.*;
 
 public class View extends AbstractTensor {
@@ -310,6 +312,11 @@ public class View extends AbstractTensor {
             throw new IllegalArgumentException("Invalid flat indices");
         }
         return this.viewed.getContentsAsDirectMemory(this.offset + startFlatIndex, this.offset + endFlatIndex);
+    }
+
+    @Override
+    public void readFrom(@NotNull InputStream inputStream) throws IOException {
+        throw new UnsupportedOperationException("Views are read-only");
     }
 
     @Override

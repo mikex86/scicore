@@ -9,6 +9,8 @@ import me.mikex86.scicore.utils.dispose.IDisposable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.awt.*;
+import java.io.*;
 import java.nio.*;
 import java.util.List;
 
@@ -785,4 +787,19 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @Nullable
     IGraph.ITensorNode getAssociatedGraphNode();
+
+    /**
+     * Writes the contents in tightly packed binary format to the specified output stream.
+     * Uses BIG_ENDIAN byte order.
+     * @param outputStream the output stream to write to.
+     * @throws IOException if an I/O error occurs.
+     */
+    void writeTo(@NotNull OutputStream outputStream) throws IOException;
+
+    /**
+     * Reads the contents in tightly packed binary format from the specified input stream and sets them as contents of this tensor.
+     * @param inputStream the input stream to read from.
+     * @throws IOException if an I/O error occurs.
+     */
+    void readFrom(@NotNull InputStream inputStream) throws IOException;
 }

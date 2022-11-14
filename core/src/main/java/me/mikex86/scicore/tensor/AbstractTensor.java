@@ -2,11 +2,17 @@ package me.mikex86.scicore.tensor;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.graph.*;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -45,6 +51,19 @@ public abstract class AbstractTensor implements ITensor {
     @Nullable
     public IGraph.ITensorNode getAssociatedGraphNode() {
         return associatedGraphNode;
+    }
+
+
+    @Override
+    public void writeTo(@NotNull OutputStream outputStream) throws IOException {
+        DirectMemoryHandle contents = getContentsAsDirectMemory();
+        ByteBuffer byteBuffer = contents.asByteBuffer().order(ByteOrder.BIG_ENDIAN);
+        byte[] copyBuffer = new byte[33554432]; //32MB
+        while (byteBuffer.hasRemaining()) {
+            int toCopy = Math.min(byteBuffer.remaining(), copyBuffer.length);
+            byteBuffer.get(copyBuffer, 0, toCopy);
+            outputStream.write(copyBuffer, 0, toCopy);
+        }
     }
 
     @Override

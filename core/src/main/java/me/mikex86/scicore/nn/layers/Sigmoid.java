@@ -15,7 +15,7 @@ public class Sigmoid implements IModule {
     }
 
     @Override
-    public @NotNull List<ITensor> parameters() {
+    public @NotNull List<IModule> subModules() {
         return Collections.emptyList();
     }
 

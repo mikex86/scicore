@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Linear implements IModule {
@@ -20,6 +21,8 @@ public class Linear implements IModule {
 
     @Nullable
     private final ITensor bias;
+    @NotNull
+    private final List<ITensor> parameters;
 
     public Linear(@NotNull ISciCore sciCore, @NotNull DataType dataType, long inputSize, long outputSize, boolean useBias) {
         this.inputSize = inputSize;
@@ -29,6 +32,11 @@ public class Linear implements IModule {
             this.bias = ((LazyTensor) sciCore.uniform(dataType, outputSize).multiply(2 * k).minus(k)).result();
         } else {
             this.bias = null;
+        }
+        this.parameters = new ArrayList<>(2);
+        this.parameters.add(this.weights);
+        if (this.bias != null) {
+            this.parameters.add(this.bias);
         }
     }
 
@@ -51,12 +59,12 @@ public class Linear implements IModule {
 
     @Override
     public @NotNull List<ITensor> parameters() {
-        List<ITensor> parameters = new ArrayList<>(2);
-        parameters.add(weights);
-        if (bias != null) {
-            parameters.add(bias);
-        }
-        return parameters;
+        return this.parameters;
+    }
+
+    @Override
+    public @NotNull List<IModule> subModules() {
+        return Collections.emptyList();
     }
 
     @NotNull

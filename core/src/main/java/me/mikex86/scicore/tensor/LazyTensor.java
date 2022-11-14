@@ -9,6 +9,8 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.*;
 import java.util.Arrays;
 import java.util.Objects;
@@ -300,13 +302,13 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     public String toString() {
         if (hasResult()) {
             return "LazyTensor(" +
-                    "result=" + result() +
-                    ')';
+                   "result=" + result() +
+                   ')';
         } else {
             return "LazyTensor(" +
-                    "shape=" + ShapeUtils.toString(resultShape) +
-                    ", dataType=" + resultDataType +
-                    ", hasResult=false)";
+                   "shape=" + ShapeUtils.toString(resultShape) +
+                   ", dataType=" + resultDataType +
+                   ", hasResult=false)";
         }
     }
 
@@ -348,6 +350,17 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
             return result().isDisposed();
         } else {
             return super.isDisposed();
+        }
+    }
+
+    @Override
+    public void readFrom(@NotNull InputStream inputStream) throws IOException {
+        if (hasResult()) {
+            result().readFrom(inputStream);
+        } else {
+            this.associatedGraphNode = null;
+            this.lazyResult = this.sciCoreBackend.createTensor(resultDataType, resultShape);
+            this.lazyResult.readFrom(inputStream);
         }
     }
 }

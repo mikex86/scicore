@@ -63,6 +63,16 @@ public enum DataType {
     }
 
     @NotNull
+    public static Optional<DataType> findByName(@NotNull String name) {
+        for (DataType dataType : values()) {
+            if (dataType.name().equalsIgnoreCase(name)) {
+                return Optional.of(dataType);
+            }
+        }
+        return Optional.empty();
+    }
+
+    @NotNull
     public static DataType getLarger(DataType a, DataType b) {
         DataType largerByBitSize = a.bits > b.bits ? a : b;
         if (a.isFp && b.isFp) {

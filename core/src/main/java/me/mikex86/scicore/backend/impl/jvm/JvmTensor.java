@@ -11,6 +11,7 @@ import me.mikex86.scicore.utils.dispose.IDisposable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.*;
 import java.nio.*;
 import java.util.BitSet;
 import java.util.Objects;
@@ -496,6 +497,50 @@ public class JvmTensor extends AbstractTensor implements ITensor {
         }
     }
 
+    @Override
+    public void writeTo(@NotNull OutputStream outputStream) throws IOException {
+        try (DataOutputStream dataOut = new DataOutputStream(outputStream)) {
+            switch (getDataType()) {
+                case INT8 -> dataOut.write(dataContainer.getByteData());
+                case INT16 -> {
+                    short[] shortData = dataContainer.getShortData();
+                    for (short s : shortData) {
+                        dataOut.writeShort(s);
+                    }
+                }
+                case INT32 -> {
+                    int[] intData = dataContainer.getIntData();
+                    for (int i : intData) {
+                        dataOut.writeInt(i);
+                    }
+                }
+                case INT64 -> {
+                    long[] longData = dataContainer.getLongData();
+                    for (long l : longData) {
+                        dataOut.writeLong(l);
+                    }
+                }
+                case FLOAT32 -> {
+                    float[] floatData = dataContainer.getFloatData();
+                    for (float f : floatData) {
+                        dataOut.writeFloat(f);
+                    }
+                }
+                case FLOAT64 -> {
+                    double[] doubleData = dataContainer.getDoubleData();
+                    for (double d : doubleData) {
+                        dataOut.writeDouble(d);
+                    }
+                }
+                case BOOLEAN -> {
+                    BitSet booleanData = dataContainer.getBooleanData();
+                    byte[] bytes = booleanData.toByteArray();
+                    dataOut.write(bytes);
+                }
+            }
+        }
+    }
+
 
     private static class JvmTensorDataContainer implements IDisposable {
 
@@ -535,31 +580,31 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             }
         }
 
-        private byte @NotNull [] getByteData() {
+        byte @NotNull [] getByteData() {
             return Objects.requireNonNull(byteData, "DataContainer has different data type");
         }
 
-        private short @NotNull [] getShortData() {
+        short @NotNull [] getShortData() {
             return Objects.requireNonNull(shortData, "DataContainer has different data type");
         }
 
-        private int @NotNull [] getIntData() {
+        int @NotNull [] getIntData() {
             return Objects.requireNonNull(intData, "DataContainer has different data type");
         }
 
-        private float @NotNull [] getFloatData() {
+        float @NotNull [] getFloatData() {
             return Objects.requireNonNull(floatData, "DataContainer has different data type");
         }
 
-        private double @NotNull [] getDoubleData() {
+        double @NotNull [] getDoubleData() {
             return Objects.requireNonNull(doubleData, "DataContainer has different data type");
         }
 
-        private long @NotNull [] getLongData() {
+        long @NotNull [] getLongData() {
             return Objects.requireNonNull(longData, "DataContainer has different data type");
         }
 
-        private @NotNull BitSet getBooleanData() {
+        @NotNull BitSet getBooleanData() {
             return Objects.requireNonNull(bitSetData, "DataContainer has different data type");
         }
 
@@ -932,6 +977,58 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             throw new UnsupportedOperationException("JvmTensors cannot have more than Integer.MAX_VALUE elements");
         }
         return this.dataContainer.getAsDirectBuffer(Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex));
+    }
+
+    @Override
+    public void readFrom(@NotNull InputStream inputStream) throws IOException {
+        try (DataInputStream dataInputStream = new DataInputStream(inputStream)) {
+            switch (getDataType()) {
+                case INT8 -> {
+                    byte[] byteData = this.dataContainer.getByteData();
+                    dataInputStream.readFully(byteData);
+                }
+                case INT16 -> {
+                    short[] shortData = this.dataContainer.getShortData();
+                    for (int i = 0; i < shortData.length; i++) {
+                        shortData[i] = dataInputStream.readShort();
+                    }
+                }
+                case INT32 -> {
+                    int[] intData = this.dataContainer.getIntData();
+                    for (int i = 0; i < intData.length; i++) {
+                        intData[i] = dataInputStream.readInt();
+                    }
+                }
+                case INT64 -> {
+                    long[] longData = this.dataContainer.getLongData();
+                    for (int i = 0; i < longData.length; i++) {
+                        longData[i] = dataInputStream.readLong();
+                    }
+                }
+                case FLOAT32 -> {
+                    float[] floatData = this.dataContainer.getFloatData();
+                    for (int i = 0; i < floatData.length; i++) {
+                        floatData[i] = dataInputStream.readFloat();
+                    }
+                }
+                case FLOAT64 -> {
+                    double[] doubleData = this.dataContainer.getDoubleData();
+                    for (int i = 0; i < doubleData.length; i++) {
+                        doubleData[i] = dataInputStream.readDouble();
+                    }
+                }
+                case BOOLEAN -> {
+                    BitSet bitSetData = this.dataContainer.getBooleanData();
+                    byte currentByte = 0;
+                    for (int i = 0; i < bitSetData.length(); i++) {
+                        if (i % 8 == 0) {
+                            currentByte = dataInputStream.readByte();
+                        }
+                        bitSetData.set(i, (currentByte & (1 << (i % 8))) != 0);
+                    }
+                }
+            }
+        }
     }
 
     @Override

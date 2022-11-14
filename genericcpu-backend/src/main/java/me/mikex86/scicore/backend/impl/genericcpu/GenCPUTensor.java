@@ -9,6 +9,9 @@ import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.*;
 
 public class GenCPUTensor extends AbstractTensor implements ITensor {
@@ -22,8 +25,6 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     private final GenCPUBackend backend;
 
     private final long @NotNull [] shape;
-
-    private boolean disposed = false;
 
     public GenCPUTensor(@NotNull GenCPUBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
         this.numElements = ShapeUtils.getNumElements(shape);
@@ -493,10 +494,6 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
 
     @Override
     public @NotNull DirectMemoryHandle getContentsAsDirectMemory() {
-        long nElements = getNumberOfElements();
-        if (nElements > Integer.MAX_VALUE) {
-            throw new UnsupportedOperationException("JvmTensors cannot have more than Integer.MAX_VALUE elements");
-        }
         return this.dataContainer.getAsDirectBuffer();
     }
 
@@ -510,10 +507,23 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
         if (startFlatIndex >= endFlatIndex) {
             throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
         }
-        if (startFlatIndex > Integer.MAX_VALUE || endFlatIndex > Integer.MAX_VALUE) {
-            throw new UnsupportedOperationException("JvmTensors cannot have more than Integer.MAX_VALUE elements");
-        }
         return this.dataContainer.getAsDirectBuffer(Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex));
+    }
+
+
+    @Override
+    public void readFrom(@NotNull InputStream inputStream) throws IOException {
+        DirectMemoryHandle contents = getContentsAsDirectMemory();
+        ByteBuffer byteBuffer = contents.asByteBuffer().order(ByteOrder.BIG_ENDIAN);
+        byte[] copyBuffer = new byte[33554432]; //32MB
+        while (byteBuffer.hasRemaining()) {
+            int toCopy = Math.min(byteBuffer.remaining(), copyBuffer.length);
+            int read = inputStream.read(copyBuffer, 0, toCopy);
+            if (read == -1) {
+                throw new IOException("Unexpected end of stream");
+            }
+            byteBuffer.put(copyBuffer, 0, read);
+        }
     }
 
     @Override

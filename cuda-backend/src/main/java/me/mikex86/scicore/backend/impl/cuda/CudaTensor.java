@@ -9,6 +9,8 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.*;
 
 public class CudaTensor extends AbstractTensor {
@@ -199,6 +201,17 @@ public class CudaTensor extends AbstractTensor {
                 memoryHandle.free();
             }
         }
+    }
+
+    @Override
+    public void readFrom(@NotNull InputStream inputStream) throws IOException {
+        // TODO: WE COULD COPY THIS IN CHUNKS TO THE GPU TO SAVE RAM
+        byte[] bytes = inputStream.readAllBytes();
+        DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(bytes.length);
+        ByteBuffer byteBuffer = memoryHandle.asByteBuffer();
+        byteBuffer.put(bytes);
+        this.dataContainer.setContents(byteBuffer);
+        memoryHandle.free();
     }
 
     @Override

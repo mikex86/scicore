@@ -26,7 +26,7 @@ public class Softmax implements IModule {
     }
 
     @Override
-    public @NotNull List<ITensor> parameters() {
+    public @NotNull List<IModule> subModules() {
         return Collections.emptyList();
     }
 

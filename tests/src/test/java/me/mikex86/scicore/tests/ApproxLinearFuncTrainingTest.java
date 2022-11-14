@@ -1,5 +1,6 @@
 package me.mikex86.scicore.tests;
 
+import kotlin.Pair;
 import me.mikex86.matplotlib.jplot.JPlot;
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.SciCore;
@@ -10,7 +11,6 @@ import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
-import me.mikex86.scicore.utils.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
@@ -47,7 +47,7 @@ public abstract class ApproxLinearFuncTrainingTest {
             float y = 2 * x + 0.5f;
             ITensor featureTensor = sciCore.array(new float[]{x});
             ITensor labelTensor = sciCore.array(new float[]{y});
-            return Pair.of(featureTensor, labelTensor);
+            return new Pair<>(featureTensor, labelTensor);
         });
     }
 
@@ -65,8 +65,8 @@ public abstract class ApproxLinearFuncTrainingTest {
             }
 
             @Override
-            public @NotNull List<ITensor> parameters() {
-                return collectParameters(f1);
+            public @NotNull List<IModule> subModules() {
+                return List.of(f1);
             }
         }
 

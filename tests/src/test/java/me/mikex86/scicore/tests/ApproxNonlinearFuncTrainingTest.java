@@ -1,5 +1,6 @@
 package me.mikex86.scicore.tests;
 
+import kotlin.Pair;
 import me.mikex86.matplotlib.jplot.JPlot;
 import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.tensor.DataType;
@@ -11,7 +12,6 @@ import me.mikex86.scicore.nn.layers.Linear;
 import me.mikex86.scicore.nn.layers.Sigmoid;
 import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
-import me.mikex86.scicore.utils.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,7 @@ public abstract class ApproxNonlinearFuncTrainingTest {
             float y = 2 * (x * x) + 0.5f;
             ITensor featureTensor = sciCore.array(new float[]{x});
             ITensor labelTensor = sciCore.array(new float[]{y});
-            return Pair.of(featureTensor, labelTensor);
+            return new Pair<>(featureTensor, labelTensor);
         });
     }
 
@@ -70,8 +70,8 @@ public abstract class ApproxNonlinearFuncTrainingTest {
         }
 
         @Override
-        public @NotNull List<ITensor> parameters() {
-            return collectParameters(f1, f2);
+        public @NotNull List<IModule> subModules() {
+            return List.of(f1, f2);
         }
     }
 

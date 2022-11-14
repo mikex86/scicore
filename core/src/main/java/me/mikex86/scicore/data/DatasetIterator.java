@@ -1,14 +1,15 @@
 package me.mikex86.scicore.data;
 
+import kotlin.Pair;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.utils.Pair;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Iterator;
 import java.util.function.Supplier;
 
-public class DatasetIterator {
+public class DatasetIterator implements Iterator<Pair<ITensor, ITensor>>, Iterable<Pair<ITensor, ITensor>> {
 
     private final int batchSize;
 
@@ -25,6 +26,11 @@ public class DatasetIterator {
 
     public int getBatchSize() {
         return batchSize;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return true; // TODO: REWORK THIS WITH "REPEAT" OPTIONS
     }
 
     @NotNull
@@ -73,6 +79,12 @@ public class DatasetIterator {
             batchedX.setContents(new long[]{i}, X);
             batchedY.setContents(new long[]{i}, Y);
         }
-        return Pair.of(batchedX, batchedY);
+        return new Pair<>(batchedX, batchedY);
+    }
+
+    @NotNull
+    @Override
+    public Iterator<Pair<ITensor, ITensor>> iterator() {
+        return this;
     }
 }
