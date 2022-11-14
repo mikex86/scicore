@@ -78,7 +78,8 @@ public class Graph implements IGraph {
                         // insert inputs at the beginning the nodesToVisit queue
                         // This ensures that we visit depth first
                         for (int i = inputs.size() - 1; i >= 0; i--) {
-                            nodesToVisit.addFirst(inputs.get(i));
+                            IGraphNode input = inputs.get(i);
+                            nodesToVisit.addFirst(input);
                         }
                     } else if (node instanceof TensorDeclarationGraphNode tensorDeclarationNode && tensorDeclarationNode.getValue() == parameter) {
                         if (nodeOpt.isEmpty()) {

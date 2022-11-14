@@ -1,18 +1,21 @@
 package me.mikex86.scicore.tests;
 
 import me.mikex86.matplotlib.jplot.JPlot;
-import me.mikex86.scicore.SciCore;
-import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
-import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.SciCore;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
 import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.utils.Pair;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 import java.awt.*;
 import java.nio.file.Path;
@@ -72,20 +75,24 @@ public abstract class ApproxLinearFuncTrainingTest {
 
         DatasetIterator dataIt = getData(batchSize);
         IOptimizer optimizer = new Sgd(sciCore, 0.6f, bobNet.parameters(), true, 1e-6f);
-        for (int step = 0; step < 150; step++) {
-            Pair<ITensor, ITensor> next = dataIt.next();
-            ITensor X = next.getFirst();
-            ITensor Y = next.getSecond();
-            ITensor YPred = bobNet.forward(X);
-            ITensor loss = (YPred.minus(Y)).pow(2).reduceSum(0).divide(batchSize);
+        for (int i = 0; i < 150; i++) {
+            final int step = i;
+            sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
+                Pair<ITensor, ITensor> next = dataIt.next();
+                ITensor X = next.getFirst();
+                ITensor Y = next.getSecond();
+                ITensor YPred = bobNet.forward(X);
+                ITensor loss = (YPred.minus(Y)).pow(2).reduceSum(0).divide(batchSize);
 
-            optimizer.step(loss);
+                optimizer.step(loss);
 
-            float lossValue = loss.elementAsFloat();
-            losses[step] = (float) Math.log(lossValue);
-            if (step % 10 == 0) {
-                System.out.println("Step " + step + ", loss: " + lossValue);
-            }
+                float lossValue = loss.elementAsFloat();
+                losses[step] = (float) Math.log(lossValue);
+                if (step % 10 == 0) {
+                    System.out.println("Step " + step + ", loss: " + lossValue);
+                }
+                return null;
+            });
         }
         Assertions.assertEquals(sciCore.matrix(new float[][]{{2.0f}}), bobNet.f1.getWeights());
         Assertions.assertEquals(sciCore.array(new float[]{0.5f}), bobNet.f1.getBias());

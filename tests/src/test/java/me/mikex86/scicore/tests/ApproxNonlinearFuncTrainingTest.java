@@ -84,23 +84,27 @@ public abstract class ApproxNonlinearFuncTrainingTest {
 
         DatasetIterator dataIt = getData(batchSize);
         IOptimizer optimizer = new Sgd(sciCore, 0.5f, bobNet.parameters(), true, 1e-6f);
-        for (int step = 0; step < nSteps; step++) {
-            Pair<ITensor, ITensor> next = dataIt.next();
-            ITensor X = next.getFirst();
-            ITensor Y = next.getSecond();
-            ITensor YPred = bobNet.forward(X);
-            ITensor loss = (YPred.minus(Y)).pow(2).reduceSum(0).divide(batchSize);
+        for (int i = 0; i < nSteps; i++) {
+            final int step = i;
+            sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
+                Pair<ITensor, ITensor> next = dataIt.next();
+                ITensor X = next.getFirst();
+                ITensor Y = next.getSecond();
+                ITensor YPred = bobNet.forward(X);
+                ITensor loss = (YPred.minus(Y)).pow(2).reduceSum(0).divide(batchSize);
 
-            optimizer.step(loss);
+                optimizer.step(loss);
 
-            float lossValue = loss.elementAsFloat();
-            losses[step] = (float) Math.log(lossValue);
-            if (step % 100 == 0) {
-                System.out.println("Step " + step + ", loss: " + lossValue);
-                if (!GraphicsEnvironment.isHeadless()) {
-                    plotPrediction(bobNet);
+                float lossValue = loss.elementAsFloat();
+                losses[step] = (float) Math.log(lossValue);
+                if (step % 100 == 0) {
+                    System.out.println("Step " + step + ", loss: " + lossValue);
+                    if (!GraphicsEnvironment.isHeadless()) {
+                        plotPrediction(bobNet);
+                    }
                 }
-            }
+                return null;
+            });
         }
 
         // plot loss

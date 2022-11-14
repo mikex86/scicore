@@ -261,6 +261,11 @@ public class GraphRecorder implements IGraphRecorder {
                 IGraph.IGraphNode alreadyExistingCopy = nodeToCopy.get(input);
                 if (alreadyExistingCopy == null) {
                     IGraph.IGraphNode copy = copyNodeIncludeAlreadyComputed(input, nodeToInputs);
+                    if (copy == null) {
+                        throw new IllegalStateException("Cannot construct backpropagation graph, as the graph leads to tensors that are already disposed. Cannot safely continue. " +
+                                                        "Did the optimization operations leak into your main graph? " +
+                                                        "Check your usage of GraphRecorder#recordWithScope() or GraphRecorder#scopedRecording() in kotlin, or GraphRecorder#resetRecording()");
+                    }
                     copies.add(copy);
                     nodeToCopy.put(input, copy);
                 } else {
@@ -271,6 +276,9 @@ public class GraphRecorder implements IGraphRecorder {
         }
 
         IGraph.IGraphNode rootCopy = copyNodeIncludeAlreadyComputed(rootNode, nodeToInputs);
+        if (rootCopy == null) {
+            throw new IllegalArgumentException("Cannot construct backpropagation graph to a tensor that was already disposed");
+        }
         Graph graph = new Graph(rootCopy, backend, operationRegistry);
         graph.requestGradientsFor(parameters);
         return graph;
@@ -391,11 +399,14 @@ public class GraphRecorder implements IGraphRecorder {
      *
      * @param node         The node to copy
      * @param nodeToInputs A map from the original node to a copy of the list of inputs of that node. Populated in reverse topological order, thus the inputs for a downstream node will exist by the time we get there.
-     * @return The copy of the node
+     * @return The copy of the node, or null, if some inputs of the node are already disposed.
      */
-    @NotNull
+    @Nullable
     private IGraph.IGraphNode copyNodeIncludeAlreadyComputed(@NotNull IGraph.IGraphNode node, @NotNull Map<Graph.OperationGraphNode, List<IGraph.IGraphNode>> nodeToInputs) {
         if (node instanceof Graph.TensorDeclarationGraphNode tensorDeclarationGraphNode) {
+            if (!tensorDeclarationGraphNode.hasValue()) {
+                return null;
+            }
             return new Graph.TensorDeclarationGraphNode(tensorDeclarationGraphNode.getValue());
         } else if (node instanceof Graph.OperationGraphNode operationGraphNode) {
             List<IGraph.IGraphNode> inputCopies = nodeToInputs.get(operationGraphNode);
