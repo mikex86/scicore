@@ -1,5 +1,6 @@
 package me.mikex86.scicore.graph;
 
+import com.google.common.collect.MapMaker;
 import me.mikex86.scicore.graph.op.IInplaceOperation;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
@@ -17,6 +18,12 @@ public class GraphRecorder implements IGraphRecorder {
 
     @NotNull
     private final OperationRegistry operationRegistry;
+
+    @NotNull
+    private final Map<ITensor, Graph.ITensorNode> valueToNodeMap = new MapMaker()
+            .weakKeys()
+            .weakValues()
+            .makeMap();
 
     @NotNull
     private final Stack<Map<ITensor, IGraph.ITensorNode>> recordingScopes = new Stack<>();
@@ -104,11 +111,16 @@ public class GraphRecorder implements IGraphRecorder {
 
     @Nullable
     private IGraph.ITensorNode getGraphNode(@NotNull ITensor input) {
-        return input.getAssociatedGraphNode();
+        IGraph.ITensorNode node = input.getAssociatedGraphNode(); // this can be null for various reasons
+        if (node != null) {
+            return node;
+        }
+        return valueToNodeMap.get(input);
     }
 
     public void putGraphNode(@NotNull ITensor tensor, @NotNull IGraph.ITensorNode graphNode) {
         tensor.setAssociatedGraphNode(graphNode);
+        this.valueToNodeMap.put(tensor, graphNode);
         this.recordingScopes.peek().put(tensor, graphNode);
     }
 
@@ -302,6 +314,7 @@ public class GraphRecorder implements IGraphRecorder {
 
     @Override
     public void resetRecording() {
+        this.valueToNodeMap.clear();
         while (!this.recordingScopes.isEmpty()) {
             Map<ITensor, IGraph.ITensorNode> scope = this.recordingScopes.pop();
             for (Map.Entry<ITensor, IGraph.ITensorNode> entry : scope.entrySet()) {
@@ -357,15 +370,18 @@ public class GraphRecorder implements IGraphRecorder {
             savedTensors.clear();
             optionBundle.dispose();
         }
-
-        if (value.isDeReferenced() && (!(node instanceof Graph.OperationGraphNode operationGraphNode) || !operationGraphNode.getOperationType().isInplace())) {
-            if (!value.isDisposed()) {
-                value.dispose();
+        if ((!(node instanceof Graph.OperationGraphNode operationGraphNode) || !operationGraphNode.getOperationType().isInplace())) { // Inplace operations do not own their output tensor, so we don't dispose it.
+            value.setAssociatedGraphNode(null);
+            if (value.isDeReferenced()) {
+                if (!value.isDisposed()) {
+                    value.dispose();
+                }
+            } else {
+                nBytesProbablyDeletedSinceLastAsyncGC += value.getNumBytes();
+                nBytesProbablyDeletedSinceLastOnSameThreadGC += value.getNumBytes();
+                node.deleteValue();
             }
-        } else {
-            nBytesProbablyDeletedSinceLastAsyncGC += value.getNumBytes();
-            nBytesProbablyDeletedSinceLastOnSameThreadGC += value.getNumBytes();
-            node.deleteValue();
+            this.valueToNodeMap.remove(value);
         }
     }
 

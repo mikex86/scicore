@@ -45,7 +45,7 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
 
     @Override
     public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
-        return LazyTensor.wrap(new GenCPUTensor(this, dataType, shape));
+        return new GenCPUTensor(this, dataType, shape);
     }
 
     @NotNull

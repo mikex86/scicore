@@ -341,4 +341,13 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
             associatedGraphNode = null;
         }
     }
+
+    @Override
+    public boolean isDisposed() {
+        if (hasResult()) {
+            return result().isDisposed();
+        } else {
+            return super.isDisposed();
+        }
+    }
 }
