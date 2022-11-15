@@ -26,12 +26,15 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     private boolean disposed = false;
 
+    private final long nElements;
+
     public GenCpuTensorDataContainer(@NotNull DirectMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
         this.memoryManager = memoryManager;
         long nBytes = dataType.getSizeOf(nElements);
         this.memoryHandle = memoryManager.calloc(nBytes);
         this.dataSize = nBytes;
         this.dataType = dataType;
+        this.nElements = nElements;
     }
 
     private void checkDisposed() {
@@ -298,145 +301,379 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
         checkDisposed();
-        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+        if (startFlatIndex < 0 || startFlatIndex >= this.nElements) {
             throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
         }
-        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+        if (endFlatIndex < 0 || endFlatIndex > this.nElements) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
         }
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value & 0xFF, endFlatIndex - startFlatIndex);
+        long nElementsInRegion = endFlatIndex - startFlatIndex;
+        long nBytes = dataType.getSizeOf(nElementsInRegion);
+        switch (dataType) {
+            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value, nBytes);
+            case INT16 -> {
+                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case INT32 -> {
+                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    intBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case INT64 -> {
+                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case FLOAT32 -> {
+                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case FLOAT64 -> {
+                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case BOOLEAN -> {
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    setBooleanFlat(startFlatIndex + i, value != 0);
+                }
+            }
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
         checkDisposed();
-        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+        if (startFlatIndex < 0 || startFlatIndex >= this.nElements) {
             throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
         }
-        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+        if (endFlatIndex < 0 || endFlatIndex > this.nElements) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
         }
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        if ((endFlatIndex - startFlatIndex) % Short.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + (endFlatIndex - startFlatIndex) + " with short value");
+        long nElementsInRegion = endFlatIndex - startFlatIndex;
+        long nBytes = dataType.getSizeOf(nElementsInRegion);
+        switch (dataType) {
+            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value, nBytes);
+            case INT16 -> {
+                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case INT32 -> {
+                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    intBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case INT64 -> {
+                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case FLOAT32 -> {
+                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case FLOAT64 -> {
+                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case BOOLEAN -> {
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    setBooleanFlat(startFlatIndex + i, value != 0);
+                }
+            }
         }
-        ShortBuffer buffer = this.memoryHandle.asShortBuffer();
-        for (int i = (int) (startFlatIndex / Short.BYTES); i < (int) (endFlatIndex / Short.BYTES); i++) {
-            buffer.put(i, value);
-        }
-        buffer.flip();
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
         checkDisposed();
-        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+        if (startFlatIndex < 0 || startFlatIndex >= this.nElements) {
             throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
         }
-        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+        if (endFlatIndex < 0 || endFlatIndex > this.nElements) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
         }
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        if ((endFlatIndex - startFlatIndex) % Integer.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + (endFlatIndex - startFlatIndex) + " with int value");
+        long nElementsInRegion = endFlatIndex - startFlatIndex;
+        long nBytes = dataType.getSizeOf(nElementsInRegion);
+        switch (dataType) {
+            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value, nBytes);
+            case INT16 -> {
+                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
+                }
+            }
+            case INT32 -> {
+                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    intBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case INT64 -> {
+                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case FLOAT32 -> {
+                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case FLOAT64 -> {
+                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case BOOLEAN -> {
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    setBooleanFlat(startFlatIndex + i, value != 0);
+                }
+            }
         }
-        IntBuffer buffer = this.memoryHandle.asIntBuffer();
-        for (int i = (int) (startFlatIndex / Integer.BYTES); i < (int) (endFlatIndex / Integer.BYTES); i++) {
-            buffer.put(i, value);
-        }
-        buffer.flip();
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
         checkDisposed();
-        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+        if (startFlatIndex < 0 || startFlatIndex >= this.nElements) {
             throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
         }
-        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+        if (endFlatIndex < 0 || endFlatIndex > this.nElements) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
         }
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        if ((endFlatIndex - startFlatIndex) % Long.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + (endFlatIndex - startFlatIndex) + " with long value");
+        long nElementsInRegion = endFlatIndex - startFlatIndex;
+        long nBytes = dataType.getSizeOf(nElementsInRegion);
+        switch (dataType) {
+            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, (int) value, nBytes);
+            case INT16 -> {
+                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
+                }
+            }
+            case INT32 -> {
+                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    intBuffer.put(Math.toIntExact(startFlatIndex + i), (int) value);
+                }
+            }
+            case INT64 -> {
+                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case FLOAT32 -> {
+                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case FLOAT64 -> {
+                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case BOOLEAN -> {
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    setBooleanFlat(startFlatIndex + i, value != 0);
+                }
+            }
         }
-        LongBuffer buffer = this.memoryHandle.asLongBuffer();
-        for (int i = (int) (startFlatIndex / Long.BYTES); i < (int) (endFlatIndex / Long.BYTES); i++) {
-            buffer.put(i, value);
-        }
-        buffer.flip();
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
         checkDisposed();
-        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+        if (startFlatIndex < 0 || startFlatIndex >= this.nElements) {
             throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
         }
-        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+        if (endFlatIndex < 0 || endFlatIndex > this.nElements) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
         }
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        if ((endFlatIndex - startFlatIndex) % Float.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + (endFlatIndex - startFlatIndex) + " with float value");
+        long nElementsInRegion = endFlatIndex - startFlatIndex;
+        long nBytes = dataType.getSizeOf(nElementsInRegion);
+        switch (dataType) {
+            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, (int) value, nBytes);
+            case INT16 -> {
+                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
+                }
+            }
+            case INT32 -> {
+                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    intBuffer.put(Math.toIntExact(startFlatIndex + i), (int) value);
+                }
+            }
+            case INT64 -> {
+                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    longBuffer.put(Math.toIntExact(startFlatIndex + i), (long) value);
+                }
+            }
+            case FLOAT32 -> {
+                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case FLOAT64 -> {
+                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case BOOLEAN -> {
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    setBooleanFlat(startFlatIndex + i, value != 0);
+                }
+            }
         }
-        FloatBuffer buffer = this.memoryHandle.asFloatBuffer();
-        for (int i = (int) (startFlatIndex / Float.BYTES); i < (int) (endFlatIndex / Float.BYTES); i++) {
-            buffer.put(i, value);
-        }
-        buffer.flip();
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
         checkDisposed();
-        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+        if (startFlatIndex < 0 || startFlatIndex >= this.nElements) {
             throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
         }
-        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+        if (endFlatIndex < 0 || endFlatIndex > this.nElements) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
         }
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        if ((endFlatIndex - startFlatIndex) % Double.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + (endFlatIndex - startFlatIndex) + " with double value");
+        long nElementsInRegion = endFlatIndex - startFlatIndex;
+        long nBytes = dataType.getSizeOf(nElementsInRegion);
+        switch (dataType) {
+            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, (int) value, nBytes);
+            case INT16 -> {
+                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
+                }
+            }
+            case INT32 -> {
+                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    intBuffer.put(Math.toIntExact(startFlatIndex + i), (int) value);
+                }
+            }
+            case INT64 -> {
+                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    longBuffer.put(Math.toIntExact(startFlatIndex + i), (long) value);
+                }
+            }
+            case FLOAT32 -> {
+                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), (float) value);
+                }
+            }
+            case FLOAT64 -> {
+                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
+                }
+            }
+            case BOOLEAN -> {
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    setBooleanFlat(startFlatIndex + i, value != 0);
+                }
+            }
         }
-        DoubleBuffer buffer = this.memoryHandle.asDoubleBuffer();
-        for (int i = (int) (startFlatIndex / Double.BYTES); i < (int) (endFlatIndex / Double.BYTES); i++) {
-            buffer.put(i, value);
-        }
-        buffer.flip();
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
         checkDisposed();
-        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+        if (startFlatIndex < 0 || startFlatIndex >= this.nElements) {
             throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
         }
-        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+        if (endFlatIndex < 0 || endFlatIndex > this.nElements) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
         }
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        ByteBuffer buffer = this.memoryHandle.asByteBuffer();
-        for (int i = (int) startFlatIndex; i < endFlatIndex; i++) {
-            buffer.put(i, (byte) (value ? 0xFF : 0));
+        long nElementsInRegion = endFlatIndex - startFlatIndex;
+        long nBytes = dataType.getSizeOf(nElementsInRegion);
+        switch (dataType) {
+            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value ? 1 : 0, nBytes);
+            case INT16 -> {
+                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) (value ? 1 : 0));
+                }
+            }
+            case INT32 -> {
+                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    intBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
+                }
+            }
+            case INT64 -> {
+                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    longBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
+                }
+            }
+            case FLOAT32 -> {
+                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
+                }
+            }
+            case FLOAT64 -> {
+                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
+                }
+            }
+            case BOOLEAN -> {
+                for (int i = 0; i < nElementsInRegion; i++) {
+                    setBooleanFlat(startFlatIndex + i, value);
+                }
+            }
         }
-        buffer.flip();
     }
 
     @Override

@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.nio.*;
+import java.util.Arrays;
 import java.util.List;
 
 public interface ITensor extends IValue, IDisposable, AutoCloseable {
@@ -534,7 +535,9 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     default void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
         long flatIndex = ShapeUtils.getFlatIndex(index, getStrides());
-        long numElements = ShapeUtils.getNumElements(getStrides(), index);
+        long[] shape = getShape();
+        long[] subTensorShape = Arrays.copyOfRange(shape, index.length, shape.length);
+        long numElements = ShapeUtils.getNumElements(subTensorShape);
         if (tensor.getNumberOfElements() != numElements) {
             throw new IllegalArgumentException("Dimensions of destination tensor do not match with source tensor in setContents(index, tensor)");
         }

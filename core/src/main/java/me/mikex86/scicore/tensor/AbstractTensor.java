@@ -76,7 +76,7 @@ public abstract class AbstractTensor implements ITensor {
         long[] sliceShape = Arrays.copyOfRange(shape, indices.length, shape.length);
         long[] sliceStrides = Arrays.copyOfRange(strides, indices.length, strides.length);
 
-        long offset = ShapeUtils.getFlatIndex(indices, strides);
+        long offset = ShapeUtils.getFlatIndex(indices, shape, strides);
         return new View(this, sliceShape, offset, sliceStrides);
     }
 
@@ -96,72 +96,72 @@ public abstract class AbstractTensor implements ITensor {
 
     @Override
     public byte getByte(long @NotNull ... indices) {
-        return getByteFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+        return getByteFlat(ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public void setByte(byte value, long @NotNull ... indices) {
-        setByteFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+        setByteFlat(value, ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public short getShort(long @NotNull ... indices) {
-        return getShortFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+        return getShortFlat(ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public void setShort(short value, long @NotNull ... indices) {
-        setShortFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+        setShortFlat(value, ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public int getInt(long @NotNull ... indices) {
-        return getIntFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+        return getIntFlat(ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public void setInt(int value, long @NotNull ... indices) {
-        setIntFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+        setIntFlat(value, ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public void setLong(long value, long @NotNull ... indices) {
-        setLongFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+        setLongFlat(value, ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public long getLong(long @NotNull ... indices) {
-        return getLongFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+        return getLongFlat(ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public float getFloat(long @NotNull ... indices) {
-        return getFloatFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+        return getFloatFlat(ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public void setFloat(float value, long @NotNull ... indices) {
-        setFloatFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+        setFloatFlat(value, ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public double getDouble(long @NotNull ... indices) {
-        return getDoubleFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+        return getDoubleFlat(ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public void setDouble(double value, long @NotNull ... indices) {
-        setDoubleFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+        setDoubleFlat(value, ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public boolean getBoolean(long @NotNull ... indices) {
-        return getBooleanFlat(ShapeUtils.getFlatIndex(indices, getStrides()));
+        return getBooleanFlat(ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override
     public void setBoolean(boolean value, long @NotNull ... indices) {
-        setBooleanFlat(value, ShapeUtils.getFlatIndex(indices, getStrides()));
+        setBooleanFlat(value, ShapeUtils.getFlatIndex(indices, getShape(), getStrides()));
     }
 
     @Override

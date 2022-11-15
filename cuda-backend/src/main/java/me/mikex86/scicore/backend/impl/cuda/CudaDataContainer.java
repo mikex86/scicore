@@ -398,29 +398,18 @@ public class CudaDataContainer implements ITensorDataContainer {
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
-        long size = endFlatIndex - startFlatIndex;
-        cuCheck(cuMemsetD8(deviceMemoryHandle.getDevicePointer().withByteOffset(startFlatIndex), value, size));
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
-        long size = (endFlatIndex - startFlatIndex) * Short.BYTES;
-        cuCheck(cuMemsetD16(deviceMemoryHandle.getDevicePointer().withByteOffset(startFlatIndex), value, size));
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
-        long size = (endFlatIndex - startFlatIndex) * Integer.BYTES;
-        cuCheck(cuMemsetD32(deviceMemoryHandle.getDevicePointer().withByteOffset(startFlatIndex), value, size));
-    }
-
-    @Override
-    public void fill(int value) {
-        if (deviceMemoryHandle.getSize() % Integer.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + deviceMemoryHandle.getSize() + " with int value");
-        }
-        cuCheck(cuMemsetD32(deviceMemoryHandle.getDevicePointer(), value, deviceMemoryHandle.getSize() / Integer.BYTES));
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
@@ -430,10 +419,7 @@ public class CudaDataContainer implements ITensorDataContainer {
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
-        if (deviceMemoryHandle.getSize() % Float.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + deviceMemoryHandle.getSize() + " with float value");
-        }
-        cuCheck(cuMemsetD32(deviceMemoryHandle.getDevicePointer().withByteOffset(startFlatIndex), Float.floatToRawIntBits(value), (endFlatIndex - startFlatIndex) / Float.BYTES));
+        throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override

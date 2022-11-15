@@ -101,13 +101,39 @@ public class ShapeUtils {
      *                to the first element of a particular dimension that is not the lowest-level dimension (individual scalars).
      * @param strides the strides as defined byte {@link #makeStrides(long[])}
      * @return the flat index
+     * @throws IndexOutOfBoundsException if index.length > strides.length
      */
     public static long getFlatIndex(long @NotNull [] index, long @NotNull [] strides) {
         if (index.length > strides.length) {
-            throw new IllegalArgumentException("Indices length must be less than or equal to strides length");
+            throw new IndexOutOfBoundsException("Indices length must be less than or equal to strides length");
         }
         long flatIndex = 0;
         for (int dim = 0; dim < index.length; dim++) {
+            flatIndex += index[dim] * strides[dim];
+        }
+        return flatIndex;
+    }
+
+
+    /**
+     * Computes a flat index from a n-dimension index given an array of strides.
+     *
+     * @param index   the n-dimensional index. indices.length may be less than strides.length, when the offset
+     *                to the first element of a particular dimension that is not the lowest-level dimension (individual scalars).
+     * @param shape the shape that constrain the index
+     * @param strides the strides as defined byte {@link #makeStrides(long[])}
+     * @return the flat index
+     * @throws IndexOutOfBoundsException if the index is out of bounds
+     */
+    public static long getFlatIndex(long @NotNull [] index, long @NotNull [] shape, long @NotNull [] strides) {
+        if (index.length > strides.length) {
+            throw new IndexOutOfBoundsException("Indices length must be less than or equal to strides length");
+        }
+        long flatIndex = 0;
+        for (int dim = 0; dim < index.length; dim++) {
+            if (index[dim] >= shape[dim]) {
+                throw new IndexOutOfBoundsException("Index " + index[dim] + " is out of bounds for dimension " + dim + " with size " + shape[dim]);
+            }
             flatIndex += index[dim] * strides[dim];
         }
         return flatIndex;

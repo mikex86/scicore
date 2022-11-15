@@ -616,10 +616,10 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                 throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
             }
             BitSet booleanData = getBooleanData();
-            if (startIndex < 0 || startIndex >= booleanData.length()) {
+            if (startIndex < 0 || startIndex >= nElements) {
                 throw new IndexOutOfBoundsException("Start index " + startIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            if (startIndex + data.length > booleanData.length()) {
+            if (startIndex + data.length > nElements) {
                 throw new IndexOutOfBoundsException("Buffer size is too large for shape " + ShapeUtils.toString(shape));
             }
             for (int i = 0; i < data.length; i++) {
@@ -629,107 +629,295 @@ public class JvmTensor extends AbstractTensor implements ITensor {
 
         @Override
         public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
-            if (dataType != DataType.INT8) {
-                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
-            }
-            byte[] byteData = getByteData();
-            if (startFlatIndex < 0 || startFlatIndex >= byteData.length) {
+            if (startFlatIndex < 0 || startFlatIndex >= nElements) {
                 throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            if (endFlatIndex < 0 || endFlatIndex > byteData.length) {
+            if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+            switch (dataType) {
+                case INT8 -> {
+                    byte[] byteData = getByteData();
+                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case INT16 -> {
+                    short[] shortData = getShortData();
+                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case INT32 -> {
+                    int[] intData = getIntData();
+                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case INT64 -> {
+                    long[] longData = getLongData();
+                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case FLOAT32 -> {
+                    float[] floatData = getFloatData();
+                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case FLOAT64 -> {
+                    double[] doubleData = getDoubleData();
+                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case BOOLEAN -> {
+                    BitSet booleanData = getBooleanData();
+                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
+                        booleanData.set(Math.toIntExact(i), value != 0);
+                    }
+                }
+            }
         }
 
         @Override
         public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
-            if (dataType != DataType.INT16) {
-                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
-            }
-            short[] shortData = getShortData();
-            if (startFlatIndex < 0 || startFlatIndex >= shortData.length) {
+            if (startFlatIndex < 0 || startFlatIndex >= nElements) {
                 throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            if (endFlatIndex < 0 || endFlatIndex > shortData.length) {
+            if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+            switch (dataType) {
+                case INT8 -> {
+                    byte[] byteData = getByteData();
+                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (byte) value);
+                }
+                case INT16 -> {
+                    short[] shortData = getShortData();
+                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case INT32 -> {
+                    int[] intData = getIntData();
+                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case INT64 -> {
+                    long[] longData = getLongData();
+                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case FLOAT32 -> {
+                    float[] floatData = getFloatData();
+                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case FLOAT64 -> {
+                    double[] doubleData = getDoubleData();
+                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case BOOLEAN -> {
+                    BitSet booleanData = getBooleanData();
+                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
+                        booleanData.set(Math.toIntExact(i), value != 0);
+                    }
+                }
+            }
         }
 
         @Override
         public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
-            if (dataType != DataType.INT32) {
-                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
-            }
-            int[] intData = getIntData();
-            if (startFlatIndex < 0 || startFlatIndex >= intData.length) {
+            if (startFlatIndex < 0 || startFlatIndex >= nElements) {
                 throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            if (endFlatIndex < 0 || endFlatIndex > intData.length) {
+            if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            switch (dataType) {
+                case INT8 -> {
+                    byte[] byteData = getByteData();
+                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (byte) value);
+                }
+                case INT16 -> {
+                    short[] shortData = getShortData();
+                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (short) value);
+                }
+                case INT32 -> {
+                    int[] intData = getIntData();
+                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case INT64 -> {
+                    long[] longData = getLongData();
+                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case FLOAT32 -> {
+                    float[] floatData = getFloatData();
+                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case FLOAT64 -> {
+                    double[] doubleData = getDoubleData();
+                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case BOOLEAN -> {
+                    BitSet booleanData = getBooleanData();
+                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
+                        booleanData.set(Math.toIntExact(i), value != 0);
+                    }
+                }
             }
         }
 
         @Override
         public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
-            if (dataType != DataType.INT64) {
-                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
-            }
-            long[] longData = getLongData();
-            if (startFlatIndex < 0 || startFlatIndex >= longData.length) {
+            if (startFlatIndex < 0 || startFlatIndex >= nElements) {
                 throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            if (endFlatIndex < 0 || endFlatIndex > longData.length) {
+            if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+            switch (dataType) {
+                case INT8 -> {
+                    byte[] byteData = getByteData();
+                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (byte) value);
+                }
+                case INT16 -> {
+                    short[] shortData = getShortData();
+                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (short) value);
+                }
+                case INT32 -> {
+                    int[] intData = getIntData();
+                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (int) value);
+                }
+                case INT64 -> {
+                    long[] longData = getLongData();
+                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case FLOAT32 -> {
+                    float[] floatData = getFloatData();
+                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case FLOAT64 -> {
+                    double[] doubleData = getDoubleData();
+                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case BOOLEAN -> {
+                    BitSet booleanData = getBooleanData();
+                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
+                        booleanData.set(Math.toIntExact(i), value != 0);
+                    }
+                }
+            }
         }
 
         @Override
         public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
-            if (dataType != DataType.FLOAT32) {
-                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
-            }
-            float[] floatData = getFloatData();
-            if (startFlatIndex < 0 || startFlatIndex >= floatData.length) {
+            if (startFlatIndex < 0 || startFlatIndex >= nElements) {
                 throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            if (endFlatIndex < 0 || endFlatIndex > floatData.length) {
+            if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+            switch (dataType) {
+                case INT8 -> {
+                    byte[] byteData = getByteData();
+                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (byte) value);
+                }
+                case INT16 -> {
+                    short[] shortData = getShortData();
+                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (short) value);
+                }
+                case INT32 -> {
+                    int[] intData = getIntData();
+                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (int) value);
+                }
+                case INT64 -> {
+                    long[] longData = getLongData();
+                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (long) value);
+                }
+                case FLOAT32 -> {
+                    float[] floatData = getFloatData();
+                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case FLOAT64 -> {
+                    double[] doubleData = getDoubleData();
+                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case BOOLEAN -> {
+                    BitSet booleanData = getBooleanData();
+                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
+                        booleanData.set(Math.toIntExact(i), value != 0);
+                    }
+                }
+            }
         }
 
         @Override
         public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
-            if (dataType != DataType.FLOAT64) {
-                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
-            }
-            double[] doubleData = getDoubleData();
-            if (startFlatIndex < 0 || startFlatIndex >= doubleData.length) {
+            if (startFlatIndex < 0 || startFlatIndex >= nElements) {
                 throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            if (endFlatIndex < 0 || endFlatIndex > doubleData.length) {
+            if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+            switch (dataType) {
+                case INT8 -> {
+                    byte[] byteData = getByteData();
+                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (byte) value);
+                }
+                case INT16 -> {
+                    short[] shortData = getShortData();
+                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (short) value);
+                }
+                case INT32 -> {
+                    int[] intData = getIntData();
+                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (int) value);
+                }
+                case INT64 -> {
+                    long[] longData = getLongData();
+                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (long) value);
+                }
+                case FLOAT32 -> {
+                    float[] floatData = getFloatData();
+                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (float) value);
+                }
+                case FLOAT64 -> {
+                    double[] doubleData = getDoubleData();
+                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+                }
+                case BOOLEAN -> {
+                    BitSet booleanData = getBooleanData();
+                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
+                        booleanData.set(Math.toIntExact(i), value != 0);
+                    }
+                }
+            }
         }
 
         @Override
         public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
-            if (dataType != DataType.BOOLEAN) {
-                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
-            }
-            BitSet booleanData = getBooleanData();
-            if (startFlatIndex < 0 || startFlatIndex >= booleanData.length()) {
+            if (startFlatIndex < 0 || startFlatIndex >= nElements) {
                 throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            if (endFlatIndex < 0 || endFlatIndex > booleanData.length()) {
+            if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            for (long i = startFlatIndex; i < endFlatIndex; i++) {
-                booleanData.set(Math.toIntExact(i), value);
+            switch (dataType) {
+                case INT8 -> {
+                    byte[] byteData = getByteData();
+                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? (byte) 1 : (byte) 0);
+                }
+                case INT16 -> {
+                    short[] shortData = getShortData();
+                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? (short) 1 : (short) 0);
+                }
+                case INT32 -> {
+                    int[] intData = getIntData();
+                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? 1 : 0);
+                }
+                case INT64 -> {
+                    long[] longData = getLongData();
+                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? 1 : 0);
+                }
+                case FLOAT32 -> {
+                    float[] floatData = getFloatData();
+                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? 1 : 0);
+                }
+                case FLOAT64 -> {
+                    double[] doubleData = getDoubleData();
+                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? 1 : 0);
+                }
+                case BOOLEAN -> {
+                    BitSet booleanData = getBooleanData();
+                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
+                        booleanData.set(Math.toIntExact(i), value);
+                    }
+                }
             }
         }
 
