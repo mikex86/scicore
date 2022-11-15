@@ -5,6 +5,7 @@ import me.mikex86.scicore.SciCore
 import me.mikex86.scicore.data.DatasetIterator
 import me.mikex86.scicore.graph.scopedRecording
 import me.mikex86.scicore.nn.IModule
+import me.mikex86.scicore.nn.act.ReLU
 import me.mikex86.scicore.nn.act.Tanh
 import me.mikex86.scicore.nn.layers.Linear
 import me.mikex86.scicore.nn.optim.Sgd
@@ -15,6 +16,7 @@ import me.mikex86.scicore.tensor.unaryMinus
 import me.mikex86.scicore.utils.use
 import me.tongfei.progressbar.ProgressBarBuilder
 import me.tongfei.progressbar.ProgressBarStyle
+import java.nio.file.Path
 import java.util.*
 
 private const val BATCH_SIZE = 32
@@ -24,7 +26,7 @@ private const val N_HIDDEN = 128
 private const val VOCAB_SIZE = 26 + 1 // 26 letters + 1 padding char
 
 private const val N_TRAINING_STEPS = 200_000L
-private const val LEARNING_RATE = 0.01f
+private const val LEARNING_RATE = 0.1f
 
 fun main() {
     val sciCore = SciCore()
@@ -54,9 +56,9 @@ fun main() {
                         lossValue = net(x)
                             .use { logits -> logits.exp() }
                             .use { counts -> counts / counts.reduceSum(1, true) }
-                            .use { probs -> -probs[sciCore.arange(0, 32, 1, DataType.INT64), y] }
+                            .use { probs -> probs[sciCore.arange(0, 32, 1, DataType.INT64), y] }
                             .use { probsAssignedToCorrectLabels ->
-                                probsAssignedToCorrectLabels.mean()
+                                -probsAssignedToCorrectLabels.log().mean()
                             }.use { loss ->
                                 optimizer.step(loss); loss.elementAsDouble()
                             }
@@ -69,15 +71,15 @@ fun main() {
     val end = System.currentTimeMillis()
     println("Training time: " + (end - start) / 1000.0 + "s")
     println("Final loss value: $lossValue")
-
+    net.save(Path.of("make_more.scm"))
 }
 
-class MakeMoreNet(private val sciCore: SciCore) : IModule {
+class MakeMoreNet(sciCore: SciCore) : IModule {
 
     private val embedding = sciCore.uniform(DataType.FLOAT32, VOCAB_SIZE.toLong(), EMBEDDING_SIZE.toLong())
     private val fc1 = Linear(sciCore, DataType.FLOAT32, (EMBEDDING_SIZE * BLOCK_SIZE).toLong(), N_HIDDEN.toLong(), true)
     private val fc2 = Linear(sciCore, DataType.FLOAT32, N_HIDDEN.toLong(), VOCAB_SIZE.toLong(), true)
-    private val act = Tanh()
+    private val act = ReLU()
 
     override fun forward(input: ITensor): ITensor {
         // input: (batchSize, blockSize)

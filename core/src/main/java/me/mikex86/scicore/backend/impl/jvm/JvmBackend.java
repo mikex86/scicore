@@ -25,6 +25,7 @@ public class JvmBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.REDUCE_SUM, new JvmReduceSumOp(this));
         operationTable.put(OperationType.EXP, new JvmExpOp(this));
         operationTable.put(OperationType.TRANSPOSE, new JvmTransposeOp(this));
+        operationTable.put(OperationType.RESHAPE, new JvmReshapeOp(this));
         operationTable.put(OperationType.POW, new JvmPowOp(this));
         operationTable.put(OperationType.MULTIPLY, new JvmMultiplyOp(this));
         operationTable.put(OperationType.RELU, new JvmReluOp(this));

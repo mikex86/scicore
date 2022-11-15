@@ -1,51 +1,43 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
+import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
+import me.mikex86.scicore.backend.impl.genericcpu.jni.LogJNI;
+import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
-import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
-import me.mikex86.scicore.backend.impl.genericcpu.jni.ExpJNI;
-import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.graph.Graph;
-import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
-import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Optional;
-
-public class GenCPUExpOp implements IDifferentiableUnaryOperation {
+public class GenCPULogOp implements IDifferentiableUnaryOperation {
 
     @NotNull
     private final GenCPUBackend backend;
 
-    public GenCPUExpOp(@NotNull GenCPUBackend backend) {
+    public GenCPULogOp(@NotNull GenCPUBackend backend) {
         this.backend = backend;
     }
 
-    @NotNull
-    private ITensor exp(@NotNull ITensor input) {
+    private @NotNull ITensor log(@NotNull ITensor input) {
         long[] shape = input.getShape();
-        long nElements = ShapeUtils.getNumElements(shape);
         long[] strides = input.getStrides();
+        long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
         ITensor result = backend.createTensor(dataType, shape);
         DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
         DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
-        ExpJNI.exp(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
+        LogJNI.log(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
+        // TODO: getReshapedView for all unary operations of this kind (not as an operation [that would break stuff], but as a directly operating method)
         return result;
     }
 
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
-        Optional<ITensor> expOpt = ctx.getSavedTensor("exp");
-        if (expOpt.isPresent()) {
-            return expOpt.get();
-        } else {
-            ITensor result = exp(input);
-            ctx.saveForBackward("exp", result);
-            return result;
-        }
+        return log(input);
     }
 
     @Override
@@ -56,8 +48,7 @@ public class GenCPUExpOp implements IDifferentiableUnaryOperation {
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input) {
         if (input.requiresGradients()) {
-            ITensor exp = ctx.getSavedTensorOrPopulateWith("exp", () -> exp(input.getValue()));
-            input.accumulateGradient(upstreamGradient.multiply(exp));
+            input.accumulateGradient(upstreamGradient.divide(input.getValue()));
         }
     }
 }

@@ -24,6 +24,7 @@ public class GenCPUReluOp implements IDifferentiableUnaryOperation {
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
         long[] shape = input.getShape();
+        long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
         ITensor result = this.backend.createTensor(dataType, shape);

@@ -81,15 +81,6 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
-    public @NotNull ITensor getReshapedView(long @NotNull [] shape, long @NotNull [] strides) {
-        long nElements = ShapeUtils.getNumElements(shape);
-        if (nElements > numElements) {
-            throw new IllegalArgumentException("cannot reshape tensor with " + numElements + " elements to shape " + Arrays.toString(shape));
-        }
-        return new View(this, shape, 0, strides);
-    }
-
-    @Override
     public long getNumberOfElements() {
         return this.numElements;
     }
@@ -702,6 +693,23 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
+    public @NotNull ITensor getReshapedView(long @NotNull [] shape, long @NotNull [] strides) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor shapeTensor = backend.createTensor(DataType.INT64, new long[]{shape.length});
+             ITensor stridesTensor = backend.createTensor(DataType.INT64, new long[]{strides.length})) {
+            for (int i = 0; i < shape.length; i++) {
+                shapeTensor.setLongFlat(shape[i], i);
+            }
+            for (int i = 0; i < strides.length; i++) {
+                stridesTensor.setLongFlat(strides[i], i);
+            }
+            return operationRecorder.recordOperation(OperationType.RESHAPE, backend, this, shapeTensor, stridesTensor);
+        }
+    }
+
+
+    @Override
     public @NotNull ITensor pow(byte exponent) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
@@ -855,6 +863,13 @@ public abstract class AbstractTensor implements ITensor {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         return operationRecorder.recordOperation(OperationType.TANH, backend, this);
+    }
+
+    @Override
+    public @NotNull ITensor log() {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.LOG, backend, this);
     }
 
     @Override

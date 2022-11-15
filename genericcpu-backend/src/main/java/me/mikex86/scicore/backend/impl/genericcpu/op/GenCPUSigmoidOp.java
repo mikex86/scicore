@@ -27,6 +27,7 @@ public class GenCPUSigmoidOp implements IDifferentiableUnaryOperation {
     @NotNull
     private ITensor sigmoid(@NotNull ITensor x) {
         long[] shape = x.getShape();
+        long[] strides = x.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = x.getDataType();
         ITensor result = backend.createTensor(dataType, shape);

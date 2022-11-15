@@ -796,9 +796,9 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor sigmoid();
 
-
     @NotNull ITensor tanh();
 
+    @NotNull ITensor log();
     @NotNull ITensor argmax(int dimension);
 
     /**

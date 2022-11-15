@@ -1,10 +1,8 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
-import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
-import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.op.IDifferentiableOperation;
 import me.mikex86.scicore.graph.op.IOperation;
 import me.mikex86.scicore.tensor.ITensor;
@@ -16,6 +14,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
 
@@ -37,44 +38,34 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
             if (!index.getDataType().isInteger()) {
                 throw new IllegalArgumentException("Index tensor must be an integer type");
             }
+            if (!ShapeUtils.equals(index.getShape(), indicesList.get(0).getShape())) {
+                throw new IllegalArgumentException("Index tensors for get operation must have the same shape");
+            }
         }
         ITensor firstIndex = indicesList.get(0);
         long[] inputShape = input.getShape();
-        long[] indicesShape = firstIndex.getShape();
+        long[] firstIndexShape = firstIndex.getShape();
         int nIndices = indicesList.size();
-        long[] resultShape = new long[indicesShape.length + inputShape.length - nIndices];
-        System.arraycopy(indicesShape, 0, resultShape, 0, indicesShape.length);
-        System.arraycopy(inputShape, nIndices, resultShape, indicesShape.length, inputShape.length - nIndices);
+        long[] resultShape = new long[firstIndexShape.length + inputShape.length - nIndices];
+        System.arraycopy(firstIndexShape, 0, resultShape, 0, firstIndexShape.length);
+        System.arraycopy(inputShape, nIndices, resultShape, firstIndexShape.length, inputShape.length - nIndices);
         ITensor result = backend.createTensor(input.getDataType(), resultShape);
 
-        // for every dimension dim in indicesList.get(dim), we store the index into that index tensor that we currently are reading
-        List<long[]> indicesIntoIndices = new ArrayList<>(indicesList.size());
-        for (int i = 0; i < indicesList.size(); i++) {
-            indicesIntoIndices.add(new long[indicesShape.length]);
-        }
         // TODO: MOVE THIS TO JNI
-        loop:
-        {
-            while (true) {
-                ITensor inputView = input;
-                for (int dim = 0; dim < indicesList.size(); dim++) {
-                    ITensor indexTensor = indicesList.get(dim);
-                    long[] indexIntoIndex = indicesIntoIndices.get(dim);
-                    long indexIntoInput = indexTensor.getAsLong(indexIntoIndex);
-                    if (indexIntoInput < 0 || indexIntoInput >= inputShape[dim]) {
-                        throw new IllegalArgumentException("Index " + indexIntoInput + " is out of bounds for shape " + ShapeUtils.toString(inputShape));
-                    }
-                    inputView = inputView.getView(indexIntoInput); // cheap
-                    if (dim == indicesList.size() - 1) {
-                        result.setContents(indexIntoIndex, inputView); // mem-copy
-                    }
-                    boolean incrementIndex = ShapeUtils.incrementIndex(indexIntoIndex, indicesShape);
-                    if (!incrementIndex && dim == 0) {
-                        break loop;
-                    }
+        long[] indexIntoFirstIndex = new long[firstIndexShape.length];
+        long flatIndex = 0;
+        do {
+            ITensor currentView = input;
+            for (ITensor index : indicesList) {
+                long indexValue = index.getAsLong(indexIntoFirstIndex);
+                if (indexValue < 0 || indexValue >= currentView.getShape()[0]) {
+                    throw new IllegalArgumentException("Index out of bounds");
                 }
+                currentView = currentView.getView(indexValue);
             }
-        }
+            result.setContentsWithOffset(flatIndex, currentView);
+            flatIndex += currentView.getNumberOfElements();
+        } while (ShapeUtils.incrementIndex(indexIntoFirstIndex, firstIndexShape));
         return result;
     }
 
@@ -102,7 +93,41 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
 
     @Override
     public void computeGradients(@NotNull Graph.OperationGraphNode operationNode) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
+        List<IGraph.IGraphNode> inputs = operationNode.getInputs();
+        IGraph.ITensorNodeWithGradient inputNode = (IGraph.ITensorNodeWithGradient) inputs.get(0);
+        if (inputNode.requiresGradients()) {
+            ITensor upstreamGradient = operationNode.getUpstreamGradient();
+            Objects.requireNonNull(upstreamGradient, "Upstream gradient must not be null");
+            List<ITensor> indicesList = inputs.subList(1, inputs.size()).stream()
+                    .map(node -> ((IGraph.ITensorNodeWithGradient) node).getValue())
+                    .toList();
+            ITensor input = inputNode.getValue();
 
+            ITensor firstIndex = indicesList.get(0);
+            long[] firstIndexShape = firstIndex.getShape();
+
+            ITensor gradient = backend.createTensor(input.getDataType(), input.getShape());
+
+            // TODO: MOVE THIS TO JNI
+            long[] indexIntoFirstIndex = new long[firstIndexShape.length];
+            long[] indexIntoGradient = null;
+            do {
+                ITensor currentView = gradient;
+                for (ITensor index : indicesList) {
+                    long indexValue = index.getAsLong(indexIntoFirstIndex);
+                    if (indexValue < 0 || indexValue >= currentView.getShape()[0]) {
+                        throw new IllegalArgumentException("Index out of bounds");
+                    }
+                    currentView = currentView.getView(indexValue);
+                }
+                if (indexIntoGradient == null) {
+                    indexIntoGradient = new long[upstreamGradient.getShape().length - currentView.getShape().length];
+                }
+                currentView.add(upstreamGradient.getView(indexIntoGradient));
+                ShapeUtils.incrementIndex(indexIntoGradient, upstreamGradient.getShape());
+            } while (ShapeUtils.incrementIndex(indexIntoFirstIndex, firstIndexShape));
+
+            inputNode.accumulateGradient(gradient);
+        }
+    }
 }

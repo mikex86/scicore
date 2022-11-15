@@ -16,7 +16,7 @@ public class View extends AbstractTensor {
     private final long offset;
     private final long[] localStrides;
 
-    View(@NotNull ITensor viewed, long @NotNull [] shape, long offset, long[] localStrides) {
+    public View(@NotNull ITensor viewed, long @NotNull [] shape, long offset, long[] localStrides) {
         this.numElements = ShapeUtils.getNumElements(shape);
         this.viewed = viewed;
         this.shape = shape;
