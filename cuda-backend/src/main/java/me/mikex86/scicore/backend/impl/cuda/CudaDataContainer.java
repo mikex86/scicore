@@ -150,9 +150,10 @@ public class CudaDataContainer implements ITensorDataContainer {
             throw new IllegalArgumentException("Cannot set contents of buffer, flatStartIndex is out of bounds");
         }
         int size = hostBuffer.remaining();
+        long byteOffset = dataType.getSizeOf(startIndex);
         if (hostBuffer.isDirect()) {
             Pointer hostPtr = Pointer.to(hostBuffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(startIndex), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(byteOffset), hostPtr, size));
         } else {
             // to direct buffer
             DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(size);
@@ -161,7 +162,7 @@ public class CudaDataContainer implements ITensorDataContainer {
             directBuffer.flip();
 
             Pointer hostPtr = Pointer.to(directBuffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(startIndex), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(byteOffset), hostPtr, size));
 
             memoryHandle.free();
         }
@@ -176,6 +177,9 @@ public class CudaDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, @NotNull ShortBuffer buffer) {
+        if (dataType != DataType.INT16) {
+            throw new IllegalArgumentException("Cannot set contents of buffer, data type is not short");
+        }
         long offset = startIndex * Short.BYTES;
         if (buffer.remaining() > (deviceMemoryHandle.getSize() - offset) / Short.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
@@ -200,6 +204,9 @@ public class CudaDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, @NotNull IntBuffer buffer) {
+        if (dataType != DataType.INT32) {
+            throw new IllegalArgumentException("Cannot set contents of buffer, data type is not int");
+        }
         long offset = startIndex * Integer.BYTES;
         if (buffer.remaining() > (deviceMemoryHandle.getSize() - offset) / Integer.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
@@ -224,6 +231,9 @@ public class CudaDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, @NotNull LongBuffer buffer) {
+        if (dataType != DataType.INT64) {
+            throw new IllegalArgumentException("Cannot set contents of buffer, data type is not long");
+        }
         long offset = startIndex * Long.BYTES;
         if (buffer.remaining() > (deviceMemoryHandle.getSize() - offset) / Long.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
@@ -249,6 +259,9 @@ public class CudaDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, @NotNull FloatBuffer buffer) {
+        if (dataType != DataType.FLOAT32) {
+            throw new IllegalArgumentException("Cannot set contents of buffer, data type is not float");
+        }
         long offset = startIndex * Float.BYTES;
         if (buffer.remaining() > deviceMemoryHandle.getSize() / Float.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
@@ -274,6 +287,9 @@ public class CudaDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, @NotNull DoubleBuffer buffer) {
+        if (dataType != DataType.FLOAT64) {
+            throw new IllegalArgumentException("Cannot set contents of buffer, data type is not double");
+        }
         long offset = startIndex * Double.BYTES;
         if (buffer.remaining() > deviceMemoryHandle.getSize() / Double.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
@@ -299,6 +315,9 @@ public class CudaDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, boolean @NotNull [] data) {
+        if (dataType != DataType.BOOLEAN) {
+            throw new IllegalArgumentException("Cannot set contents of buffer, data type is not boolean");
+        }
         long byteOffset = startIndex / Byte.SIZE;
         int bitOffset = Math.toIntExact(startIndex % Byte.SIZE);
         if (data.length + byteOffset > deviceMemoryHandle.getSize() * 8) {

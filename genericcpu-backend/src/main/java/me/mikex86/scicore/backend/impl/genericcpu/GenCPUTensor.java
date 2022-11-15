@@ -156,7 +156,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
             throw new IllegalArgumentException("Cannot copy tensor with more elements than the destination tensor can hold");
         }
         DirectMemoryHandle directMemory = tensor.getContentsAsDirectMemory();
-        this.dataContainer.setContents(directMemory.asByteBuffer());
+        this.dataContainer.setContents(startFlatIndex, directMemory.asByteBuffer());
         if (directMemory.canFree()) {
             directMemory.free();
         }
@@ -208,7 +208,6 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, short i) {
-        validateDataType(DataType.INT16);
         this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
     }
 

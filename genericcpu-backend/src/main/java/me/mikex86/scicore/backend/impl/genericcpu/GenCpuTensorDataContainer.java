@@ -155,22 +155,26 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
         if (buffer.remaining() > this.dataSize - startIndex) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
+        long byteOffset = dataType.getSizeOf(startIndex);
         if (!buffer.isDirect()) {
             DirectMemoryHandle memoryHandle = memoryManager.alloc(buffer.capacity());
             ByteBuffer directBuffer = memoryHandle.asByteBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = memoryHandle.getNativePtr();
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + startIndex, directBuffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + byteOffset, directBuffer.capacity());
             memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + startIndex, buffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + byteOffset, buffer.capacity());
         }
     }
 
     @Override
     public void setContents(long startIndex, @NotNull ShortBuffer buffer) {
+        if (dataType != DataType.INT16) {
+            throw new IllegalArgumentException("Cannot set contents of data container of type " + dataType + " with buffer of type " + DataType.INT16);
+        }
         checkDisposed();
         long offset = startIndex * Short.BYTES;
         if (buffer.remaining() > (this.dataSize - offset) / Short.BYTES) {
@@ -193,6 +197,9 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, @NotNull IntBuffer buffer) {
+        if (dataType != DataType.INT32) {
+            throw new IllegalArgumentException("Cannot set contents of data container of type " + dataType + " with buffer of type " + DataType.INT32);
+        }
         checkDisposed();
         long offset = startIndex * Integer.BYTES;
         if (buffer.remaining() > (this.dataSize - offset) / Integer.BYTES) {
@@ -215,6 +222,9 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, @NotNull LongBuffer buffer) {
+        if (dataType != DataType.INT64) {
+            throw new IllegalArgumentException("Cannot set contents of data container of type " + dataType + " with buffer of type " + DataType.INT64);
+        }
         checkDisposed();
         if (buffer.remaining() > this.dataSize / Long.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
@@ -236,6 +246,9 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, @NotNull FloatBuffer buffer) {
+        if (dataType != DataType.FLOAT32) {
+            throw new IllegalArgumentException("Cannot set contents of data container of type " + dataType + " with buffer of type " + DataType.FLOAT32);
+        }
         checkDisposed();
         long offset = startIndex * Float.BYTES;
         if (buffer.remaining() > (this.dataSize - offset) / Float.BYTES) {
@@ -258,6 +271,9 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, @NotNull DoubleBuffer buffer) {
+        if (dataType != DataType.FLOAT64) {
+            throw new IllegalArgumentException("Cannot set contents of data container of type " + dataType + " with buffer of type " + DataType.FLOAT64);
+        }
         checkDisposed();
         long offset = startIndex * Double.BYTES;
         if (buffer.remaining() > (this.dataSize - offset) / Double.BYTES) {
@@ -280,6 +296,9 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     @Override
     public void setContents(long startIndex, boolean @NotNull [] data) {
+        if (dataType != DataType.BOOLEAN) {
+            throw new IllegalArgumentException("Cannot set contents of data container of type " + dataType + " with array of type " + DataType.BOOLEAN);
+        }
         checkDisposed();
         long byteOffset = startIndex / Byte.SIZE;
         if (data.length + startIndex > this.dataSize * 8) {

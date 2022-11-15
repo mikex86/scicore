@@ -138,9 +138,11 @@ public class JvmTensor extends AbstractTensor implements ITensor {
 
     @Override
     public void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor) {
-        long[] shape = getShape();
         DataType dataType = getDataType();
-        Validator.assertTrue(ShapeUtils.equals(shape, tensor.getShape()), "Cannot set contents of tensor with shape " + ShapeUtils.toString(shape) + " to tensor with shape " + ShapeUtils.toString(tensor.getShape()));
+        long numElements = tensor.getNumberOfElements();
+        if (numElements > this.numElements - startFlatIndex) {
+            throw new IllegalArgumentException("Tensor is too large to fit in this tensor");
+        }
         Validator.assertTrue(dataType == tensor.getDataType(), "Cannot set contents of tensor with data type " + dataType + " to tensor with data type " + tensor.getDataType());
         if (tensor instanceof JvmTensor jvmTensor) {
             this.dataContainer.setContents(Math.toIntExact(startFlatIndex), jvmTensor.dataContainer);
@@ -206,43 +208,36 @@ public class JvmTensor extends AbstractTensor implements ITensor {
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
-        validateDataType(DataType.INT8); // TODO: FIX FILL WITH BYTE NOT BEING SUPPORTED FOR ALL TYPES IN JVM
         this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
-        validateDataType(DataType.INT16);
         this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
-        validateDataType(DataType.INT32);
         this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
-        validateDataType(DataType.INT64);
         this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
-        validateDataType(DataType.FLOAT32);
         this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
-        validateDataType(DataType.FLOAT64);
         this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
-        validateDataType(DataType.BOOLEAN);
         this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
@@ -942,49 +937,31 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                 case INT8 -> {
                     byte[] newData = container.getByteData();
                     assert byteData != null;
-                    if (byteData.length != newData.length) {
-                        byteData = new byte[newData.length];
-                    }
                     System.arraycopy(newData, 0, byteData, startIndex, newData.length);
                 }
                 case INT16 -> {
                     short[] newData = container.getShortData();
                     assert shortData != null;
-                    if (shortData.length != newData.length) {
-                        shortData = new short[newData.length];
-                    }
                     System.arraycopy(newData, 0, shortData, startIndex, newData.length);
                 }
                 case INT32 -> {
                     int[] newData = container.getIntData();
                     assert intData != null;
-                    if (intData.length != newData.length) {
-                        intData = new int[newData.length];
-                    }
                     System.arraycopy(newData, 0, intData, startIndex, newData.length);
                 }
                 case INT64 -> {
                     long[] newData = container.getLongData();
                     assert longData != null;
-                    if (longData.length != newData.length) {
-                        longData = new long[newData.length];
-                    }
                     System.arraycopy(newData, 0, longData, startIndex, newData.length);
                 }
                 case FLOAT32 -> {
                     float[] newData = container.getFloatData();
                     assert floatData != null;
-                    if (floatData.length != newData.length) {
-                        floatData = new float[newData.length];
-                    }
                     System.arraycopy(newData, 0, floatData, startIndex, newData.length);
                 }
                 case FLOAT64 -> {
                     double[] newData = container.getDoubleData();
                     assert doubleData != null;
-                    if (doubleData.length != newData.length) {
-                        doubleData = new double[newData.length];
-                    }
                     System.arraycopy(newData, 0, doubleData, startIndex, newData.length);
                 }
             }
