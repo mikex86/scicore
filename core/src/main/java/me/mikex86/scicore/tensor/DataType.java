@@ -6,21 +6,24 @@ import java.util.Optional;
 
 public enum DataType {
 
-    INT8(8, false, true), INT16(16, false, true), INT32(32, false, true), INT64(64, false, true),
-    FLOAT32(32, true, true), FLOAT64(64, true, true),
-    BOOLEAN(1, false, false);
+    INT8(8, false, true, true), INT16(16, false, true, true),
+    INT32(32, false, true, true), INT64(64, false, true, true),
+    FLOAT32(32, true, false, true), FLOAT64(64, true, false, true),
+    BOOLEAN(1, false, false, false);
 
     private final int bits;
-    private final boolean isFp;
+    private final boolean isFloatingPoint;
 
     private final boolean isNumeric;
+    private final boolean integer;
 
-    DataType(int bits, boolean isFp, boolean isNumeric) {
+    DataType(int bits, boolean isFloatingPoint, boolean integer, boolean isNumeric) {
         this.bits = bits;
-        this.isFp = isFp;
+        this.isFloatingPoint = isFloatingPoint;
+        this.integer = integer;
         this.isNumeric = isNumeric;
 
-        if (isFp && !isNumeric) {
+        if (isFloatingPoint && !isNumeric) {
             throw new IllegalArgumentException("Floating point data types must be numeric");
         }
     }
@@ -34,7 +37,7 @@ public enum DataType {
     }
 
     public boolean isFloatingPoint() {
-        return isFp;
+        return isFloatingPoint;
     }
 
     public boolean isNumeric() {
@@ -75,11 +78,11 @@ public enum DataType {
     @NotNull
     public static DataType getLarger(DataType a, DataType b) {
         DataType largerByBitSize = a.bits > b.bits ? a : b;
-        if (a.isFp && b.isFp) {
+        if (a.isFloatingPoint && b.isFloatingPoint) {
             return largerByBitSize;
-        } else if (a.isFp) {
+        } else if (a.isFloatingPoint) {
             return a;
-        } else if (b.isFp) {
+        } else if (b.isFloatingPoint) {
             return b;
         } else {
             return largerByBitSize;
@@ -116,5 +119,9 @@ public enum DataType {
 
     public long getSizeOf(long nElements) {
         return (nElements * bits + 7) / 8;
+    }
+
+    public boolean isInteger() {
+        return integer;
     }
 }

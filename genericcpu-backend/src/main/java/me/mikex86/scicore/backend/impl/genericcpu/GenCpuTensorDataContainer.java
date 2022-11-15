@@ -48,7 +48,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void getInt8Flat(byte value, long flatIndex) {
+    public void setInt8Flat(long flatIndex, byte value) {
         checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex;
         MemoryUtil.memPutByte(finalPtr, value);
@@ -62,7 +62,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setInt16Flat(short value, long flatIndex) {
+    public void setInt16Flat(long flatIndex, short value) {
         checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 2;
         MemoryUtil.memPutShort(finalPtr, value);
@@ -76,7 +76,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setInt32Flat(int value, long flatIndex) {
+    public void setInt32Flat(long flatIndex, int value) {
         checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         MemoryUtil.memPutInt(finalPtr, value);
@@ -90,7 +90,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setInt64Flat(long value, long flatIndex) {
+    public void setInt64Flat(long flatIndex, long value) {
         checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         MemoryUtil.memPutLong(finalPtr, value);
@@ -104,7 +104,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setFloat32Flat(float value, long flatIndex) {
+    public void setFloat32Flat(long flatIndex, float value) {
         checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 4;
         MemoryUtil.memPutFloat(finalPtr, value);
@@ -118,14 +118,14 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setFloat64Flat(double value, long flatIndex) {
+    public void setFloat64Flat(long flatIndex, double value) {
         checkDisposed();
         long finalPtr = memoryHandle.getNativePtr() + flatIndex * 8;
         MemoryUtil.memPutDouble(finalPtr, value);
     }
 
     @Override
-    public void setBooleanFlat(boolean value, long flatIndex) {
+    public void setBooleanFlat(long flatIndex, boolean value) {
         checkDisposed();
         long byteIndex = flatIndex / 8;
         int bitIndex = (int) (flatIndex % 8);
@@ -134,7 +134,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
         if (value) {
             byteValue = (byte) (byteValue | (1 << bitIndex));
         }
-        getInt8Flat(byteValue, byteIndex);
+        setInt8Flat(byteIndex, byteValue);
     }
 
     @Override
@@ -147,9 +147,9 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setContents(@NotNull ByteBuffer buffer) {
+    public void setContents(long startIndex, @NotNull ByteBuffer buffer) {
         checkDisposed();
-        if (buffer.remaining() > this.dataSize) {
+        if (buffer.remaining() > this.dataSize - startIndex) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
         if (!buffer.isDirect()) {
@@ -158,18 +158,19 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = memoryHandle.getNativePtr();
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), directBuffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + startIndex, directBuffer.capacity());
             memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), buffer.capacity());
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + startIndex, buffer.capacity());
         }
     }
 
     @Override
-    public void setContents(@NotNull ShortBuffer buffer) {
+    public void setContents(long startIndex, @NotNull ShortBuffer buffer) {
         checkDisposed();
-        if (buffer.remaining() > this.dataSize / Short.BYTES) {
+        long offset = startIndex * Short.BYTES;
+        if (buffer.remaining() > (this.dataSize - offset) / Short.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
         long nBytes = (long) buffer.capacity() * Short.BYTES;
@@ -179,18 +180,19 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = memoryHandle.getNativePtr();
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + offset, nBytes);
             memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + offset, nBytes);
         }
     }
 
     @Override
-    public void setContents(@NotNull IntBuffer buffer) {
+    public void setContents(long startIndex, @NotNull IntBuffer buffer) {
         checkDisposed();
-        if (buffer.remaining() > this.dataSize / Integer.BYTES) {
+        long offset = startIndex * Integer.BYTES;
+        if (buffer.remaining() > (this.dataSize - offset) / Integer.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
         long nBytes = (long) buffer.capacity() * Integer.BYTES;
@@ -200,16 +202,16 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = memoryHandle.getNativePtr();
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + offset, nBytes);
             memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + offset, nBytes);
         }
     }
 
     @Override
-    public void setContents(@NotNull LongBuffer buffer) {
+    public void setContents(long startIndex, @NotNull LongBuffer buffer) {
         checkDisposed();
         if (buffer.remaining() > this.dataSize / Long.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
@@ -230,9 +232,10 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setContents(@NotNull FloatBuffer buffer) {
+    public void setContents(long startIndex, @NotNull FloatBuffer buffer) {
         checkDisposed();
-        if (buffer.remaining() > this.dataSize / Float.BYTES) {
+        long offset = startIndex * Float.BYTES;
+        if (buffer.remaining() > (this.dataSize - offset) / Float.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
         long nBytes = (long) buffer.capacity() * Float.BYTES;
@@ -242,18 +245,19 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = memoryHandle.getNativePtr();
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + offset, nBytes);
             memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + offset, nBytes);
         }
     }
 
     @Override
-    public void setContents(@NotNull DoubleBuffer buffer) {
+    public void setContents(long startIndex, @NotNull DoubleBuffer buffer) {
         checkDisposed();
-        if (buffer.remaining() > this.dataSize / Double.BYTES) {
+        long offset = startIndex * Double.BYTES;
+        if (buffer.remaining() > (this.dataSize - offset) / Double.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize + " with buffer of size " + buffer.remaining());
         }
         long nBytes = (long) buffer.capacity() * Double.BYTES;
@@ -263,109 +267,181 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
             directBuffer.put(buffer);
             directBuffer.flip();
             long bufferPtr = memoryHandle.getNativePtr();
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + offset, nBytes);
             memoryHandle.free();
         } else {
             long bufferPtr = MemoryUtil.memAddress(buffer);
-            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr(), nBytes);
+            MemoryUtil.memCopy(bufferPtr, this.memoryHandle.getNativePtr() + offset, nBytes);
         }
     }
 
     @Override
-    public void setContents(boolean @NotNull [] data) {
+    public void setContents(long startIndex, boolean @NotNull [] data) {
         checkDisposed();
-        if (data.length > this.dataSize * 8) {
+        long byteOffset = startIndex / Byte.SIZE;
+        if (data.length + startIndex > this.dataSize * 8) {
             throw new IllegalArgumentException("Cannot set contents of data container of size " + this.dataSize * 8 + " bits with buffer of size " + data.length + " bits");
         }
         for (int i = 0; i < data.length; i++) {
             int byteIndex = i / 8;
             int bitIndex = i % 8;
-            byte byteValue = getInt8Flat(byteIndex);
+            byte byteValue = getInt8Flat(byteOffset + byteIndex);
             if (data[i]) {
                 byteValue = (byte) (byteValue | (1 << bitIndex));
             } else {
                 byteValue = (byte) (byteValue & ~(1 << bitIndex));
             }
-            getInt8Flat(byteValue, byteIndex);
+            setInt8Flat(byteOffset + byteIndex, byteValue);
         }
     }
 
     @Override
-    public void fill(byte value) {
+    public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
         checkDisposed();
-        MemoryUtil.memSet(this.memoryHandle.getNativePtr(), value & 0xFF, this.dataSize);
+        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+            throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < startFlatIndex) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
+        }
+        MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value & 0xFF, endFlatIndex - startFlatIndex);
     }
 
     @Override
-    public void fill(short value) {
+    public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
         checkDisposed();
-        if (this.dataSize % Short.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with short value");
+        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+            throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < startFlatIndex) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
+        }
+        if ((endFlatIndex - startFlatIndex) % Short.BYTES != 0) {
+            throw new IllegalArgumentException("Cannot fill data container of size " + (endFlatIndex - startFlatIndex) + " with short value");
         }
         ShortBuffer buffer = this.memoryHandle.asShortBuffer();
-        for (int i = 0; i < buffer.capacity(); i++) {
+        for (int i = (int) (startFlatIndex / Short.BYTES); i < (int) (endFlatIndex / Short.BYTES); i++) {
             buffer.put(i, value);
         }
         buffer.flip();
     }
 
     @Override
-    public void fill(int value) {
+    public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
         checkDisposed();
-        if (this.dataSize % Integer.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with int value");
+        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+            throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < startFlatIndex) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
+        }
+        if ((endFlatIndex - startFlatIndex) % Integer.BYTES != 0) {
+            throw new IllegalArgumentException("Cannot fill data container of size " + (endFlatIndex - startFlatIndex) + " with int value");
         }
         IntBuffer buffer = this.memoryHandle.asIntBuffer();
-        for (int i = 0; i < buffer.capacity(); i++) {
+        for (int i = (int) (startFlatIndex / Integer.BYTES); i < (int) (endFlatIndex / Integer.BYTES); i++) {
             buffer.put(i, value);
         }
         buffer.flip();
     }
 
     @Override
-    public void fill(long value) {
+    public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
         checkDisposed();
-        if (this.dataSize % Long.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with long value");
+        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+            throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < startFlatIndex) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
+        }
+        if ((endFlatIndex - startFlatIndex) % Long.BYTES != 0) {
+            throw new IllegalArgumentException("Cannot fill data container of size " + (endFlatIndex - startFlatIndex) + " with long value");
         }
         LongBuffer buffer = this.memoryHandle.asLongBuffer();
-        for (int i = 0; i < buffer.capacity(); i++) {
+        for (int i = (int) (startFlatIndex / Long.BYTES); i < (int) (endFlatIndex / Long.BYTES); i++) {
             buffer.put(i, value);
         }
         buffer.flip();
     }
 
     @Override
-    public void fill(float value) {
+    public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
         checkDisposed();
-        if (this.dataSize % Float.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with float value");
+        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+            throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < startFlatIndex) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
+        }
+        if ((endFlatIndex - startFlatIndex) % Float.BYTES != 0) {
+            throw new IllegalArgumentException("Cannot fill data container of size " + (endFlatIndex - startFlatIndex) + " with float value");
         }
         FloatBuffer buffer = this.memoryHandle.asFloatBuffer();
-        for (int i = 0; i < buffer.capacity(); i++) {
+        for (int i = (int) (startFlatIndex / Float.BYTES); i < (int) (endFlatIndex / Float.BYTES); i++) {
             buffer.put(i, value);
         }
         buffer.flip();
     }
 
     @Override
-    public void fill(double value) {
+    public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
         checkDisposed();
-        if (this.dataSize % Double.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + this.dataSize + " with double value");
+        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+            throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < startFlatIndex) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
+        }
+        if ((endFlatIndex - startFlatIndex) % Double.BYTES != 0) {
+            throw new IllegalArgumentException("Cannot fill data container of size " + (endFlatIndex - startFlatIndex) + " with double value");
         }
         DoubleBuffer buffer = this.memoryHandle.asDoubleBuffer();
-        for (int i = 0; i < buffer.capacity(); i++) {
+        for (int i = (int) (startFlatIndex / Double.BYTES); i < (int) (endFlatIndex / Double.BYTES); i++) {
             buffer.put(i, value);
         }
         buffer.flip();
     }
 
     @Override
-    public void fill(boolean value) {
+    public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
         checkDisposed();
-        byte byteValue = value ? (byte) 0xFF : (byte) 0x00;
-        fill(byteValue);
+        if (startFlatIndex < 0 || startFlatIndex >= this.dataSize) {
+            throw new IllegalArgumentException("Start flat index " + startFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < 0 || endFlatIndex > this.dataSize) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is out of bounds");
+        }
+        if (endFlatIndex < startFlatIndex) {
+            throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
+        }
+        ByteBuffer buffer = this.memoryHandle.asByteBuffer();
+        for (int i = (int) startFlatIndex; i < endFlatIndex; i++) {
+            buffer.put(i, (byte) (value ? 0xFF : 0));
+        }
+        buffer.flip();
+    }
+
+    @Override
+    public long getNumberOfElements() {
+        return this.dataSize;
     }
 
     @Override

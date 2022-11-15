@@ -114,21 +114,6 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     }
 
     @Override
-    public short getShort(long @NotNull ... indices) {
-        return result().getShort(indices);
-    }
-
-    @Override
-    public int getInt(long @NotNull ... indices) {
-        return result().getInt(indices);
-    }
-
-    @Override
-    public long getLong(long @NotNull ... indices) {
-        return result().getLong(indices);
-    }
-
-    @Override
     public boolean getBooleanFlat(long flatIndex) {
         return result().getBooleanFlat(flatIndex);
     }
@@ -204,83 +189,78 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     }
 
     @Override
-    public void setContents(@NotNull ITensor tensor) {
-        result().setContents(tensor);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor) {
+        result().setContentsWithOffset(startFlatIndex, tensor);
     }
 
     @Override
-    public void setContents(@NotNull ByteBuffer buffer) {
-        result().setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ByteBuffer buffer) {
+        result().setContentsWithOffset(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull ShortBuffer buffer) {
-        result().setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ShortBuffer buffer) {
+        result().setContentsWithOffset(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull IntBuffer buffer) {
-        result().setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull IntBuffer buffer) {
+        result().setContentsWithOffset(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull LongBuffer buffer) {
-        result().setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull LongBuffer buffer) {
+        result().setContentsWithOffset(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull FloatBuffer buffer) {
-        result().setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull FloatBuffer buffer) {
+        result().setContentsWithOffset(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull DoubleBuffer buffer) {
-        result().setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull DoubleBuffer buffer) {
+        result().setContentsWithOffset(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(boolean @NotNull [] buffer) {
-        result().setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, boolean @NotNull [] buffer) {
+        result().setContentsWithOffset(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
-        result().setContents(index, tensor);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
+        result().fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(byte i) {
-        result().fill(i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
+        result().fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(short i) {
-        result().fill(i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
+        result().fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(int i) {
-        result().fill(i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
+        result().fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(long i) {
-        result().fill(i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
+        result().fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(float i) {
-        result().fill(i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
+        result().fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(double i) {
-        result().fill(i);
-    }
-
-    @Override
-    public void fill(boolean value) {
-        result().fill(value);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
+        result().fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override

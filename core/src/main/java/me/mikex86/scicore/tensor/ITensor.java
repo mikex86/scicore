@@ -9,7 +9,6 @@ import me.mikex86.scicore.utils.dispose.IDisposable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.awt.*;
 import java.io.*;
 import java.nio.*;
 import java.util.List;
@@ -485,23 +484,62 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor copy();
 
-    void setContents(@NotNull ITensor tensor);
+    void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor);
 
-    void setContents(@NotNull ByteBuffer buffer);
+    default void setContents(@NotNull ITensor tensor) {
+        setContentsWithOffset(0, tensor);
+    }
 
-    void setContents(@NotNull ShortBuffer buffer);
+    void setContentsWithOffset(long startFlatIndex, @NotNull ByteBuffer buffer);
 
-    void setContents(@NotNull IntBuffer buffer);
+    default void setContents(@NotNull ByteBuffer buffer) {
+        setContentsWithOffset(0, buffer);
+    }
 
-    void setContents(@NotNull LongBuffer buffer);
+    void setContentsWithOffset(long startFlatIndex, @NotNull ShortBuffer buffer);
 
-    void setContents(@NotNull FloatBuffer buffer);
+    default void setContents(@NotNull ShortBuffer buffer) {
+        setContentsWithOffset(0, buffer);
+    }
 
-    void setContents(@NotNull DoubleBuffer buffer);
+    void setContentsWithOffset(long startFlatIndex, @NotNull IntBuffer buffer);
 
-    void setContents(boolean @NotNull [] buffer);
+    default void setContents(@NotNull IntBuffer buffer) {
+        setContentsWithOffset(0, buffer);
+    }
 
-    void setContents(long @NotNull [] index, @NotNull ITensor tensor);
+    void setContentsWithOffset(long startFlatIndex, @NotNull LongBuffer buffer);
+
+    default void setContents(@NotNull LongBuffer buffer) {
+        setContentsWithOffset(0, buffer);
+    }
+
+    void setContentsWithOffset(long startFlatIndex, @NotNull FloatBuffer buffer);
+
+    default void setContents(@NotNull FloatBuffer buffer) {
+        setContentsWithOffset(0, buffer);
+    }
+
+    void setContentsWithOffset(long startFlatIndex, @NotNull DoubleBuffer buffer);
+
+    default void setContents(@NotNull DoubleBuffer buffer) {
+        setContentsWithOffset(0, buffer);
+    }
+
+    void setContentsWithOffset(long startFlatIndex, boolean @NotNull [] buffer);
+
+    default void setContents(boolean @NotNull [] buffer) {
+        setContentsWithOffset(0, buffer);
+    }
+
+    default void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
+        long flatIndex = ShapeUtils.getFlatIndex(index, getStrides());
+        long numElements = ShapeUtils.getNumElements(getStrides(), index);
+        if (tensor.getNumberOfElements() != numElements) {
+            throw new IllegalArgumentException("Dimensions of destination tensor do not match with source tensor in setContents(index, tensor)");
+        }
+        setContentsWithOffset(flatIndex, tensor);
+    }
 
     long getNumberOfElements();
 
@@ -629,19 +667,47 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     void subtract(@NotNull ITensor other);
 
-    void fill(byte value);
+    void fillRegion(long startFlatIndex, long endFlatIndex, byte value);
 
-    void fill(short value);
+    default void fill(byte value) {
+        fillRegion(0, getNumberOfElements(), value);
+    }
 
-    void fill(int value);
+    void fillRegion(long startFlatIndex, long endFlatIndex, short value);
 
-    void fill(long value);
+    default void fill(short value) {
+        fillRegion(0, getNumberOfElements(), value);
+    }
 
-    void fill(float value);
+    void fillRegion(long startFlatIndex, long endFlatIndex, int value);
 
-    void fill(double value);
+    default void fill(int value) {
+        fillRegion(0, getNumberOfElements(), value);
+    }
 
-    void fill(boolean value);
+    void fillRegion(long startFlatIndex, long endFlatIndex, long value);
+
+    default void fill(long value) {
+        fillRegion(0, getNumberOfElements(), value);
+    }
+
+    void fillRegion(long startFlatIndex, long endFlatIndex, float value);
+
+    default void fill(float value) {
+        fillRegion(0, getNumberOfElements(), value);
+    }
+
+    void fillRegion(long startFlatIndex, long endFlatIndex, double value);
+
+    default void fill(double value) {
+        fillRegion(0, getNumberOfElements(), value);
+    }
+
+    void fillRegion(long startFlatIndex, long endFlatIndex, boolean value);
+
+    default void fill(boolean value) {
+        fillRegion(0, getNumberOfElements(), value);
+    }
 
     @NotNull ITensor exp();
 
@@ -720,10 +786,24 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
     /**
      * Compares the elements of this tensor with the elements of the other tensor.
      * The tensors must have the same shape.
+     *
      * @param other the other tensor.
      * @return the result of the comparison.
      */
     @NotNull ITensor compareElements(@NotNull ITensor other);
+
+    /**
+     * Takes a tensor with index values of shape (*) and returns a tensor (*, numClasses) that have zeros everywhere except
+     * at the index specified by the index tensor, where the value is 1.
+     * The data type of the original tensor must be an integer type.
+     * The data type of the original tensor is preserved in the result.
+     *
+     * @param numClasses the number of classes.
+     * @return the result of the operation.
+     */
+    @NotNull ITensor oneHot(long numClasses);
+
+    @NotNull ITensor get(@NotNull ITensor indices);
 
     @NotNull ITensor to(@NotNull ISciCoreBackend backend);
 
@@ -791,6 +871,7 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
     /**
      * Writes the contents in tightly packed binary format to the specified output stream.
      * Uses BIG_ENDIAN byte order.
+     *
      * @param outputStream the output stream to write to.
      * @throws IOException if an I/O error occurs.
      */
@@ -798,6 +879,7 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     /**
      * Reads the contents in tightly packed binary format from the specified input stream and sets them as contents of this tensor.
+     *
      * @param inputStream the input stream to read from.
      * @throws IOException if an I/O error occurs.
      */

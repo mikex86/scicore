@@ -24,10 +24,13 @@ public class CudaDataContainer implements ITensorDataContainer {
     @NotNull
     private final DataType dataType;
 
+    private final long nElements;
+
     public CudaDataContainer(@NotNull CudaBackend backend, @NotNull CudaMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
         this.backend = backend;
         this.deviceMemoryHandle = memoryManager.calloc(nElements, dataType);
         this.dataType = dataType;
+        this.nElements = nElements;
     }
 
     public byte getInt8Flat(long flatIndex) {
@@ -37,7 +40,7 @@ public class CudaDataContainer implements ITensorDataContainer {
         return hostBuffer[0];
     }
 
-    public void getInt8Flat(byte value, long flatIndex) {
+    public void setInt8Flat(long flatIndex, byte value) {
         byte[] hostBuffer = new byte[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
         cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(flatIndex), hostPtr, 1));
@@ -52,7 +55,7 @@ public class CudaDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setInt16Flat(short value, long flatIndex) {
+    public void setInt16Flat(long flatIndex, short value) {
         short[] hostBuffer = new short[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
         cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(flatIndex * Short.BYTES), hostPtr, Short.BYTES));
@@ -67,7 +70,7 @@ public class CudaDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setInt32Flat(int value, long flatIndex) {
+    public void setInt32Flat(long flatIndex, int value) {
         int[] hostBuffer = new int[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
         cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(flatIndex * Integer.BYTES), hostPtr, Integer.BYTES));
@@ -82,7 +85,7 @@ public class CudaDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setInt64Flat(long value, long flatIndex) {
+    public void setInt64Flat(long flatIndex, long value) {
         long[] hostBuffer = new long[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
         cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(flatIndex * Long.BYTES), hostPtr, Long.BYTES));
@@ -97,7 +100,7 @@ public class CudaDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setFloat32Flat(float value, long flatIndex) {
+    public void setFloat32Flat(long flatIndex, float value) {
         float[] hostBuffer = new float[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
         cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(flatIndex * Float.BYTES), hostPtr, Float.BYTES));
@@ -112,14 +115,14 @@ public class CudaDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void setFloat64Flat(double value, long flatIndex) {
+    public void setFloat64Flat(long flatIndex, double value) {
         double[] hostBuffer = new double[]{value};
         Pointer hostPtr = Pointer.to(hostBuffer);
         cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(flatIndex * Double.BYTES), hostPtr, Double.BYTES));
     }
 
     @Override
-    public void setBooleanFlat(boolean value, long flatIndex) {
+    public void setBooleanFlat(long flatIndex, boolean value) {
         long byteIndex = flatIndex / 8;
         int bitIndex = (int) (flatIndex % 8);
         byte byteValue = getInt8Flat(byteIndex);
@@ -127,7 +130,7 @@ public class CudaDataContainer implements ITensorDataContainer {
         if (value) {
             byteValue = (byte) (byteValue | (1 << bitIndex));
         }
-        getInt8Flat(byteValue, byteIndex);
+        setInt8Flat(byteIndex, byteValue);
     }
 
     @Override
@@ -138,40 +141,18 @@ public class CudaDataContainer implements ITensorDataContainer {
         return (byteValue & (1 << bitIndex)) != 0;
     }
 
-
-    public void setContents(@NotNull ByteBuffer buffer) {
-        if (buffer.remaining() > deviceMemoryHandle.getSize()) {
+    @Override
+    public void setContents(long startIndex, @NotNull ByteBuffer hostBuffer) {
+        if (hostBuffer.remaining() > deviceMemoryHandle.getSize() - startIndex) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
         }
-        int size = buffer.remaining();
-        if (buffer.isDirect()) {
-            Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), hostPtr, size));
-        } else {
-            // to direct buffer
-            DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(size);
-            ByteBuffer directBuffer = memoryHandle.asByteBuffer();
-            directBuffer.put(buffer);
-            directBuffer.flip();
-
-            Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), hostPtr, size));
-
-            memoryHandle.free();
-        }
-    }
-
-    public void setContents(@NotNull ByteBuffer hostBuffer, long flatStartIndex) {
-        if (hostBuffer.remaining() > deviceMemoryHandle.getSize() - flatStartIndex) {
-            throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
-        }
-        if (flatStartIndex < 0 || flatStartIndex >= deviceMemoryHandle.getSize()) {
+        if (startIndex < 0 || startIndex >= deviceMemoryHandle.getSize()) {
             throw new IllegalArgumentException("Cannot set contents of buffer, flatStartIndex is out of bounds");
         }
         int size = hostBuffer.remaining();
         if (hostBuffer.isDirect()) {
             Pointer hostPtr = Pointer.to(hostBuffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(flatStartIndex), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(startIndex), hostPtr, size));
         } else {
             // to direct buffer
             DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(size);
@@ -180,67 +161,71 @@ public class CudaDataContainer implements ITensorDataContainer {
             directBuffer.flip();
 
             Pointer hostPtr = Pointer.to(directBuffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(flatStartIndex), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(startIndex), hostPtr, size));
 
             memoryHandle.free();
         }
     }
 
-    public void setContents(@NotNull CudaMemoryHandle srcDevicePtr, long startFlatIndex) {
+    public void setContents(long startFlatIndex, @NotNull CudaMemoryHandle srcDevicePtr) {
         if (startFlatIndex < 0 || startFlatIndex >= deviceMemoryHandle.getSize()) {
             throw new IllegalArgumentException("Cannot set contents of buffer, startFlatIndex is out of bounds");
         }
         cuCheck(cuMemcpyDtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(startFlatIndex), srcDevicePtr.getDevicePointer(), srcDevicePtr.getSize()));
     }
 
-    public void setContents(@NotNull ShortBuffer buffer) {
-        if (buffer.remaining() > deviceMemoryHandle.getSize() / Short.BYTES) {
+    @Override
+    public void setContents(long startIndex, @NotNull ShortBuffer buffer) {
+        long offset = startIndex * Short.BYTES;
+        if (buffer.remaining() > (deviceMemoryHandle.getSize() - offset) / Short.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
         }
-
         int size = buffer.remaining() * Short.BYTES;
         if (buffer.isDirect()) {
             if (buffer.order() != ByteOrder.nativeOrder()) {
                 throw new IllegalArgumentException("Direct buffer must be in native order");
             }
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(offset), hostPtr, size));
         } else {
             // to direct buffer
             DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(size);
             ShortBuffer directBuffer = memoryHandle.asShortBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), Pointer.to(directBuffer), size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(offset), Pointer.to(directBuffer), size));
             memoryHandle.free();
         }
     }
 
-    public void setContents(@NotNull IntBuffer buffer) {
-        if (buffer.remaining() > deviceMemoryHandle.getSize() / Integer.BYTES) {
+    @Override
+    public void setContents(long startIndex, @NotNull IntBuffer buffer) {
+        long offset = startIndex * Integer.BYTES;
+        if (buffer.remaining() > (deviceMemoryHandle.getSize() - offset) / Integer.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
         }
-
         int size = buffer.remaining() * Integer.BYTES;
         if (buffer.isDirect()) {
             if (buffer.order() != ByteOrder.nativeOrder()) {
                 throw new IllegalArgumentException("Direct buffer must be in native order");
             }
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(offset), hostPtr, size));
         } else {
             // to direct buffer
             DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(size);
             IntBuffer directBuffer = memoryHandle.asIntBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), Pointer.to(directBuffer), size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(offset), Pointer.to(directBuffer), size));
             memoryHandle.free();
         }
     }
 
-    public void setContents(@NotNull LongBuffer buffer) {
-        if (buffer.remaining() > deviceMemoryHandle.getSize() / Long.BYTES) {
+    @Override
+    public void setContents(long startIndex, @NotNull LongBuffer buffer) {
+        long offset = startIndex * Long.BYTES;
+        if (buffer.remaining() > (deviceMemoryHandle.getSize() - offset) / Long.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
         }
 
@@ -250,19 +235,21 @@ public class CudaDataContainer implements ITensorDataContainer {
                 throw new IllegalArgumentException("Direct buffer must be in native order");
             }
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(offset), hostPtr, size));
         } else {
             // to direct buffer
             DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(size);
             LongBuffer directBuffer = memoryHandle.asLongBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), Pointer.to(directBuffer), size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(offset), Pointer.to(directBuffer), size));
             memoryHandle.free();
         }
     }
 
-    public void setContents(@NotNull FloatBuffer buffer) {
+    @Override
+    public void setContents(long startIndex, @NotNull FloatBuffer buffer) {
+        long offset = startIndex * Float.BYTES;
         if (buffer.remaining() > deviceMemoryHandle.getSize() / Float.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
         }
@@ -273,19 +260,21 @@ public class CudaDataContainer implements ITensorDataContainer {
                 throw new IllegalArgumentException("Direct buffer must be in native order");
             }
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(offset), hostPtr, size));
         } else {
             // to direct buffer
             DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(size);
             FloatBuffer directBuffer = memoryHandle.asFloatBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), Pointer.to(directBuffer), size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(offset), Pointer.to(directBuffer), size));
             memoryHandle.free();
         }
     }
 
-    public void setContents(@NotNull DoubleBuffer buffer) {
+    @Override
+    public void setContents(long startIndex, @NotNull DoubleBuffer buffer) {
+        long offset = startIndex * Double.BYTES;
         if (buffer.remaining() > deviceMemoryHandle.getSize() / Double.BYTES) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
         }
@@ -296,27 +285,31 @@ public class CudaDataContainer implements ITensorDataContainer {
                 throw new IllegalArgumentException("Direct buffer must be in native order");
             }
             Pointer hostPtr = Pointer.to(buffer);
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), hostPtr, size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(offset), hostPtr, size));
         } else {
             // to direct buffer
             DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(size);
             DoubleBuffer directBuffer = memoryHandle.asDoubleBuffer();
             directBuffer.put(buffer);
             directBuffer.flip();
-            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), Pointer.to(directBuffer), size));
+            cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(offset), Pointer.to(directBuffer), size));
             memoryHandle.free();
         }
     }
 
-    public void setContents(boolean @NotNull [] data) {
-        if (data.length > deviceMemoryHandle.getSize() * 8) {
+    @Override
+    public void setContents(long startIndex, boolean @NotNull [] data) {
+        long byteOffset = startIndex / Byte.SIZE;
+        int bitOffset = Math.toIntExact(startIndex % Byte.SIZE);
+        if (data.length + byteOffset > deviceMemoryHandle.getSize() * 8) {
             throw new IllegalArgumentException("Cannot set contents of buffer, buffer is larger than data container size");
         }
         int size = (data.length + 7) / 8; // round up to next byte
         DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(size);
         ByteBuffer buffer = memoryHandle.asByteBuffer();
         buffer.order(ByteOrder.nativeOrder());
-        for (int i = 0; i < data.length; i++) {
+        for (int io = 0; io < data.length; io++) {
+            int i = io + bitOffset;
             int byteIndex = i / 8;
             int bitIndex = i % 8;
             byte byteValue = buffer.get(byteIndex);
@@ -326,9 +319,28 @@ public class CudaDataContainer implements ITensorDataContainer {
             }
             buffer.put(byteIndex, byteValue);
         }
+        if (bitOffset > 0) {
+            byte prevByteValue = getInt8Flat(byteOffset);
+            byte bufferValue = buffer.get(0);
+            // copy first n=bitOffset bits from prevByteValue to bufferValue
+            int mask = (1 << (8 - bitOffset)) - 1;
+            bufferValue = (byte) (bufferValue & ~mask);
+            bufferValue = (byte) (bufferValue | (prevByteValue & mask));
+            buffer.put(0, bufferValue);
+        }
+        int nTrailingBits = (data.length + bitOffset) % 8;
+        if (nTrailingBits > 0) {
+            byte prevByteValue = getInt8Flat(byteOffset + size - 1);
+            byte bufferValue = buffer.get(size - 1);
+            // copy last n=nTrailingBits bits from prevByteValue to bufferValue
+            int mask = (1 << nTrailingBits) - 1;
+            bufferValue = (byte) (bufferValue & mask);
+            bufferValue = (byte) (bufferValue | (prevByteValue & ~mask));
+            buffer.put(size - 1, bufferValue);
+        }
         buffer.flip();
         Pointer hostPtr = Pointer.to(buffer);
-        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer(), hostPtr, size));
+        cuCheck(cuMemcpyHtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(byteOffset), hostPtr, size));
         memoryHandle.free();
     }
 
@@ -373,22 +385,34 @@ public class CudaDataContainer implements ITensorDataContainer {
         return deviceMemoryHandle.getSize();
     }
 
+    @Override
+    public long getNumberOfElements() {
+        return this.nElements;
+    }
+
     @NotNull
     public CudaMemoryHandle getDeviceMemoryHandle() {
         return deviceMemoryHandle;
     }
 
+
     @Override
-    public void fill(byte value) {
-        cuCheck(cuMemsetD8(deviceMemoryHandle.getDevicePointer(), value, deviceMemoryHandle.getSize()));
+    public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
+        long size = endFlatIndex - startFlatIndex;
+        cuCheck(cuMemsetD8(deviceMemoryHandle.getDevicePointer().withByteOffset(startFlatIndex), value, size));
+    }
+
+
+    @Override
+    public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
+        long size = (endFlatIndex - startFlatIndex) * Short.BYTES;
+        cuCheck(cuMemsetD16(deviceMemoryHandle.getDevicePointer().withByteOffset(startFlatIndex), value, size));
     }
 
     @Override
-    public void fill(short value) {
-        if (deviceMemoryHandle.getSize() % Short.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + deviceMemoryHandle.getSize() + " with short value");
-        }
-        cuCheck(cuMemsetD16(deviceMemoryHandle.getDevicePointer(), value, deviceMemoryHandle.getSize() / Short.BYTES));
+    public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
+        long size = (endFlatIndex - startFlatIndex) * Integer.BYTES;
+        cuCheck(cuMemsetD32(deviceMemoryHandle.getDevicePointer().withByteOffset(startFlatIndex), value, size));
     }
 
     @Override
@@ -400,26 +424,25 @@ public class CudaDataContainer implements ITensorDataContainer {
     }
 
     @Override
-    public void fill(long value) {
-        if (deviceMemoryHandle.getSize() % Long.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + deviceMemoryHandle.getSize() + " with long value");
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
         throw new UnsupportedOperationException("TODO: implement");
     }
 
     @Override
-    public void fill(float value) {
+    public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
         if (deviceMemoryHandle.getSize() % Float.BYTES != 0) {
             throw new IllegalArgumentException("Cannot fill data container of size " + deviceMemoryHandle.getSize() + " with float value");
         }
-        cuCheck(cuMemsetD32(deviceMemoryHandle.getDevicePointer(), Float.floatToRawIntBits(value), deviceMemoryHandle.getSize() / Float.BYTES));
+        cuCheck(cuMemsetD32(deviceMemoryHandle.getDevicePointer().withByteOffset(startFlatIndex), Float.floatToRawIntBits(value), (endFlatIndex - startFlatIndex) / Float.BYTES));
     }
 
     @Override
-    public void fill(double value) {
-        if (deviceMemoryHandle.getSize() % Double.BYTES != 0) {
-            throw new IllegalArgumentException("Cannot fill data container of size " + deviceMemoryHandle.getSize() + " with double value");
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
+        throw new UnsupportedOperationException("TODO: implement");
+    }
+
+    @Override
+    public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
         throw new UnsupportedOperationException("TODO: implement");
     }
 

@@ -3,6 +3,8 @@ package me.mikex86.scicore.graph;
 public enum OperationType {
 
     MATMUL, DIVIDE, PLUS, MINUS, REDUCE_SUM, EXP, TRANSPOSE, POW, MULTIPLY, RELU, SIGMOID, ARGMAX, CAST, COMPARE_ELEMENTS,
+    ONE_HOT, GET,
+
     PLUS_INPLACE(true), MINUS_INPLACE(true);
 
     private final boolean inplace;

@@ -6,7 +6,6 @@ import me.mikex86.scicore.tensor.AbstractTensor;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.utils.ShapeUtils;
-import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -54,73 +53,87 @@ public class CudaTensor extends AbstractTensor {
 
     @Override
     public byte getByteFlat(long flatIndex) {
+        validateDataType(DataType.INT8);
         return dataContainer.getInt8Flat(flatIndex);
     }
 
     @Override
     public void setByteFlat(byte value, long flatIndex) {
-        dataContainer.getInt8Flat(value, flatIndex);
+        validateDataType(DataType.INT8);
+        dataContainer.setInt8Flat(flatIndex, value);
     }
 
     @Override
     public short getShortFlat(long flatIndex) {
+        validateDataType(DataType.INT16);
         return dataContainer.getInt16Flat(flatIndex);
     }
 
     @Override
     public void setShortFlat(short value, long flatIndex) {
-        dataContainer.setInt16Flat(value, flatIndex);
+        validateDataType(DataType.INT16);
+        dataContainer.setInt16Flat(flatIndex, value);
     }
 
     @Override
     public int getIntFlat(long flatIndex) {
+        validateDataType(DataType.INT32);
         return dataContainer.getInt32Flat(flatIndex);
     }
 
     @Override
     public void setIntFlat(int value, long flatIndex) {
-        dataContainer.setInt32Flat(value, flatIndex);
+        validateDataType(DataType.INT32);
+        dataContainer.setInt32Flat(flatIndex, value);
     }
 
     @Override
     public long getLongFlat(long flatIndex) {
+        validateDataType(DataType.INT64);
         return dataContainer.getInt64Flat(flatIndex);
     }
 
     @Override
     public void setLongFlat(long value, long flatIndex) {
-        dataContainer.setInt64Flat(value, flatIndex);
+        validateDataType(DataType.INT64);
+        dataContainer.setInt64Flat(flatIndex, value);
     }
 
 
     @Override
     public float getFloatFlat(long flatIndex) {
+        validateDataType(DataType.FLOAT32);
         return dataContainer.getFloat32Flat(flatIndex);
     }
 
     @Override
     public void setFloatFlat(float value, long flatIndex) {
-        dataContainer.setFloat32Flat(value, flatIndex);
+        validateDataType(DataType.FLOAT32);
+        dataContainer.setFloat32Flat(flatIndex, value);
     }
 
     @Override
     public double getDoubleFlat(long flatIndex) {
+        validateDataType(DataType.FLOAT64);
         return dataContainer.getFloat32Flat(flatIndex);
     }
 
     @Override
     public void setDoubleFlat(double value, long flatIndex) {
-        dataContainer.setFloat64Flat(value, flatIndex);
+        validateDataType(DataType.FLOAT64);
+        dataContainer.setFloat64Flat(flatIndex, value);
     }
 
     @Override
     public boolean getBooleanFlat(long flatIndex) {
+        validateDataType(DataType.BOOLEAN);
         return dataContainer.getBooleanFlat(flatIndex);
     }
 
     @Override
     public void setBooleanFlat(boolean value, long flatIndex) {
-        dataContainer.setBooleanFlat(value, flatIndex);
+        validateDataType(DataType.BOOLEAN);
+        dataContainer.setBooleanFlat(flatIndex, value);
     }
 
     @Override
@@ -129,78 +142,103 @@ public class CudaTensor extends AbstractTensor {
     }
 
     @Override
-    public void setContents(@NotNull ITensor tensor) {
-        Validator.assertTrue(ShapeUtils.equals(shape, tensor.getShape()), "Cannot set contents of tensor with shape " + ShapeUtils.toString(shape) + " to tensor with shape " + ShapeUtils.toString(tensor.getShape()));
-        Validator.assertTrue(dataType == tensor.getDataType(), "Cannot set contents of tensor with data type " + dataType + " to tensor with data type " + tensor.getDataType());
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor) {
+        validateDataType(tensor.getDataType());
         // TODO: Handle Lazy Tensors and CUDA Tensor Views more efficiently
         if (tensor instanceof CudaTensor cudaTensor) {
-            backend.getCudaMemoryManager().copy(dataContainer.getDeviceMemoryHandle(), cudaTensor.dataContainer.getDeviceMemoryHandle());
-        } else {
-            DirectMemoryHandle contents = tensor.getContentsAsDirectMemory();
-            dataContainer.setContents(contents.asByteBuffer());
-            if (contents.canFree()) {
-                contents.free();
-            }
-        }
-    }
-
-    @Override
-    public void setContents(@NotNull ByteBuffer buffer) {
-        Validator.assertTrue(dataType == DataType.INT8, "Cannot set contents of tensor with data type " + dataType);
-        this.dataContainer.setContents(buffer);
-    }
-
-    @Override
-    public void setContents(@NotNull ShortBuffer buffer) {
-        Validator.assertTrue(dataType == DataType.INT16, "Cannot set contents of tensor with data type " + dataType);
-        this.dataContainer.setContents(buffer);
-    }
-
-    @Override
-    public void setContents(@NotNull IntBuffer buffer) {
-        Validator.assertTrue(dataType == DataType.INT32, "Cannot set contents of tensor with data type " + dataType);
-        this.dataContainer.setContents(buffer);
-    }
-
-    @Override
-    public void setContents(@NotNull LongBuffer buffer) {
-        Validator.assertTrue(dataType == DataType.INT64, "Cannot set contents of tensor with data type " + dataType);
-        this.dataContainer.setContents(buffer);
-    }
-
-    @Override
-    public void setContents(@NotNull FloatBuffer buffer) {
-        Validator.assertTrue(dataType == DataType.FLOAT32, "Cannot set contents of tensor with data type " + dataType);
-        this.dataContainer.setContents(buffer);
-    }
-
-    @Override
-    public void setContents(@NotNull DoubleBuffer buffer) {
-        Validator.assertTrue(dataType == DataType.FLOAT64, "Cannot set contents of tensor with data type " + dataType);
-        this.dataContainer.setContents(buffer);
-    }
-
-    @Override
-    public void setContents(boolean @NotNull [] buffer) {
-        Validator.assertTrue(dataType == DataType.BOOLEAN, "Cannot set contents of tensor with data type " + dataType);
-        this.dataContainer.setContents(buffer);
-    }
-
-    @Override
-    public void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
-        long flatIndex = ShapeUtils.getFlatIndex(index, this.strides);
-        if (tensor instanceof CudaTensor cudaTensor) {
             // device to device copy
-            this.dataContainer.setContents(cudaTensor.dataContainer.getDeviceMemoryHandle(), flatIndex);
+            this.dataContainer.setContents(startFlatIndex, cudaTensor.dataContainer.getDeviceMemoryHandle());
         } else {
             // general copy
             DirectMemoryHandle memoryHandle = tensor.getContentsAsDirectMemory();
             ByteBuffer hostBuffer = memoryHandle.asByteBuffer();
-            this.dataContainer.setContents(hostBuffer, flatIndex);
+            this.dataContainer.setContents(startFlatIndex, hostBuffer);
             if (memoryHandle.canFree()) {
                 memoryHandle.free();
             }
         }
+    }
+
+    @Override
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ByteBuffer buffer) {
+        this.dataContainer.setContents(startFlatIndex, buffer);
+    }
+
+    @Override
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ShortBuffer buffer) {
+        validateDataType(DataType.INT16);
+        this.dataContainer.setContents(startFlatIndex, buffer);
+    }
+
+    @Override
+    public void setContentsWithOffset(long startFlatIndex, @NotNull IntBuffer buffer) {
+        validateDataType(DataType.INT32);
+        this.dataContainer.setContents(startFlatIndex, buffer);
+    }
+
+    @Override
+    public void setContentsWithOffset(long startFlatIndex, @NotNull LongBuffer buffer) {
+        validateDataType(DataType.INT64);
+        this.dataContainer.setContents(startFlatIndex, buffer);
+    }
+
+    @Override
+    public void setContentsWithOffset(long startFlatIndex, @NotNull FloatBuffer buffer) {
+        validateDataType(DataType.FLOAT32);
+        this.dataContainer.setContents(startFlatIndex, buffer);
+    }
+
+    @Override
+    public void setContentsWithOffset(long startFlatIndex, @NotNull DoubleBuffer buffer) {
+        validateDataType(DataType.FLOAT64);
+        this.dataContainer.setContents(startFlatIndex, buffer);
+    }
+
+    @Override
+    public void setContentsWithOffset(long startFlatIndex, boolean @NotNull [] buffer) {
+        validateDataType(DataType.BOOLEAN);
+        this.dataContainer.setContents(startFlatIndex, buffer);
+    }
+
+    @Override
+    public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+    }
+
+    @Override
+    public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
+        validateDataType(DataType.INT16);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+    }
+
+    @Override
+    public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
+        validateDataType(DataType.INT32);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+    }
+
+    @Override
+    public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
+        validateDataType(DataType.INT64);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+    }
+
+    @Override
+    public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
+        validateDataType(DataType.FLOAT32);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+    }
+
+    @Override
+    public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
+        validateDataType(DataType.FLOAT64);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+    }
+
+    @Override
+    public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
+        validateDataType(DataType.BOOLEAN);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
@@ -212,41 +250,6 @@ public class CudaTensor extends AbstractTensor {
         byteBuffer.put(bytes);
         this.dataContainer.setContents(byteBuffer);
         memoryHandle.free();
-    }
-
-    @Override
-    public void fill(byte value) {
-        this.dataContainer.fill(value);
-    }
-
-    @Override
-    public void fill(short value) {
-        this.dataContainer.fill(value);
-    }
-
-    @Override
-    public void fill(int value) {
-        this.dataContainer.fill(value);
-    }
-
-    @Override
-    public void fill(long value) {
-        this.dataContainer.fill(value);
-    }
-
-    @Override
-    public void fill(float value) {
-        this.dataContainer.fill(value);
-    }
-
-    @Override
-    public void fill(double value) {
-        this.dataContainer.fill(value);
-    }
-
-    @Override
-    public void fill(boolean value) {
-        this.dataContainer.fill(value);
     }
 
     @Override

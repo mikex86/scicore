@@ -5,6 +5,7 @@ import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.tensor.AbstractTensor;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.data.ITensorDataContainer;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import me.mikex86.scicore.utils.dispose.IDisposable;
@@ -13,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.nio.*;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Objects;
 
@@ -58,91 +60,73 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public short getShort(long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        return this.dataContainer.getShort(index);
-    }
-
-    @Override
-    public int getInt(long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        return this.dataContainer.getInt(index);
-    }
-
-    @Override
-    public long getLong(long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        return this.dataContainer.getLong(index);
-    }
-
-    @Override
     public boolean getBooleanFlat(long flatIndex) {
-        return this.dataContainer.getBoolean(flatIndex);
+        return this.dataContainer.getBooleanFlat(flatIndex);
     }
 
     @Override
     public void setBooleanFlat(boolean value, long flatIndex) {
-        this.dataContainer.setBoolean(flatIndex, value);
+        this.dataContainer.setBooleanFlat(flatIndex, value);
     }
 
     @Override
     public byte getByteFlat(long flatIndex) {
-        return this.dataContainer.getByte(flatIndex);
+        return this.dataContainer.getInt8Flat(flatIndex);
     }
 
     @Override
     public void setByteFlat(byte value, long flatIndex) {
-        this.dataContainer.setByte(flatIndex, value);
+        this.dataContainer.setInt8Flat(flatIndex, value);
     }
 
     @Override
     public short getShortFlat(long flatIndex) {
-        return this.dataContainer.getShort(flatIndex);
+        return this.dataContainer.getInt16Flat(flatIndex);
     }
 
     @Override
     public void setShortFlat(short value, long flatIndex) {
-        this.dataContainer.setShort(flatIndex, value);
+        this.dataContainer.setInt16Flat(flatIndex, value);
     }
 
     @Override
     public int getIntFlat(long flatIndex) {
-        return this.dataContainer.getInt(flatIndex);
+        return this.dataContainer.getInt32Flat(flatIndex);
     }
 
     @Override
     public void setIntFlat(int value, long flatIndex) {
-        this.dataContainer.setInt(flatIndex, value);
+        this.dataContainer.setInt32Flat(flatIndex, value);
     }
 
     @Override
     public long getLongFlat(long flatIndex) {
-        return this.dataContainer.getLong(flatIndex);
+        return this.dataContainer.getInt64Flat(flatIndex);
     }
 
     @Override
     public void setLongFlat(long value, long flatIndex) {
-        this.dataContainer.setLong(flatIndex, value);
+        this.dataContainer.setInt64Flat(flatIndex, value);
     }
 
     @Override
     public float getFloatFlat(long flatIndex) {
-        return this.dataContainer.getFloat(flatIndex);
+        return this.dataContainer.getFloat32Flat(flatIndex);
     }
 
     @Override
     public void setFloatFlat(float value, long flatIndex) {
-        this.dataContainer.setFloat(flatIndex, value);
+        this.dataContainer.setFloat32Flat(flatIndex, value);
     }
 
     @Override
     public double getDoubleFlat(long flatIndex) {
-        return this.dataContainer.getDouble(flatIndex);
+        return this.dataContainer.getFloat64Flat(flatIndex);
     }
 
     @Override
     public void setDoubleFlat(double value, long flatIndex) {
-        this.dataContainer.setDouble(flatIndex, value);
+        this.dataContainer.setFloat64Flat(flatIndex, value);
     }
 
     @Override
@@ -153,24 +137,23 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public void setContents(@NotNull ITensor tensor) {
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor) {
         long[] shape = getShape();
         DataType dataType = getDataType();
         Validator.assertTrue(ShapeUtils.equals(shape, tensor.getShape()), "Cannot set contents of tensor with shape " + ShapeUtils.toString(shape) + " to tensor with shape " + ShapeUtils.toString(tensor.getShape()));
         Validator.assertTrue(dataType == tensor.getDataType(), "Cannot set contents of tensor with data type " + dataType + " to tensor with data type " + tensor.getDataType());
         if (tensor instanceof JvmTensor jvmTensor) {
-            this.dataContainer.setContents(jvmTensor.dataContainer);
-        } else {
-            // General copy
-            long nElements = tensor.getNumberOfElements();
-            for (long i = 0; i < nElements; i++) {
+            this.dataContainer.setContents(Math.toIntExact(startFlatIndex), jvmTensor.dataContainer);
+        } else { // General copy
+            long nElementsToCopy = tensor.getNumberOfElements();
+            for (long i = 0; i < nElementsToCopy; i++) {
                 switch (this.getDataType()) {
-                    case INT8 -> this.setByteFlat(tensor.getByteFlat(i), i);
-                    case INT16 -> this.setShortFlat(tensor.getShortFlat(i), i);
-                    case INT32 -> this.setIntFlat(tensor.getIntFlat(i), i);
-                    case INT64 -> this.setLongFlat(tensor.getLongFlat(i), i);
-                    case FLOAT32 -> this.setFloatFlat(tensor.getFloatFlat(i), i);
-                    case FLOAT64 -> this.setDoubleFlat(tensor.getDoubleFlat(i), i);
+                    case INT8 -> this.setByteFlat(tensor.getByteFlat(i), startFlatIndex + i);
+                    case INT16 -> this.setShortFlat(tensor.getShortFlat(i), startFlatIndex + i);
+                    case INT32 -> this.setIntFlat(tensor.getIntFlat(i), startFlatIndex + i);
+                    case INT64 -> this.setLongFlat(tensor.getLongFlat(i), startFlatIndex + i);
+                    case FLOAT32 -> this.setFloatFlat(tensor.getFloatFlat(i), startFlatIndex + i);
+                    case FLOAT64 -> this.setDoubleFlat(tensor.getDoubleFlat(i), startFlatIndex + i);
                     default -> throw new IllegalArgumentException("Unsupported data type");
                 }
             }
@@ -178,371 +161,136 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public void setContents(@NotNull ByteBuffer buffer) {
-        Validator.assertTrue(getDataType() == DataType.INT8, "Cannot set contents of tensor with data type " + getDataType());
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ByteBuffer buffer) {
+        // set with bytes can be called no matter the data type, while for other types this will fail.
+        // so here we have to convert element-level indices to byte-level indices.
+        long byteIndex = getDataType().getSizeOf(startFlatIndex);
+        this.dataContainer.setContents(byteIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull ShortBuffer buffer) {
-        Validator.assertTrue(getDataType() == DataType.INT16, "Cannot set contents of tensor with data type " + getDataType());
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ShortBuffer buffer) {
+        validateDataType(DataType.INT16);
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull IntBuffer buffer) {
-        Validator.assertTrue(getDataType() == DataType.INT32, "Cannot set contents of tensor with data type " + getDataType());
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull IntBuffer buffer) {
+        validateDataType(DataType.INT32);
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull LongBuffer buffer) {
-        Validator.assertTrue(getDataType() == DataType.INT64, "Cannot set contents of tensor with data type " + getDataType());
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull LongBuffer buffer) {
+        validateDataType(DataType.INT64);
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull FloatBuffer buffer) {
-        Validator.assertTrue(getDataType() == DataType.FLOAT32, "Cannot set contents of tensor with data type " + getDataType());
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull FloatBuffer buffer) {
+        validateDataType(DataType.FLOAT32);
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull DoubleBuffer buffer) {
-        Validator.assertTrue(getDataType() == DataType.FLOAT64, "Cannot set contents of tensor with data type " + getDataType());
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull DoubleBuffer buffer) {
+        validateDataType(DataType.FLOAT64);
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(boolean @NotNull [] buffer) {
-        Validator.assertTrue(getDataType() == DataType.BOOLEAN, "Cannot set contents of tensor with data type " + getDataType());
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, boolean @NotNull [] buffer) {
+        validateDataType(DataType.BOOLEAN);
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
-        // TODO: implement useView
-        // General copy
-        long startIndex = ShapeUtils.getFlatIndex(index, this.strides);
-        long nElementsToCopy = tensor.getNumberOfElements();
-        for (long i = 0; i < nElementsToCopy; i++) {
-            switch (this.getDataType()) {
-                case INT8 -> this.setByteFlat(tensor.getByteFlat(i), startIndex + i);
-                case INT16 -> this.setShortFlat(tensor.getShortFlat(i), startIndex + i);
-                case INT32 -> this.setIntFlat(tensor.getIntFlat(i), startIndex + i);
-                case INT64 -> this.setLongFlat(tensor.getLongFlat(i), startIndex + i);
-                case FLOAT32 -> this.setFloatFlat(tensor.getFloatFlat(i), startIndex + i);
-                case FLOAT64 -> this.setDoubleFlat(tensor.getDoubleFlat(i), startIndex + i);
-                default -> throw new IllegalArgumentException("Unsupported data type");
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
+        validateDataType(DataType.INT8); // TODO: FIX FILL WITH BYTE NOT BEING SUPPORTED FOR ALL TYPES IN JVM
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(byte i) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByte(j, i);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setShort(j, i);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt(j, i);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setLong(j, i);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat(j, i);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setDouble(j, i);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
+        validateDataType(DataType.INT16);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(short i) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByte(j, (byte) i);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setShort(j, i);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt(j, i);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setLong(j, i);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat(j, i);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setDouble(j, i);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
+        validateDataType(DataType.INT32);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(int i) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByte(j, (byte) i);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setShort(j, (short) i);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt(j, i);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setLong(j, i);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat(j, i);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setDouble(j, i);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
+        validateDataType(DataType.INT64);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(long i) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByte(j, (byte) i);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setShort(j, (short) i);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt(j, (int) i);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setLong(j, i);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat(j, (float) i);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setDouble(j, i);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
+        validateDataType(DataType.FLOAT32);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(float f) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByte(j, (byte) f);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setShort(j, (short) f);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt(j, (int) f);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setLong(j, (long) f);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat(j, f);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setDouble(j, f);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
+        validateDataType(DataType.FLOAT64);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fill(double d) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByte(j, (byte) d);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setShort(j, (short) d);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt(j, (int) d);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setLong(j, (long) d);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat(j, (float) d);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setDouble(j, d);
-                }
-            }
-        }
-    }
-
-    @Override
-    public void fill(boolean value) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setByte(j, (byte) (value ? 1 : 0));
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setShort(j, (short) (value ? 1 : 0));
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt(j, value ? 1 : 0);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setLong(j, value ? 1 : 0);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat(j, value ? 1 : 0);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setDouble(j, value ? 1 : 0);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
+        validateDataType(DataType.BOOLEAN);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
     public void writeTo(@NotNull OutputStream outputStream) throws IOException {
-        try (DataOutputStream dataOut = new DataOutputStream(outputStream)) {
-            switch (getDataType()) {
-                case INT8 -> dataOut.write(dataContainer.getByteData());
-                case INT16 -> {
-                    short[] shortData = dataContainer.getShortData();
-                    for (short s : shortData) {
-                        dataOut.writeShort(s);
-                    }
+        DataOutputStream dataOut = new DataOutputStream(outputStream);
+        switch (getDataType()) {
+            case INT8 -> dataOut.write(dataContainer.getByteData());
+            case INT16 -> {
+                short[] shortData = dataContainer.getShortData();
+                for (short s : shortData) {
+                    dataOut.writeShort(s);
                 }
-                case INT32 -> {
-                    int[] intData = dataContainer.getIntData();
-                    for (int i : intData) {
-                        dataOut.writeInt(i);
-                    }
+            }
+            case INT32 -> {
+                int[] intData = dataContainer.getIntData();
+                for (int i : intData) {
+                    dataOut.writeInt(i);
                 }
-                case INT64 -> {
-                    long[] longData = dataContainer.getLongData();
-                    for (long l : longData) {
-                        dataOut.writeLong(l);
-                    }
+            }
+            case INT64 -> {
+                long[] longData = dataContainer.getLongData();
+                for (long l : longData) {
+                    dataOut.writeLong(l);
                 }
-                case FLOAT32 -> {
-                    float[] floatData = dataContainer.getFloatData();
-                    for (float f : floatData) {
-                        dataOut.writeFloat(f);
-                    }
+            }
+            case FLOAT32 -> {
+                float[] floatData = dataContainer.getFloatData();
+                for (float f : floatData) {
+                    dataOut.writeFloat(f);
                 }
-                case FLOAT64 -> {
-                    double[] doubleData = dataContainer.getDoubleData();
-                    for (double d : doubleData) {
-                        dataOut.writeDouble(d);
-                    }
+            }
+            case FLOAT64 -> {
+                double[] doubleData = dataContainer.getDoubleData();
+                for (double d : doubleData) {
+                    dataOut.writeDouble(d);
                 }
-                case BOOLEAN -> {
-                    BitSet booleanData = dataContainer.getBooleanData();
-                    byte[] bytes = booleanData.toByteArray();
-                    dataOut.write(bytes);
-                }
+            }
+            case BOOLEAN -> {
+                BitSet booleanData = dataContainer.getBooleanData();
+                byte[] bytes = booleanData.toByteArray();
+                dataOut.write(bytes);
             }
         }
     }
 
 
-    private static class JvmTensorDataContainer implements IDisposable {
+    private static class JvmTensorDataContainer implements ITensorDataContainer, IDisposable {
 
         @NotNull
         private final JvmBackend backend;
@@ -551,6 +299,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
         private final DataType dataType;
 
         private final long @NotNull [] shape;
+
+        private final int nElements;
 
         private byte @Nullable [] byteData;
         private short @Nullable [] shortData;
@@ -566,15 +316,16 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             this.backend = backend;
             this.dataType = dataType;
             this.shape = shape;
+            this.nElements = Math.toIntExact(ShapeUtils.getNumElements(shape));
             switch (dataType) {
-                case INT8 -> this.byteData = new byte[Math.toIntExact(ShapeUtils.getNumElements(shape))];
-                case INT16 -> this.shortData = new short[Math.toIntExact(ShapeUtils.getNumElements(shape))];
-                case INT32 -> this.intData = new int[Math.toIntExact(ShapeUtils.getNumElements(shape))];
-                case INT64 -> this.longData = new long[Math.toIntExact(ShapeUtils.getNumElements(shape))];
-                case FLOAT32 -> this.floatData = new float[Math.toIntExact(ShapeUtils.getNumElements(shape))];
-                case FLOAT64 -> this.doubleData = new double[Math.toIntExact(ShapeUtils.getNumElements(shape))];
+                case INT8 -> this.byteData = new byte[nElements];
+                case INT16 -> this.shortData = new short[nElements];
+                case INT32 -> this.intData = new int[nElements];
+                case INT64 -> this.longData = new long[nElements];
+                case FLOAT32 -> this.floatData = new float[nElements];
+                case FLOAT64 -> this.doubleData = new double[nElements];
                 case BOOLEAN -> {
-                    this.nBits = Math.toIntExact(ShapeUtils.getNumElements(shape));
+                    this.nBits = nElements;
                     this.bitSetData = new BitSet(nBits);
                 }
             }
@@ -608,7 +359,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             return Objects.requireNonNull(bitSetData, "DataContainer has different data type");
         }
 
-        public byte getByte(long index) {
+        @Override
+        public byte getInt8Flat(long index) {
             byte[] byteData = getByteData();
             if (index < 0 || index >= byteData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -616,7 +368,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             return byteData[(int) index];
         }
 
-        public short getShort(long index) {
+        @Override
+        public short getInt16Flat(long index) {
             short[] shortData = getShortData();
             if (index < 0 || index >= shortData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -624,7 +377,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             return shortData[(int) index];
         }
 
-        public int getInt(long index) {
+        @Override
+        public int getInt32Flat(long index) {
             int[] intData = getIntData();
             if (index < 0 || index >= intData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -632,7 +386,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             return intData[(int) index];
         }
 
-        public long getLong(long index) {
+        @Override
+        public long getInt64Flat(long index) {
             long[] longData = getLongData();
             if (index < 0 || index >= longData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -640,7 +395,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             return longData[(int) index];
         }
 
-        public float getFloat(long index) {
+        @Override
+        public float getFloat32Flat(long index) {
             float[] floatData = getFloatData();
             if (index < 0 || index >= floatData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -648,7 +404,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             return floatData[(int) index];
         }
 
-        public double getDouble(long index) {
+        @Override
+        public double getFloat64Flat(long index) {
             double[] doubleData = getDoubleData();
             if (index < 0 || index >= doubleData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -656,7 +413,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             return doubleData[(int) index];
         }
 
-        public boolean getBoolean(long index) {
+        @Override
+        public boolean getBooleanFlat(long index) {
             BitSet bitSetData = getBooleanData();
             if (index < 0 || index >= nBits) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -664,7 +422,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             return bitSetData.get((int) index);
         }
 
-        public void setByte(long index, byte value) {
+        @Override
+        public void setInt8Flat(long index, byte value) {
             byte[] byteData = getByteData();
             if (index < 0 || index >= byteData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -672,7 +431,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             byteData[(int) index] = value;
         }
 
-        public void setShort(long index, short value) {
+        @Override
+        public void setInt16Flat(long index, short value) {
             short[] shortData = getShortData();
             if (index < 0 || index >= shortData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -680,7 +440,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             shortData[(int) index] = value;
         }
 
-        public void setInt(long index, int value) {
+        @Override
+        public void setInt32Flat(long index, int value) {
             int[] intData = getIntData();
             if (index < 0 || index >= intData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -688,7 +449,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             intData[(int) index] = value;
         }
 
-        public void setLong(long index, long value) {
+        @Override
+        public void setInt64Flat(long index, long value) {
             long[] longData = getLongData();
             if (index < 0 || index >= longData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -696,7 +458,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             longData[(int) index] = value;
         }
 
-        public void setFloat(long index, float value) {
+        @Override
+        public void setFloat32Flat(long index, float value) {
             float[] floatData = getFloatData();
             if (index < 0 || index >= floatData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -704,7 +467,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             floatData[(int) index] = value;
         }
 
-        public void setDouble(long index, double value) {
+        @Override
+        public void setFloat64Flat(long index, double value) {
             double[] doubleData = getDoubleData();
             if (index < 0 || index >= doubleData.length) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -712,7 +476,8 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             doubleData[(int) index] = value;
         }
 
-        public void setBoolean(long index, boolean value) {
+        @Override
+        public void setBooleanFlat(long index, boolean value) {
             BitSet booleanData = getBooleanData();
             if (index < 0 || index >= nBits) {
                 throw new IndexOutOfBoundsException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(shape));
@@ -725,102 +490,266 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             return dataType;
         }
 
+        @Override
+        public long getDataSize() {
+            return dataType.getSizeOf(nElements);
+        }
+
+        @Override
+        public long getNumberOfElements() {
+            return 0;
+        }
+
         public long @NotNull [] getShape() {
             return shape;
         }
 
-        public void setContents(@NotNull ByteBuffer buffer) {
-            if (dataType != DataType.INT8) {
-                throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
+        @Override
+        public void setContents(long startIndex, @NotNull ByteBuffer buffer) {
+            if (dataType == DataType.BOOLEAN) {
+                throw new UnsupportedOperationException("Cannot set contents of boolean data");
             }
-            byte[] byteData = getByteData();
-            if (buffer.remaining() > byteData.length) {
-                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " bytes, but DataContainer has " + byteData.length + " bytes");
+            if (buffer.remaining() % dataType.getSize() != 0) {
+                throw new IllegalArgumentException("Buffer size is not a multiple of data type size");
             }
-            buffer.get(byteData);
+            if (startIndex < 0 || startIndex >= nElements) {
+                throw new IndexOutOfBoundsException("Start index " + startIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            if (startIndex + buffer.remaining() / dataType.getSize() > nElements) {
+                throw new IndexOutOfBoundsException("Buffer size is too large for shape " + ShapeUtils.toString(shape));
+            }
+            switch (dataType) {
+                case INT8 ->
+                        buffer.asReadOnlyBuffer().get(getByteData(), Math.toIntExact(startIndex), buffer.remaining());
+                case INT16 ->
+                        buffer.asShortBuffer().get(getShortData(), Math.toIntExact(startIndex), buffer.remaining() / dataType.getSize());
+                case INT32 ->
+                        buffer.asIntBuffer().get(getIntData(), Math.toIntExact(startIndex), buffer.remaining() / dataType.getSize());
+                case INT64 ->
+                        buffer.asLongBuffer().get(getLongData(), Math.toIntExact(startIndex), buffer.remaining() / dataType.getSize());
+                case FLOAT32 ->
+                        buffer.asFloatBuffer().get(getFloatData(), Math.toIntExact(startIndex), buffer.remaining() / dataType.getSize());
+                case FLOAT64 ->
+                        buffer.asDoubleBuffer().get(getDoubleData(), Math.toIntExact(startIndex), buffer.remaining() / dataType.getSize());
+                default -> throw new UnsupportedOperationException("Unsupported data type " + dataType);
+            }
         }
 
-        public void setContents(@NotNull ShortBuffer buffer) {
+        @Override
+        public void setContents(long startIndex, @NotNull ShortBuffer buffer) {
             if (dataType != DataType.INT16) {
                 throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
             }
             short[] shortData = getShortData();
-            if (buffer.remaining() > shortData.length) {
-                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " shorts, but DataContainer has " + shortData.length + " shorts");
+            if (startIndex < 0 || startIndex >= shortData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            buffer.get(shortData);
+            if (startIndex + buffer.remaining() > shortData.length) {
+                throw new IndexOutOfBoundsException("Buffer size is too large for shape " + ShapeUtils.toString(shape));
+            }
+            buffer.get(shortData, Math.toIntExact(startIndex), buffer.remaining());
         }
 
-        public void setContents(@NotNull IntBuffer buffer) {
+        @Override
+        public void setContents(long startIndex, @NotNull IntBuffer buffer) {
             if (dataType != DataType.INT32) {
                 throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
             }
             int[] intData = getIntData();
-            if (buffer.remaining() > intData.length) {
-                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " ints, but DataContainer has " + intData.length + " ints");
+            if (startIndex < 0 || startIndex >= intData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            buffer.get(intData);
+            if (startIndex + buffer.remaining() > intData.length) {
+                throw new IndexOutOfBoundsException("Buffer size is too large for shape " + ShapeUtils.toString(shape));
+            }
+            buffer.get(intData, Math.toIntExact(startIndex), buffer.remaining());
         }
 
-        public void setContents(@NotNull LongBuffer buffer) {
+        @Override
+        public void setContents(long startIndex, @NotNull LongBuffer buffer) {
             if (dataType != DataType.INT64) {
                 throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
             }
             long[] longData = getLongData();
-            if (buffer.remaining() > longData.length) {
-                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " longs, but DataContainer has " + longData.length + " longs");
+            if (startIndex < 0 || startIndex >= longData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            buffer.get(longData);
+            if (startIndex + buffer.remaining() > longData.length) {
+                throw new IndexOutOfBoundsException("Buffer size is too large for shape " + ShapeUtils.toString(shape));
+            }
+            buffer.get(longData, Math.toIntExact(startIndex), buffer.remaining());
         }
 
-        public void setContents(@NotNull FloatBuffer buffer) {
+        @Override
+        public void setContents(long startIndex, @NotNull FloatBuffer buffer) {
             if (dataType != DataType.FLOAT32) {
                 throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
             }
             float[] floatData = getFloatData();
-            if (buffer.remaining() > floatData.length) {
-                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " floats, but DataContainer has " + floatData.length + " floats");
+            if (startIndex < 0 || startIndex >= floatData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            buffer.get(floatData);
+            if (startIndex + buffer.remaining() > floatData.length) {
+                throw new IndexOutOfBoundsException("Buffer size is too large for shape " + ShapeUtils.toString(shape));
+            }
+            buffer.get(floatData, Math.toIntExact(startIndex), buffer.remaining());
         }
 
-        public void setContents(@NotNull DoubleBuffer buffer) {
+        @Override
+        public void setContents(long startIndex, @NotNull DoubleBuffer buffer) {
             if (dataType != DataType.FLOAT64) {
                 throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
             }
             double[] doubleData = getDoubleData();
-            if (buffer.remaining() > doubleData.length) {
-                throw new IllegalArgumentException("Contents too large: Buffer has " + buffer.remaining() + " doubles, but DataContainer has " + doubleData.length + " doubles");
+            if (startIndex < 0 || startIndex >= doubleData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            buffer.get(doubleData);
+            if (startIndex + buffer.remaining() > doubleData.length) {
+                throw new IndexOutOfBoundsException("Buffer size is too large for shape " + ShapeUtils.toString(shape));
+            }
+            buffer.get(doubleData, Math.toIntExact(startIndex), buffer.remaining());
         }
 
-        public void setContents(boolean @NotNull [] data) {
+        @Override
+        public void setContents(long startIndex, boolean @NotNull [] data) {
             if (dataType != DataType.BOOLEAN) {
                 throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
             }
             BitSet booleanData = getBooleanData();
-            if (data.length > nBits) {
-                throw new IllegalArgumentException("Contents too large: Array has " + data.length + " booleans, but DataContainer has " + nBits + " booleans");
+            if (startIndex < 0 || startIndex >= booleanData.length()) {
+                throw new IndexOutOfBoundsException("Start index " + startIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            if (startIndex + data.length > booleanData.length()) {
+                throw new IndexOutOfBoundsException("Buffer size is too large for shape " + ShapeUtils.toString(shape));
             }
             for (int i = 0; i < data.length; i++) {
-                booleanData.set(i, data[i]);
+                booleanData.set(Math.toIntExact(startIndex + i), data[i]);
             }
         }
 
-        public void setContents(@NotNull BitSet data) {
+        @Override
+        public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
+            if (dataType != DataType.INT8) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            byte[] byteData = getByteData();
+            if (startFlatIndex < 0 || startFlatIndex >= byteData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            if (endFlatIndex < 0 || endFlatIndex > byteData.length) {
+                throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+        }
+
+        @Override
+        public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
+            if (dataType != DataType.INT16) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            short[] shortData = getShortData();
+            if (startFlatIndex < 0 || startFlatIndex >= shortData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            if (endFlatIndex < 0 || endFlatIndex > shortData.length) {
+                throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+        }
+
+        @Override
+        public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
+            if (dataType != DataType.INT32) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            int[] intData = getIntData();
+            if (startFlatIndex < 0 || startFlatIndex >= intData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            if (endFlatIndex < 0 || endFlatIndex > intData.length) {
+                throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+        }
+
+        @Override
+        public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
+            if (dataType != DataType.INT64) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            long[] longData = getLongData();
+            if (startFlatIndex < 0 || startFlatIndex >= longData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            if (endFlatIndex < 0 || endFlatIndex > longData.length) {
+                throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+        }
+
+        @Override
+        public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
+            if (dataType != DataType.FLOAT32) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            float[] floatData = getFloatData();
+            if (startFlatIndex < 0 || startFlatIndex >= floatData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            if (endFlatIndex < 0 || endFlatIndex > floatData.length) {
+                throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+        }
+
+        @Override
+        public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
+            if (dataType != DataType.FLOAT64) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            double[] doubleData = getDoubleData();
+            if (startFlatIndex < 0 || startFlatIndex >= doubleData.length) {
+                throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            if (endFlatIndex < 0 || endFlatIndex > doubleData.length) {
+                throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
+        }
+
+        @Override
+        public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
+            if (dataType != DataType.BOOLEAN) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            BitSet booleanData = getBooleanData();
+            if (startFlatIndex < 0 || startFlatIndex >= booleanData.length()) {
+                throw new IndexOutOfBoundsException("Start index " + startFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            if (endFlatIndex < 0 || endFlatIndex > booleanData.length()) {
+                throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
+            }
+            for (long i = startFlatIndex; i < endFlatIndex; i++) {
+                booleanData.set(Math.toIntExact(i), value);
+            }
+        }
+
+        public void setContents(long startIndex, @NotNull BitSet data) {
             if (dataType != DataType.BOOLEAN) {
                 throw new UnsupportedOperationException("Cannot set contents of a DataContainer with data type " + dataType);
             }
             BitSet booleanData = getBooleanData();
-            if (data.length() > nBits) {
-                throw new IllegalArgumentException("Contents too large: BitSet has " + data.length() + " booleans, but DataContainer has " + nBits + " booleans");
+            if (startIndex < 0 || startIndex >= booleanData.length()) {
+                throw new IndexOutOfBoundsException("Start index " + startIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            booleanData.clear();
-            booleanData.or(data);
+            if (startIndex + data.length() > booleanData.length()) {
+                throw new IndexOutOfBoundsException("Buffer size is too large for shape " + ShapeUtils.toString(shape));
+            }
+            for (int i = 0; i < data.length(); i++) {
+                booleanData.set(Math.toIntExact(startIndex + i), data.get(i));
+            }
         }
 
-        public void setContents(@NotNull JvmTensorDataContainer container) {
+        public void setContents(int startIndex, @NotNull JvmTensorDataContainer container) {
             switch (dataType) {
                 case INT8 -> {
                     byte[] newData = container.getByteData();
@@ -828,7 +757,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (byteData.length != newData.length) {
                         byteData = new byte[newData.length];
                     }
-                    System.arraycopy(newData, 0, byteData, 0, newData.length);
+                    System.arraycopy(newData, 0, byteData, startIndex, newData.length);
                 }
                 case INT16 -> {
                     short[] newData = container.getShortData();
@@ -836,7 +765,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (shortData.length != newData.length) {
                         shortData = new short[newData.length];
                     }
-                    System.arraycopy(newData, 0, shortData, 0, newData.length);
+                    System.arraycopy(newData, 0, shortData, startIndex, newData.length);
                 }
                 case INT32 -> {
                     int[] newData = container.getIntData();
@@ -844,7 +773,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (intData.length != newData.length) {
                         intData = new int[newData.length];
                     }
-                    System.arraycopy(newData, 0, intData, 0, newData.length);
+                    System.arraycopy(newData, 0, intData, startIndex, newData.length);
                 }
                 case INT64 -> {
                     long[] newData = container.getLongData();
@@ -852,7 +781,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (longData.length != newData.length) {
                         longData = new long[newData.length];
                     }
-                    System.arraycopy(newData, 0, longData, 0, newData.length);
+                    System.arraycopy(newData, 0, longData, startIndex, newData.length);
                 }
                 case FLOAT32 -> {
                     float[] newData = container.getFloatData();
@@ -860,7 +789,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (floatData.length != newData.length) {
                         floatData = new float[newData.length];
                     }
-                    System.arraycopy(newData, 0, floatData, 0, newData.length);
+                    System.arraycopy(newData, 0, floatData, startIndex, newData.length);
                 }
                 case FLOAT64 -> {
                     double[] newData = container.getDoubleData();
@@ -868,7 +797,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (doubleData.length != newData.length) {
                         doubleData = new double[newData.length];
                     }
-                    System.arraycopy(newData, 0, doubleData, 0, newData.length);
+                    System.arraycopy(newData, 0, doubleData, startIndex, newData.length);
                 }
             }
         }
@@ -881,7 +810,7 @@ public class JvmTensor extends AbstractTensor implements ITensor {
          * @return the direct buffer with tensor contents
          */
         @NotNull
-        public DirectMemoryHandle getAsDirectBuffer(int startFlatIndex, int endFlatIndex) {
+        public DirectMemoryHandle getAsDirectBuffer(long startFlatIndex, long endFlatIndex) {
             DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(endFlatIndex - startFlatIndex, dataType);
             switch (dataType) {
                 case INT8 -> {
@@ -889,47 +818,50 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    memoryHandle.asByteBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asByteBuffer().put(data, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex - startFlatIndex));
                 }
                 case INT16 -> {
                     short[] data = getShortData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    memoryHandle.asShortBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asShortBuffer().put(data, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex - startFlatIndex));
                 }
                 case INT32 -> {
                     int[] data = getIntData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    memoryHandle.asIntBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asIntBuffer().put(data, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex - startFlatIndex));
                 }
                 case INT64 -> {
                     long[] data = getLongData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    memoryHandle.asLongBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asLongBuffer().put(data, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex - startFlatIndex));
                 }
                 case FLOAT32 -> {
                     float[] data = getFloatData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    memoryHandle.asFloatBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asFloatBuffer().put(data, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex - startFlatIndex));
                 }
                 case FLOAT64 -> {
                     double[] data = getDoubleData();
                     if (startFlatIndex < 0 || endFlatIndex > data.length) {
                         throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length + ")");
                     }
-                    memoryHandle.asDoubleBuffer().put(data, startFlatIndex, endFlatIndex - startFlatIndex);
+                    memoryHandle.asDoubleBuffer().put(data, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex - startFlatIndex));
                 }
                 case BOOLEAN -> {
                     BitSet data = getBooleanData();
                     ByteBuffer buffer = memoryHandle.asByteBuffer();
-                    for (int i = 0; i < nBits; i++) {
+                    if (startFlatIndex < 0 || endFlatIndex > data.length()) {
+                        throw new IllegalArgumentException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (length " + data.length() + ")");
+                    }
+                    for (int i = Math.toIntExact(startFlatIndex); i < endFlatIndex; i++) {
                         int byteIndex = i / 8;
                         int bitIndex = i % 8;
                         if (data.get(i)) {
@@ -940,6 +872,11 @@ public class JvmTensor extends AbstractTensor implements ITensor {
                 default -> throw new UnsupportedOperationException("Unsupported data type " + dataType);
             }
             return memoryHandle;
+        }
+
+        @Override
+        public @NotNull DirectMemoryHandle getAsDirectBuffer() {
+            return getAsDirectBuffer(0, nElements);
         }
 
         @Override

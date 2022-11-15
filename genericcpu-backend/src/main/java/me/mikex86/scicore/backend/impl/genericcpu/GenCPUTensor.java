@@ -2,7 +2,6 @@ package me.mikex86.scicore.backend.impl.genericcpu;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.tensor.AbstractTensor;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
@@ -11,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.*;
 
 public class GenCPUTensor extends AbstractTensor implements ITensor {
@@ -58,91 +56,87 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public short getShort(long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        return this.dataContainer.getInt16Flat(index);
-    }
-
-    @Override
-    public int getInt(long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        return this.dataContainer.getInt32Flat(index);
-    }
-
-    @Override
-    public long getLong(long @NotNull [] indices) {
-        long index = ShapeUtils.getFlatIndex(indices, this.strides);
-        return this.dataContainer.getInt64Flat(index);
-    }
-
-    @Override
     public boolean getBooleanFlat(long flatIndex) {
+        validateDataType(DataType.BOOLEAN);
         return this.dataContainer.getBooleanFlat(flatIndex);
     }
 
     @Override
     public void setBooleanFlat(boolean value, long flatIndex) {
-        this.dataContainer.setBooleanFlat(value, flatIndex);
+        validateDataType(DataType.BOOLEAN);
+        this.dataContainer.setBooleanFlat(flatIndex, value);
     }
 
     @Override
     public byte getByteFlat(long flatIndex) {
+        validateDataType(DataType.INT8);
         return this.dataContainer.getInt8Flat(flatIndex);
     }
 
     @Override
     public void setByteFlat(byte value, long flatIndex) {
-        this.dataContainer.getInt8Flat(value, flatIndex);
+        validateDataType(DataType.INT8);
+        this.dataContainer.setInt8Flat(flatIndex, value);
     }
 
     @Override
     public short getShortFlat(long flatIndex) {
+        validateDataType(DataType.INT16);
         return this.dataContainer.getInt16Flat(flatIndex);
     }
 
     @Override
     public void setShortFlat(short value, long flatIndex) {
-        this.dataContainer.setInt16Flat(value, flatIndex);
+        validateDataType(DataType.INT16);
+        this.dataContainer.setInt16Flat(flatIndex, value);
     }
 
     @Override
     public int getIntFlat(long flatIndex) {
+        validateDataType(DataType.INT32);
         return this.dataContainer.getInt32Flat(flatIndex);
     }
 
     @Override
     public void setIntFlat(int value, long flatIndex) {
-        this.dataContainer.setInt32Flat(value, flatIndex);
+        validateDataType(DataType.INT32);
+        this.dataContainer.setInt32Flat(flatIndex, value);
     }
 
     @Override
     public long getLongFlat(long flatIndex) {
+        validateDataType(DataType.INT64);
         return this.dataContainer.getInt64Flat(flatIndex);
     }
 
     @Override
     public void setLongFlat(long value, long flatIndex) {
-        this.dataContainer.setInt64Flat(value, flatIndex);
+        validateDataType(DataType.INT64);
+        this.dataContainer.setInt64Flat(flatIndex, value);
     }
 
     @Override
     public float getFloatFlat(long flatIndex) {
+        validateDataType(DataType.FLOAT32);
         return this.dataContainer.getFloat32Flat(flatIndex);
     }
 
     @Override
     public void setFloatFlat(float value, long flatIndex) {
-        this.dataContainer.setFloat32Flat(value, flatIndex);
+        validateDataType(DataType.FLOAT32);
+        this.dataContainer.setFloat32Flat(flatIndex, value);
     }
 
     @Override
     public double getDoubleFlat(long flatIndex) {
+        validateDataType(DataType.FLOAT64);
         return this.dataContainer.getFloat64Flat(flatIndex);
     }
 
     @Override
     public void setDoubleFlat(double value, long flatIndex) {
-        this.dataContainer.setFloat64Flat(value, flatIndex);
+        validateDataType(DataType.FLOAT64);
+        this.dataContainer.setFloat64Flat(flatIndex, value);
     }
 
     @Override
@@ -153,7 +147,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public void setContents(@NotNull ITensor tensor) {
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor) {
         if (tensor.getDataType() != getDataType()) {
             throw new IllegalArgumentException("Cannot copy tensor with different data type");
         }
@@ -168,329 +162,79 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public void setContents(@NotNull ByteBuffer buffer) {
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ByteBuffer buffer) {
+        // set with bytes can be called no matter the data type, while for other types this will fail.
+        // so here we have to convert element-level indices to byte-level indices.
+        long byteIndex = getDataType().getSizeOf(startFlatIndex);
+        this.dataContainer.setContents(byteIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull ShortBuffer buffer) {
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ShortBuffer buffer) {
+        validateDataType(DataType.INT16);
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull IntBuffer buffer) {
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull IntBuffer buffer) {
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull LongBuffer buffer) {
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull LongBuffer buffer) {
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull FloatBuffer buffer) {
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull FloatBuffer buffer) {
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull DoubleBuffer buffer) {
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, @NotNull DoubleBuffer buffer) {
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(boolean @NotNull [] buffer) {
-        this.dataContainer.setContents(buffer);
+    public void setContentsWithOffset(long startFlatIndex, boolean @NotNull [] buffer) {
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
-        if (tensor.getDataType() == getDataType()) {
-            // fast memcpy when no casting is needed
-            long flatIndex = ShapeUtils.getFlatIndex(index, this.strides);
-            long nElements = ShapeUtils.getNumElements(this.shape, index);
-            DirectMemoryHandle selfMemoryHandle = getContentsAsDirectMemory()
-                    .offset(getDataType().getSizeOf(flatIndex))
-                    .restrictSize(getDataType().getSizeOf(nElements));
-            DirectMemoryHandle otherMemoryHandle = tensor.getContentsAsDirectMemory();
-            DirectMemoryManager memoryManager = backend.getMemoryManager();
-            memoryManager.copy(selfMemoryHandle, otherMemoryHandle);
-        } else {
-            // general copy as fall back
-            long startIndex = ShapeUtils.getFlatIndex(index, this.strides);
-            long nElementsToCopy = tensor.getNumberOfElements();
-            for (long i = 0; i < nElementsToCopy; i++) {
-                switch (this.getDataType()) {
-                    case INT8 -> setByteFlat(tensor.getByteFlat(i), startIndex + i);
-                    case INT16 -> setShortFlat(tensor.getShortFlat(i), startIndex + i);
-                    case INT32 -> setIntFlat(tensor.getIntFlat(i), startIndex + i);
-                    case INT64 -> setLongFlat(tensor.getLongFlat(i), startIndex + i);
-                    case FLOAT32 -> setFloatFlat(tensor.getFloatFlat(i), startIndex + i);
-                    case FLOAT64 -> setDoubleFlat(tensor.getDoubleFlat(i), startIndex + i);
-                    default -> throw new IllegalArgumentException("Unsupported data type");
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, byte i) {
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
     }
 
     @Override
-    public void fill(byte i) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.getInt8Flat(i, j);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt16Flat(i, j);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt32Flat(i, j);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt64Flat(i, j);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat32Flat(i, j);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat64Flat(i, j);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, short i) {
+        validateDataType(DataType.INT16);
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
     }
 
     @Override
-    public void fill(short i) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.getInt8Flat((byte) i, j);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt16Flat(i, j);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt32Flat(i, j);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt64Flat(i, j);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat32Flat(i, j);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat64Flat(i, j);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, int i) {
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
     }
 
     @Override
-    public void fill(int i) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.getInt8Flat((byte) i, j);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt16Flat((short) i, j);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt32Flat(i, j);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt64Flat(i, j);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat32Flat(i, j);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat64Flat(i, j);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, long i) {
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
     }
 
     @Override
-    public void fill(long i) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.getInt8Flat((byte) i, j);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt16Flat((short) i, j);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt32Flat((int) i, j);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt64Flat(i, j);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat32Flat(i, j);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat64Flat(i, j);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, float i) {
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
     }
 
     @Override
-    public void fill(float f) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.getInt8Flat((byte) f, j);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt16Flat((short) f, j);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt32Flat((int) f, j);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt64Flat((long) f, j);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat32Flat(f, j);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat64Flat(f, j);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, double i) {
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
     }
 
     @Override
-    public void fill(double d) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.getInt8Flat((byte) d, j);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt16Flat((short) d, j);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt32Flat((int) d, j);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt64Flat((long) d, j);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat32Flat((float) d, j);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat64Flat(d, j);
-                }
-            }
-        }
+    public void fillRegion(long startFlatIndex, long endFlatIndex, boolean i) {
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
     }
-
-    @Override
-    public void fill(boolean value) {
-        long nElements = ShapeUtils.getNumElements(getShape());
-        switch (this.getDataType()) {
-            case INT8 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.getInt8Flat((byte) (value ? 1 : 0), j);
-                }
-            }
-            case INT16 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt16Flat((short) (value ? 1 : 0), j);
-                }
-            }
-            case INT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt32Flat(value ? 1 : 0, j);
-                }
-            }
-            case INT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setInt64Flat(value ? 1 : 0, j);
-                }
-            }
-            case FLOAT32 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat32Flat(value ? 1 : 0, j);
-                }
-            }
-            case FLOAT64 -> {
-                for (long j = 0; j < nElements; j++) {
-                    dataContainer.setFloat64Flat(value ? 1 : 0, j);
-                }
-            }
-        }
-    }
-
 
     @Override
     public @NotNull DirectMemoryHandle getContentsAsDirectMemory() {

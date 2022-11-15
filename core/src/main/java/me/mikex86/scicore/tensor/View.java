@@ -49,84 +49,6 @@ public class View extends AbstractTensor {
     }
 
     @Override
-    public byte getByte(long @NotNull ... indices) {
-        validateDataType(DataType.INT8);
-        validateIndices(indices);
-        long flatIndex = ShapeUtils.getFlatIndex(indices, this.localStrides);
-        return this.viewed.getByteFlat(this.offset + flatIndex);
-    }
-
-    @Override
-    public short getShort(long @NotNull ... indices) {
-        validateDataType(DataType.INT16);
-        validateIndices(indices);
-        long flatIndex = ShapeUtils.getFlatIndex(indices, this.localStrides);
-        return this.viewed.getShortFlat(this.offset + flatIndex);
-    }
-
-    @Override
-    public int getInt(long @NotNull ... indices) {
-        validateDataType(DataType.INT32);
-        validateIndices(indices);
-        long flatIndex = ShapeUtils.getFlatIndex(indices, this.localStrides);
-        return this.viewed.getIntFlat(this.offset + flatIndex);
-    }
-
-    @Override
-    public long getLong(long @NotNull ... indices) {
-        validateDataType(DataType.INT64);
-        validateIndices(indices);
-        long flatIndex = ShapeUtils.getFlatIndex(indices, this.localStrides);
-        return this.viewed.getLongFlat(this.offset + flatIndex);
-    }
-
-    @Override
-    public float getFloat(long @NotNull ... indices) {
-        validateDataType(DataType.FLOAT32);
-        validateIndices(indices);
-        long flatIndex = ShapeUtils.getFlatIndex(indices, this.localStrides);
-        return this.viewed.getFloatFlat(this.offset + flatIndex);
-    }
-
-    @Override
-    public double getDouble(long @NotNull ... indices) {
-        validateDataType(DataType.FLOAT64);
-        validateIndices(indices);
-        long flatIndex = ShapeUtils.getFlatIndex(indices, this.localStrides);
-        return this.viewed.getDoubleFlat(this.offset + flatIndex);
-    }
-
-    @Override
-    public void setByte(byte value, long @NotNull ... indices) {
-        throw new UnsupportedOperationException("Views are read-only");
-    }
-
-    @Override
-    public void setShort(short value, long @NotNull ... indices) {
-        throw new UnsupportedOperationException("Views are read-only");
-    }
-
-    @Override
-    public void setInt(int value, long @NotNull ... indices) {
-        throw new UnsupportedOperationException("Views are read-only");
-    }
-
-    @Override
-    public void setLong(long value, long @NotNull ... indices) {
-        throw new UnsupportedOperationException("Views are read-only");
-    }
-
-    @Override
-    public void setFloat(float value, long @NotNull ... indices) {
-        throw new UnsupportedOperationException("Views are read-only");
-    }
-
-    @Override
-    public void setDouble(double value, long @NotNull ... indices) {
-        throw new UnsupportedOperationException("Views are read-only");
-    }
-
-    @Override
     public boolean getBooleanFlat(long flatIndex) {
         validateDataType(DataType.BOOLEAN);
         return this.viewed.getBooleanFlat(this.offset + flatIndex);
@@ -134,166 +56,178 @@ public class View extends AbstractTensor {
 
     @Override
     public void setBooleanFlat(boolean value, long flatIndex) {
-        throw new UnsupportedOperationException("Views are read-only");
-    }
-
-    @Override
-    public boolean getBoolean(long @NotNull ... indices) {
         validateDataType(DataType.BOOLEAN);
-        validateIndices(indices);
-        long flatIndex = ShapeUtils.getFlatIndex(indices, this.localStrides);
-        return this.viewed.getBooleanFlat(this.offset + flatIndex);
-    }
-
-    @Override
-    public void setBoolean(boolean value, long @NotNull ... indices) {
-        throw new UnsupportedOperationException("Views are read-only");
+        this.viewed.setBooleanFlat(value, this.offset + flatIndex);
     }
 
     @Override
     public byte getByteFlat(long flatIndex) {
+        validateDataType(DataType.INT8);
         return this.viewed.getByteFlat(this.offset + flatIndex);
     }
 
     @Override
     public short getShortFlat(long flatIndex) {
+        validateDataType(DataType.INT16);
         return this.viewed.getShortFlat(this.offset + flatIndex);
     }
 
     @Override
     public int getIntFlat(long flatIndex) {
+        validateDataType(DataType.INT32);
         return this.viewed.getIntFlat(this.offset + flatIndex);
     }
 
     @Override
     public long getLongFlat(long flatIndex) {
+        validateDataType(DataType.INT64);
         return this.viewed.getLongFlat(this.offset + flatIndex);
     }
 
     @Override
     public float getFloatFlat(long flatIndex) {
+        validateDataType(DataType.FLOAT32);
         return this.viewed.getFloatFlat(this.offset + flatIndex);
     }
 
     @Override
     public double getDoubleFlat(long flatIndex) {
+        validateDataType(DataType.FLOAT64);
         return this.viewed.getDoubleFlat(this.offset + flatIndex);
     }
 
     @Override
     public void setByteFlat(byte value, long flatIndex) {
-        throw new UnsupportedOperationException("Views are read-only");
+        validateDataType(DataType.INT8);
+        this.viewed.setByteFlat(value, this.offset + flatIndex);
     }
 
     @Override
     public void setShortFlat(short value, long flatIndex) {
-        throw new UnsupportedOperationException("Views are read-only");
+        validateDataType(DataType.INT16);
+        this.viewed.setShortFlat(value, this.offset + flatIndex);
     }
 
     @Override
     public void setIntFlat(int value, long flatIndex) {
-        throw new UnsupportedOperationException("Views are read-only");
+        validateDataType(DataType.INT32);
+        this.viewed.setIntFlat(value, this.offset + flatIndex);
     }
 
     @Override
     public void setLongFlat(long value, long flatIndex) {
-        throw new UnsupportedOperationException("Views are read-only");
+        validateDataType(DataType.INT64);
+        this.viewed.setLongFlat(value, this.offset + flatIndex);
     }
 
     @Override
     public void setFloatFlat(float value, long flatIndex) {
-        throw new UnsupportedOperationException("Views are read-only");
+        validateDataType(DataType.FLOAT32);
+        this.viewed.setFloatFlat(value, this.offset + flatIndex);
     }
 
     @Override
     public void setDoubleFlat(double value, long flatIndex) {
-        throw new UnsupportedOperationException("Views are read-only");
+        validateDataType(DataType.FLOAT64);
+        this.viewed.setDoubleFlat(value, this.offset + flatIndex);
     }
 
     @Override
     public @NotNull ITensor copy() {
-        return this;
+        ISciCoreBackend backend = this.viewed.getSciCoreBackend();
+        ITensor copy = backend.createTensor(this.viewed.getDataType(), this.shape);
+        copy.setContents(this);
+        return copy;
     }
 
     @Override
-    public void setContents(@NotNull ITensor tensor) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor) {
+        validateDataType(tensor.getDataType());
+        this.viewed.setContentsWithOffset(this.offset + startFlatIndex, tensor);
     }
 
     @Override
-    public void setContents(@NotNull ByteBuffer buffer) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ByteBuffer buffer) {
+        this.viewed.setContentsWithOffset(this.offset + startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull ShortBuffer buffer) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void setContentsWithOffset(long startFlatIndex, @NotNull ShortBuffer buffer) {
+        validateDataType(DataType.INT16);
+        this.viewed.setContentsWithOffset(this.offset + startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull IntBuffer buffer) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void setContentsWithOffset(long startFlatIndex, @NotNull IntBuffer buffer) {
+        validateDataType(DataType.INT32);
+        this.viewed.setContentsWithOffset(this.offset + startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull LongBuffer buffer) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void setContentsWithOffset(long startFlatIndex, @NotNull LongBuffer buffer) {
+        validateDataType(DataType.INT64);
+        this.viewed.setContentsWithOffset(this.offset + startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull FloatBuffer buffer) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void setContentsWithOffset(long startFlatIndex, @NotNull FloatBuffer buffer) {
+        validateDataType(DataType.FLOAT32);
+        this.viewed.setContentsWithOffset(this.offset + startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(@NotNull DoubleBuffer buffer) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void setContentsWithOffset(long startFlatIndex, @NotNull DoubleBuffer buffer) {
+        validateDataType(DataType.FLOAT64);
+        this.viewed.setContentsWithOffset(this.offset + startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(boolean @NotNull [] buffer) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void setContentsWithOffset(long startFlatIndex, boolean @NotNull [] buffer) {
+        validateDataType(DataType.BOOLEAN);
+        this.viewed.setContentsWithOffset(this.offset + startFlatIndex, buffer);
     }
 
     @Override
-    public void setContents(long @NotNull [] index, @NotNull ITensor tensor) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
+        this.viewed.fillRegion(this.offset + startFlatIndex, this.offset + endFlatIndex, value);
     }
 
     @Override
-    public void fill(byte i) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
+        validateDataType(DataType.INT16);
+        this.viewed.fillRegion(this.offset + startFlatIndex, this.offset + endFlatIndex, value);
     }
 
     @Override
-    public void fill(short i) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
+        validateDataType(DataType.INT32);
+        this.viewed.fillRegion(this.offset + startFlatIndex, this.offset + endFlatIndex, value);
     }
 
     @Override
-    public void fill(int i) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
+        validateDataType(DataType.INT64);
+        this.viewed.fillRegion(this.offset + startFlatIndex, this.offset + endFlatIndex, value);
     }
 
     @Override
-    public void fill(long i) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
+        validateDataType(DataType.FLOAT32);
+        this.viewed.fillRegion(this.offset + startFlatIndex, this.offset + endFlatIndex, value);
     }
 
     @Override
-    public void fill(float i) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
+        validateDataType(DataType.FLOAT64);
+        this.viewed.fillRegion(this.offset + startFlatIndex, this.offset + endFlatIndex, value);
     }
 
     @Override
-    public void fill(double i) {
-        throw new UnsupportedOperationException("Views are read-only");
+    public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
+        validateDataType(DataType.BOOLEAN);
+        this.viewed.fillRegion(this.offset + startFlatIndex, this.offset + endFlatIndex, value);
     }
 
-    @Override
-    public void fill(boolean value) {
-        throw new UnsupportedOperationException("Views are read-only");
-    }
 
     @Override
     public @NotNull ISciCoreBackend getSciCoreBackend() {

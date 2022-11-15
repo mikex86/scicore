@@ -808,6 +808,23 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
+    public @NotNull ITensor oneHot(long nClasses) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor nClassesScalar = backend.createTensor(DataType.INT64, new long[0])) {
+            nClassesScalar.setLongFlat(nClasses, 0);
+            return operationRecorder.recordOperation(OperationType.ONE_HOT, backend, this, nClassesScalar);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor get(@NotNull ITensor indices) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.GET, backend, this, indices);
+    }
+
+    @Override
     public @NotNull ITensor to(@NotNull ISciCoreBackend backend) {
         ITensor newTensor = backend.createTensor(getDataType(), getShape());
         newTensor.setContents(this);
