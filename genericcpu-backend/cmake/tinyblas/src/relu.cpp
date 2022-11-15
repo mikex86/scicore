@@ -3,7 +3,7 @@
 template<typename T>
 void tblas_relu(const T *in, T *out, size_t nElements) {
     for (size_t i = 0; i < nElements; i++) {
-        out[i] = in[i] > 0 ? in[i] : 0;
+        out[i] = in[i] > 0 ? in[i] : 0; // TODO: OPTIMIZE WITH SIMD
     }
 }
 

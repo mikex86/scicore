@@ -3,7 +3,7 @@ package me.mikex86.scicore.tests.mnist
 import me.mikex86.scicore.ISciCore
 import me.mikex86.scicore.nn.IModule
 import me.mikex86.scicore.nn.layers.Linear
-import me.mikex86.scicore.nn.layers.ReLU
+import me.mikex86.scicore.nn.act.ReLU
 import me.mikex86.scicore.nn.layers.Softmax
 import me.mikex86.scicore.tensor.DataType
 import me.mikex86.scicore.tensor.ITensor
@@ -16,10 +16,10 @@ class MnistNet(sciCore: ISciCore) : IModule {
     private val softmax = Softmax(sciCore, 1)
 
     override fun forward(input: ITensor): ITensor {
-        return fc1.forward(input)
-            .use { h -> act.forward(h) }
-            .use { h -> fc2.forward(h) }
-            .use { h -> softmax.forward(h) }
+        return fc1(input)
+            .use { h -> act(h) }
+            .use { h -> fc2(h) }
+            .use { h -> softmax(h) }
     }
 
     override fun subModules(): List<IModule> {

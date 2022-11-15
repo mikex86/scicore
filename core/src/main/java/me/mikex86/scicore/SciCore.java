@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.*;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Callable;
 
 public class SciCore implements ISciCore {
 
@@ -568,10 +569,24 @@ public class SciCore implements ISciCore {
     }
 
     @Override
-    public @NotNull ITensor arange(double start, double stop, double step, long @NotNull [] shape, @NotNull DataType dataType) {
+    public @NotNull ITensor arange(long start, long stop, long step, @NotNull DataType dataType) {
         ISciCoreBackend backend = getBackend();
+        long nElements = (stop - start) / step;
+        long[] shape = new long[]{nElements};
         ITensor tensor = backend.createTensor(dataType, shape);
-        long nElements = ShapeUtils.getNumElements(shape);
+        for (long i = 0; i < nElements; i++) {
+            tensor.setByLongFlat(start, i);
+            start += step;
+        }
+        return tensor;
+    }
+
+    @Override
+    public @NotNull ITensor arange(double start, double stop, double step, @NotNull DataType dataType) {
+        ISciCoreBackend backend = getBackend();
+        long nElements = (long) Math.ceil((stop - start) / step);
+        long[] shape = new long[]{nElements};
+        ITensor tensor = backend.createTensor(dataType, shape);
         for (long i = 0; i < nElements; i++) {
             tensor.setByDoubleFlat(start, i);
             start += step;

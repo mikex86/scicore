@@ -29,6 +29,7 @@ public class JvmBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.MULTIPLY, new JvmMultiplyOp(this));
         operationTable.put(OperationType.RELU, new JvmReluOp(this));
         operationTable.put(OperationType.SIGMOID, new JvmSigmoidOp(this));
+        operationTable.put(OperationType.TANH, new JvmTanhOp(this));
         operationTable.put(OperationType.ARGMAX, new JvmArgmaxOp(this));
         operationTable.put(OperationType.CAST, new JvmCastOp(this));
         operationTable.put(OperationType.ONE_HOT, new JvmOneHotOp(this));

@@ -2578,4 +2578,38 @@ abstract class TensorTest {
             }), d);
         }
     }
+
+
+    @Nested
+    class Get {
+
+        @Test
+        void test_get_1dIdxInto2d_success() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1, 5, 3}, {6, 3, 2}, {8, 9, 1}, {5, 2, 3}
+            });
+            ITensor idx = sciCore.array(new int[]{1, 1, 3, 2, 2});
+            ITensor b = a.get(idx);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {6, 3, 2}, {6, 3, 2}, {5, 2, 3}, {8, 9, 1}, {8, 9, 1}
+            }), b);
+        }
+
+        @Test
+        void test_get_2dIdxInto2d_success() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1, 5, 3}, {6, 3, 2}, {8, 9, 1}, {5, 2, 3}
+            });
+            ITensor idx = sciCore.matrix(new int[][]{
+                    {1, 1, 3, 2, 2}, {0, 1, 2, 0, 1}
+            });
+            ITensor b = a.get(idx);
+            assertEquals(sciCore.ndarray(new float[][][]{
+                    {{6, 3, 2}, {6, 3, 2}, {5, 2, 3}, {8, 9, 1}, {8, 9, 1}},
+                    {{1, 5, 3}, {6, 3, 2}, {8, 9, 1}, {1, 5, 3}, {6, 3, 2}}
+            }), b);
+        }
+
+    }
+
 }

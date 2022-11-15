@@ -15,7 +15,7 @@ import java.nio.*;
 public class GenCPUTensor extends AbstractTensor implements ITensor {
 
     @NotNull
-    private final GenCpuTensorDataContainer dataContainer;
+    private final GenCPUTensorDataContainer dataContainer;
 
     private final long @NotNull [] strides;
 
@@ -26,13 +26,13 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
 
     public GenCPUTensor(@NotNull GenCPUBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
         this.numElements = ShapeUtils.getNumElements(shape);
-        this.dataContainer = new GenCpuTensorDataContainer(backend.getMemoryManager(), this.numElements, dataType);
+        this.dataContainer = new GenCPUTensorDataContainer(backend.getMemoryManager(), this.numElements, dataType);
         this.strides = ShapeUtils.makeStrides(shape);
         this.shape = shape;
         this.backend = backend;
     }
 
-    GenCPUTensor(@NotNull GenCPUBackend backend, @NotNull GenCpuTensorDataContainer dataContainer, long @NotNull [] shape) {
+    GenCPUTensor(@NotNull GenCPUBackend backend, @NotNull GenCPUTensorDataContainer dataContainer, long @NotNull [] shape) {
         this.numElements = ShapeUtils.getNumElements(shape);
         this.backend = backend;
         this.dataContainer = dataContainer;
@@ -276,7 +276,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     }
 
     @NotNull
-    public GenCpuTensorDataContainer getDataContainer() {
+    public GenCPUTensorDataContainer getDataContainer() {
         return dataContainer;
     }
 

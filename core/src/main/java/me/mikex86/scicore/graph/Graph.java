@@ -127,8 +127,10 @@ public class Graph implements IGraph {
                     if (!(pathNode instanceof ITensorNodeWithGradient downStreamNodeWithGradient)) {
                         throw new IllegalArgumentException("Requested gradient for tensor that cannot hold a gradient: " + pathNode);
                     }
-                    if (pathNode instanceof OperationGraphNode operationGraphNode && operationGraphNode.getOperationType().isInplace()) {
-                        throw new IllegalStateException("One of the variables needed for gradient computation has been modified by an inplace operation");
+                    if (pathNode instanceof OperationGraphNode operationGraphNode) {
+                        if (operationGraphNode.getOperationType().isInplace() && !operationGraphNode.requestsGradients()) {
+                            throw new IllegalStateException("One of the variables needed for gradient computation has been modified by an inplace operation");
+                        }
                     }
                     downStreamNodeWithGradient.setRequireGradients(); // all nodes that depend on this node will have their gradients computed for them
                 }
@@ -468,6 +470,8 @@ public class Graph implements IGraph {
         @NotNull
         private final OperationRegistry operationRegistry;
 
+        private boolean gradEnabled;
+
         public OperationGraphNode(@NotNull OperationType operationType, @NotNull List<@NotNull IGraphNode> inputs, @NotNull IOperationContext operationContext, @NotNull OperationRegistry operationRegistry) {
             this.operationType = operationType;
             this.inputs = inputs;
@@ -556,6 +560,14 @@ public class Graph implements IGraph {
                     inputs.set(i, replacement);
                 }
             }
+        }
+
+        public void setEnableGrad(boolean gradEnabled) {
+            this.gradEnabled = gradEnabled;
+        }
+
+        public boolean isGradEnabled() {
+            return gradEnabled;
         }
     }
 

@@ -656,6 +656,18 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor minus(@NotNull ITensor other);
 
+    @NotNull ITensor leftMinus(byte value);
+
+    @NotNull ITensor leftMinus(short value);
+
+    @NotNull ITensor leftMinus(int value);
+
+    @NotNull ITensor leftMinus(long value);
+
+    @NotNull ITensor leftMinus(float value);
+
+    @NotNull ITensor leftMinus(double value);
+
     void subtract(byte value);
 
     void subtract(short value);
@@ -784,6 +796,9 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor sigmoid();
 
+
+    @NotNull ITensor tanh();
+
     @NotNull ITensor argmax(int dimension);
 
     /**
@@ -806,7 +821,14 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
      */
     @NotNull ITensor oneHot(long numClasses);
 
-    @NotNull ITensor get(@NotNull ITensor indices);
+    @NotNull ITensor get(@NotNull ITensor... indicesTensors);
+
+    @NotNull
+    default ITensor mean() {
+        try (ITensor sum = reduceSum(-1, false)) {
+            return sum.divide(getNumberOfElements());
+        }
+    }
 
     @NotNull ITensor to(@NotNull ISciCoreBackend backend);
 

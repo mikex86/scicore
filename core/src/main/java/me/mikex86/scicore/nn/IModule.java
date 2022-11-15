@@ -20,6 +20,11 @@ public interface IModule {
     ITensor forward(@NotNull ITensor input);
 
     @NotNull
+    default ITensor invoke(@NotNull ITensor input) {
+        return forward(input);
+    }
+
+    @NotNull
     default List<ITensor> parameters() {
         return subModules()
                 .stream()
@@ -46,6 +51,7 @@ public interface IModule {
     /**
      * Loads the model parameters from a file in SciCore's save-format.
      * The module must be of the same type as the one that was saved.
+     *
      * @param path The path to load the module from.
      * @throws IOException If an I/O error occurs.
      */

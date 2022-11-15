@@ -9,4 +9,4 @@ void tblas_sigmoid(const T *in, T *out, size_t nElements) {
     }
 }
 
-UNARY_OPERATION_FOR_ALL_DATA_TYPES_IMPL(tblas_sigmoid)
+UNARY_OPERATION_FOR_ALL_DATA_TYPES_IMPL(tblas_sigmoid);

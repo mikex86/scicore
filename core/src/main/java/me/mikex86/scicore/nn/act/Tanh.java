@@ -1,22 +1,21 @@
-package me.mikex86.scicore.nn.layers;
+package me.mikex86.scicore.nn.act;
 
-import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.nn.IModule;
+import me.mikex86.scicore.tensor.ITensor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.List;
 
-public class Sigmoid implements IModule {
+public class Tanh implements IModule {
 
     @Override
     public @NotNull ITensor forward(@NotNull ITensor input) {
-        return input.sigmoid();
+        return input.tanh();
     }
 
     @Override
     public @NotNull List<IModule> subModules() {
         return Collections.emptyList();
     }
-
 }

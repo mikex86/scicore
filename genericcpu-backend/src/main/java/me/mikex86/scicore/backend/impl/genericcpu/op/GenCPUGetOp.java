@@ -1,21 +1,28 @@
-package me.mikex86.scicore.backend.impl.jvm.op;
+package me.mikex86.scicore.backend.impl.genericcpu.op;
 
+import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
+import me.mikex86.scicore.graph.op.IDifferentiableOperation;
 import me.mikex86.scicore.graph.op.IOperation;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
-public class JvmGetOp implements IOperation {
+public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
 
     @NotNull
-    private final JvmBackend backend;
+    private final GenCPUBackend backend;
 
-    public JvmGetOp(@NotNull JvmBackend backend) {
+    public GenCPUGetOp(@NotNull GenCPUBackend backend) {
         this.backend = backend;
     }
 
@@ -34,24 +41,40 @@ public class JvmGetOp implements IOperation {
         ITensor firstIndex = indicesList.get(0);
         long[] inputShape = input.getShape();
         long[] indicesShape = firstIndex.getShape();
-        long[] indexIntoIndex = new long[indicesShape.length];
         int nIndices = indicesList.size();
         long[] resultShape = new long[indicesShape.length + inputShape.length - nIndices];
         System.arraycopy(indicesShape, 0, resultShape, 0, indicesShape.length);
         System.arraycopy(inputShape, nIndices, resultShape, indicesShape.length, inputShape.length - nIndices);
         ITensor result = backend.createTensor(input.getDataType(), resultShape);
-        do {
-            ITensor inputView = input;
-            for (int dim = 0; dim < indicesList.size(); dim++) {
-                ITensor index = indicesList.get(dim);
-                long dimIndex = index.getAsLong(indexIntoIndex);
-                if (dimIndex < 0 || dimIndex >= inputShape[dim]) {
-                    throw new IllegalArgumentException("Index " + index + " is out of bounds for shape " + ShapeUtils.toString(inputShape));
+
+        // for every dimension dim in indicesList.get(dim), we store the index into that index tensor that we currently are reading
+        List<long[]> indicesIntoIndices = new ArrayList<>(indicesList.size());
+        for (int i = 0; i < indicesList.size(); i++) {
+            indicesIntoIndices.add(new long[indicesShape.length]);
+        }
+        // TODO: MOVE THIS TO JNI
+        loop:
+        {
+            while (true) {
+                ITensor inputView = input;
+                for (int dim = 0; dim < indicesList.size(); dim++) {
+                    ITensor indexTensor = indicesList.get(dim);
+                    long[] indexIntoIndex = indicesIntoIndices.get(dim);
+                    long indexIntoInput = indexTensor.getAsLong(indexIntoIndex);
+                    if (indexIntoInput < 0 || indexIntoInput >= inputShape[dim]) {
+                        throw new IllegalArgumentException("Index " + indexIntoInput + " is out of bounds for shape " + ShapeUtils.toString(inputShape));
+                    }
+                    inputView = inputView.getView(indexIntoInput); // cheap
+                    if (dim == indicesList.size() - 1) {
+                        result.setContents(indexIntoIndex, inputView); // mem-copy
+                    }
+                    boolean incrementIndex = ShapeUtils.incrementIndex(indexIntoIndex, indicesShape);
+                    if (!incrementIndex && dim == 0) {
+                        break loop;
+                    }
                 }
-                inputView = input.getView(dimIndex); // cheap
             }
-            result.setContents(indexIntoIndex, inputView); // mem-copy
-        } while (ShapeUtils.incrementIndex(indexIntoIndex, indicesShape));
+        }
         return result;
     }
 
@@ -76,4 +99,10 @@ public class JvmGetOp implements IOperation {
         System.arraycopy(inputShape, nIndices, resultShape, indicesShape.length, inputShape.length - nIndices);
         return new LazyTensor(backend, resultShape, input.getDataType());
     }
+
+    @Override
+    public void computeGradients(@NotNull Graph.OperationGraphNode operationNode) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
 }

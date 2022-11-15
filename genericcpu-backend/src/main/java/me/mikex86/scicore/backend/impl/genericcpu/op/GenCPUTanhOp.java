@@ -1,7 +1,8 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
-import me.mikex86.scicore.backend.impl.genericcpu.jni.SigmoidJNI;
+import me.mikex86.scicore.backend.impl.genericcpu.jni.TanhJNI;
+import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
@@ -14,36 +15,36 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
-public class GenCPUSigmoidOp implements IDifferentiableUnaryOperation {
+public class GenCPUTanhOp implements IDifferentiableUnaryOperation {
 
     @NotNull
     private final GenCPUBackend backend;
 
-    public GenCPUSigmoidOp(@NotNull GenCPUBackend backend) {
+    public GenCPUTanhOp(@NotNull GenCPUBackend backend) {
         this.backend = backend;
     }
 
-
-    @NotNull
-    private ITensor sigmoid(@NotNull ITensor x) {
-        long[] shape = x.getShape();
+    private @NotNull ITensor tanh(@NotNull ITensor input) {
+        long[] shape = input.getShape();
+        long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
-        DataType dataType = x.getDataType();
-        ITensor result = backend.createTensor(dataType, shape);
-        DirectMemoryHandle inputMemoryHandle = x.getContentsAsDirectMemory();
+        DataType dataType = input.getDataType();
+        ITensor result = this.backend.createTensor(dataType, shape);
+        DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
         DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
-        SigmoidJNI.sigmoid(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
+        TanhJNI.tanh(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
+        result = result.getReshapedView(shape, strides);
         return result;
     }
 
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
-        Optional<ITensor> sigmoid = ctx.getSavedTensor("sigmoid");
-        if (sigmoid.isPresent()) {
-            return sigmoid.get();
+        Optional<ITensor> tanh = ctx.getSavedTensor("tanh");
+        if (tanh.isPresent()) {
+            return tanh.get();
         } else {
-            ITensor result = sigmoid(input);
-            ctx.saveForBackward("sigmoid", result);
+            ITensor result = tanh(input);
+            ctx.saveForBackward("tanh", result);
             return result;
         }
     }
@@ -56,9 +57,13 @@ public class GenCPUSigmoidOp implements IDifferentiableUnaryOperation {
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input) {
         if (input.requiresGradients()) {
-            ITensor sigmoid = ctx.getSavedTensorOrPopulateWith("sigmoid", () -> sigmoid(input.getValue()));
-            ITensor gradients = sigmoid.multiply(sigmoid.multiply(-1.0f).plus(1.0f));
-            input.accumulateGradient(gradients.multiply(upstreamGradient));
+            ITensor tanh = ctx.getSavedTensorOrPopulateWith("tanh", () -> tanh(input.getValue()));
+            try (ITensor tanhSquared = tanh.pow(2)) {
+                try (ITensor gradients = tanhSquared.leftMinus(1)) {
+                    input.accumulateGradient(gradients.multiply(upstreamGradient));
+                }
+            }
         }
     }
+
 }

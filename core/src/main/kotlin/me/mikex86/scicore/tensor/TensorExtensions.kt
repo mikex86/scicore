@@ -15,3 +15,5 @@ fun ITensor.toGrayScaleImage(): BufferedImage {
     }
     return bufferedImage
 }
+
+operator fun ITensor.unaryMinus() = multiply(-1f)

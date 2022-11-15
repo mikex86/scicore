@@ -28,6 +28,8 @@ public class GraphRecorder implements IGraphRecorder {
     @NotNull
     private final Stack<Map<ITensor, IGraph.ITensorNode>> recordingScopes = new Stack<>();
 
+    private boolean gradEnabled = true;
+
     {
         recordingScopes.push(new IdentityHashMap<>());
     }

@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 public interface ISciCore {
     @NotNull ITensor zeros(@NotNull DataType dataType, long @NotNull ... shape);
@@ -110,12 +111,13 @@ public interface ISciCore {
      *
      * @param start    the start of the interval.
      * @param stop     the end of the interval.
-     * @param step     the step size.
-     * @param shape    the shape of the resulting tensor.
+     * @param step     the spacing between values.
      * @param dataType the data type of the resulting tensor.
      * @return the tensor with evenly spaced values.
      */
-    @NotNull ITensor arange(double start, double stop, double step, long @NotNull [] shape, @NotNull DataType dataType);
+    @NotNull ITensor arange(long start, long stop, long step, @NotNull DataType dataType);
+
+    @NotNull ITensor arange(double start, double stop, double step, @NotNull DataType dataType);
 
     /**
      * Disables fallback to lower priority backends, when an implementation for a given operation is not available

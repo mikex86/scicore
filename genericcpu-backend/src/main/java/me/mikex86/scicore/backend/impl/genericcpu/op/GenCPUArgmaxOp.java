@@ -13,12 +13,12 @@ import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class GenCpuArgmaxOp implements IDifferentiableSingleParametricOperation<Integer> {
+public class GenCPUArgmaxOp implements IDifferentiableSingleParametricOperation<Integer> {
 
     @NotNull
     private final GenCPUBackend backend;
 
-    public GenCpuArgmaxOp(@NotNull GenCPUBackend backend) {
+    public GenCPUArgmaxOp(@NotNull GenCPUBackend backend) {
         this.backend = backend;
     }
 

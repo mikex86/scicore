@@ -15,6 +15,11 @@ import java.util.*
 
 private const val BATCH_SIZE = 32
 
+private const val N_TRAINING_STEPS = 60_000L
+private const val N_TEST_STEPS = 20_000L
+private const val LEARNING_RATE = 0.01f
+
+
 // Recommended: -XX:+UseZGC -XX:+ExplicitGCInvokesConcurrent -XX:MaxGCPauseMillis=5
 // The fact that the GC seems to not care about GC-ing memory handles because they are "small" on the Jvm heap (despite referencing large regions of native memory) is a bit concerning.
 fun main() {
@@ -27,11 +32,7 @@ fun main() {
 
     val net = MnistNet(sciCore)
 
-    val nTrainSteps = 60_000L
-    val nTestSteps = 10_000L
-    val learningRate = 0.01f
-
-    val optimizer = Sgd(sciCore, learningRate, net.parameters())
+    val optimizer = Sgd(sciCore, LEARNING_RATE, net.parameters())
 
     println("Start training...")
 
@@ -40,15 +41,15 @@ fun main() {
 
     ProgressBarBuilder()
         .setTaskName("Training")
-        .setInitialMax(nTrainSteps)
+        .setInitialMax(N_TRAINING_STEPS)
         .setStyle(ProgressBarStyle.UNICODE_BLOCK)
         .setUpdateIntervalMillis(100)
         .build().use { progressBar ->
-            for (step in 0 until nTrainSteps) {
+            for (step in 0 until N_TRAINING_STEPS) {
                 sciCore.backend.operationRecorder.scopedRecording {
                     val batch = trainIt.next()
                     batch.use { x, y ->
-                        lossValue = net.forward(x)
+                        lossValue = net(x)
                             .use { yPred -> yPred.minus(y) }
                             .use { diff -> diff.pow(2f) }
                             .use { diffSquared -> diffSquared.reduceSum(-1) }
@@ -72,11 +73,11 @@ fun main() {
 
     ProgressBarBuilder()
         .setTaskName("Testing")
-        .setInitialMax(nTestSteps)
+        .setInitialMax(N_TEST_STEPS)
         .setStyle(ProgressBarStyle.UNICODE_BLOCK)
         .setUpdateIntervalMillis(100)
         .build().use { progressBar ->
-            for (testStep in 0 until nTestSteps) {
+            for (testStep in 0 until N_TEST_STEPS) {
                 sciCore.backend.operationRecorder.scopedRecording {
                     val batch = testIt.next()
                     batch.use { x, y ->
@@ -96,6 +97,6 @@ fun main() {
                     String.format(Locale.US, "accuracy: %.5f", correct.toFloat() / testStep / BATCH_SIZE)
             }
         }
-    println("Final Accuracy: " + correct.toFloat() / nTestSteps / BATCH_SIZE)
+    println("Final Accuracy: " + correct.toFloat() / N_TEST_STEPS / BATCH_SIZE)
     net.save(Path.of("mnist.scm"))
 }

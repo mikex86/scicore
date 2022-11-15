@@ -8,7 +8,6 @@ import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -189,7 +188,7 @@ abstract class GradientComputationTest {
 
     @Test
     void testMatmulWithMultiply4dby2d_2dBroadcast() {
-        ITensor a = sciCore.arange(0, 5 * 4 * 3, 1, new long[]{5, 4, 3, 2}, DataType.FLOAT32);
+        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, DataType.FLOAT32).getReshapedView(new long[]{5, 4, 3, 2});
         ITensor b = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});
         ITensor c = a.multiply(b);
         ITensor d = c.reduceSum(0);
@@ -735,7 +734,7 @@ abstract class GradientComputationTest {
     @Test
     void test4dPlus2dAndMatmul_2dBroadcast() {
         // (5, 4, 3, 2) + (3, 2) = (5, 4, 3, 2)
-        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, new long[]{5, 4, 3, 2}, DataType.FLOAT32);
+        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, DataType.FLOAT32).getReshapedView(new long[]{5, 4, 3, 2});
         ITensor b = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});
         ITensor c = a.plus(b);
         ITensor d = c.reduceSum(0);
@@ -1141,19 +1140,14 @@ abstract class GradientComputationTest {
         Assertions.assertEquals(sciCore.matrix(new float[][]{{-0.1315f, 0.1315f}, {-0.1329f, 0.1329f}, {-0.4163f, 0.4163f}, {-0.2666f, 0.2666f}, {-0.2341f, 0.2341f}}), dLdB);
     }
 
-
-    @Nested
-    class TestInplaceOperations {
-
-        @Test
-        void testOperationWithInplaceOperationFailure() {
-            ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}});
-            ITensor exp = a.exp();
-            ITensor b = sciCore.matrix(new float[][]{{6, 7, 8, 9, 10}, {11, 12, 13, 14, 15}});
-            exp.add(b);
-            assertThrows(IllegalStateException.class, () -> sciCore.getBackpropagationGraphUpTo(exp, List.of(a, exp, b)));
-        }
-
+    @Test
+    void testOperationWithInplaceOperationFailure() {
+        ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}});
+        ITensor exp = a.exp();
+        ITensor b = sciCore.matrix(new float[][]{{6, 7, 8, 9, 10}, {11, 12, 13, 14, 15}});
+        exp.add(b);
+        assertThrows(IllegalStateException.class, () -> sciCore.getBackpropagationGraphUpTo(exp, List.of(a, exp, b)));
     }
+
 
 }

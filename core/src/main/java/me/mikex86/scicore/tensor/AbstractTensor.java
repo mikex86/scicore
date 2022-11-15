@@ -530,6 +530,66 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
+    public @NotNull ITensor leftMinus(byte value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.INT8, new long[0])) {
+            valueScalar.setIntFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.MINUS, backend, valueScalar, this);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftMinus(short value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.INT16, new long[0])) {
+            valueScalar.setIntFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.MINUS, backend, valueScalar, this);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftMinus(int value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.INT32, new long[0])) {
+            valueScalar.setIntFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.MINUS, backend, valueScalar, this);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftMinus(long value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.INT64, new long[0])) {
+            valueScalar.setLongFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.MINUS, backend, valueScalar, this);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftMinus(float value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.FLOAT32, new long[0])) {
+            valueScalar.setFloatFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.MINUS, backend, valueScalar, this);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor leftMinus(double value) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor valueScalar = backend.createTensor(DataType.FLOAT64, new long[0])) {
+            valueScalar.setDoubleFlat(value, 0);
+            return operationRecorder.recordOperation(OperationType.MINUS, backend, valueScalar, this);
+        }
+    }
+
+    @Override
     public void subtract(byte value) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
@@ -791,6 +851,13 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
+    public @NotNull ITensor tanh() {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.TANH, backend, this);
+    }
+
+    @Override
     public @NotNull ITensor argmax(int dimension) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
@@ -818,10 +885,14 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
-    public @NotNull ITensor get(@NotNull ITensor indices) {
+    public @NotNull ITensor get(@NotNull ITensor... indicesTensors) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.GET, backend, this, indices);
+
+        ITensor[] inputs = new ITensor[indicesTensors.length + 1];
+        inputs[0] = this;
+        System.arraycopy(indicesTensors, 0, inputs, 1, indicesTensors.length);
+        return operationRecorder.recordOperation(OperationType.GET, backend, inputs);
     }
 
     @Override

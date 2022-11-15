@@ -9,7 +9,7 @@ import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.data.DatasetIterator;
 import me.mikex86.scicore.nn.IModule;
 import me.mikex86.scicore.nn.layers.Linear;
-import me.mikex86.scicore.nn.layers.Sigmoid;
+import me.mikex86.scicore.nn.act.Sigmoid;
 import me.mikex86.scicore.nn.optim.IOptimizer;
 import me.mikex86.scicore.nn.optim.Sgd;
 import org.jetbrains.annotations.NotNull;
@@ -127,7 +127,7 @@ public abstract class ApproxNonlinearFuncTrainingTest {
         float[] modelPredictionY = new float[nPoints];
         float[] realY = new float[nPoints];
         float intervalStart = 0, intervalEnd = 1;
-        ITensor X = sciCore.arange(intervalStart, intervalEnd, (intervalEnd - intervalStart) / (float) (nPoints - 1), new long[]{nPoints, 1}, DataType.FLOAT32);
+        ITensor X = sciCore.arange(intervalStart, intervalEnd, (intervalEnd - intervalStart) / (float) (nPoints - 1), DataType.FLOAT32).getReshapedView(new long[]{nPoints, 1});
         ITensor YPred = bobNet.forward(X);
         for (int i = 0; i < nPoints; i++) {
             modelPredictionY[i] = YPred.getFloat(i, 0);

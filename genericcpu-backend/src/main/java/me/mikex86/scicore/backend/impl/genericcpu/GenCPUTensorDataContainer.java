@@ -11,7 +11,7 @@ import java.nio.*;
 
 import static java.lang.Math.min;
 
-public class GenCpuTensorDataContainer implements ITensorDataContainer {
+public class GenCPUTensorDataContainer implements ITensorDataContainer {
 
     @NotNull
     private final DirectMemoryHandle memoryHandle;
@@ -28,7 +28,7 @@ public class GenCpuTensorDataContainer implements ITensorDataContainer {
 
     private final long nElements;
 
-    public GenCpuTensorDataContainer(@NotNull DirectMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
+    public GenCPUTensorDataContainer(@NotNull DirectMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
         this.memoryManager = memoryManager;
         long nBytes = dataType.getSizeOf(nElements);
         this.memoryHandle = memoryManager.calloc(nBytes);

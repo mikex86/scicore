@@ -9,7 +9,6 @@ import me.mikex86.scicore.backend.impl.genericcpu.op.*;
 import me.mikex86.scicore.nativelib.LibraryLoader;
 import me.mikex86.scicore.graph.op.IOperation;
 import me.mikex86.scicore.graph.OperationType;
-import me.mikex86.scicore.tensor.LazyTensor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -29,11 +28,13 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.EXP, new GenCPUExpOp(this));
         operationTable.put(OperationType.RELU, new GenCPUReluOp(this));
         operationTable.put(OperationType.SIGMOID, new GenCPUSigmoidOp(this));
+        operationTable.put(OperationType.TANH, new GenCPUTanhOp(this));
         operationTable.put(OperationType.POW, new GenCPUPowOp(this));
         operationTable.put(OperationType.TRANSPOSE, new GenCPUTransposeOp(this));
         operationTable.put(OperationType.CAST, new GenCPUCastOp(this));
         operationTable.put(OperationType.REDUCE_SUM, new GenCPUReduceSumOp(this));
-        operationTable.put(OperationType.ARGMAX, new GenCpuArgmaxOp(this));
+        operationTable.put(OperationType.ARGMAX, new GenCPUArgmaxOp(this));
+        operationTable.put(OperationType.GET, new GenCPUGetOp(this));
         operationTable.put(OperationType.PLUS_INPLACE, new GenCPUPlusInplaceOp(this));
         operationTable.put(OperationType.MINUS_INPLACE, new GenCPUMinusInplaceOp(this));
     }

@@ -1,27 +1,27 @@
 package me.mikex86.scicore.backend.impl.jvm.op;
 
+import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
+import me.mikex86.scicore.graph.Graph;
+import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
-import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
-import me.mikex86.scicore.graph.Graph;
-import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
-import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
-public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
+public class JvmTanhOp implements IDifferentiableUnaryOperation {
 
     @NotNull
     private final JvmBackend backend;
 
-    public JvmSigmoidOp(@NotNull JvmBackend backend) {
+    public JvmTanhOp(@NotNull JvmBackend backend) {
         this.backend = backend;
     }
 
-    private @NotNull ITensor sigmoid(@NotNull ITensor input) {
+    private @NotNull ITensor tanh(@NotNull ITensor input) {
         long[] shape = input.getShape();
         long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
@@ -30,14 +30,14 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
         if (dataType.isFloatingPoint()) {
             for (long i = 0; i < nElements; i++) {
                 double value = input.getAsDoubleFlat(i);
-                double sigmoid = 1.0 / (1 + Math.exp(-value));
-                result.setByDoubleFlat(sigmoid, i);
+                double tanh = Math.tanh(value);
+                result.setByDoubleFlat(tanh, i);
             }
         } else {
             for (long i = 0; i < nElements; i++) {
                 long value = input.getAsLongFlat(i);
-                long sigmoid = Math.round(1.0 / (1 + Math.exp(-value)));
-                result.setByLongFlat(sigmoid, i);
+                long tanh = (long) Math.tanh(value);
+                result.setByLongFlat(tanh, i);
             }
         }
         result = result.getReshapedView(shape, strides);
@@ -46,12 +46,12 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
 
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
-        Optional<ITensor> sigmoid = ctx.getSavedTensor("sigmoid");
-        if (sigmoid.isPresent()) {
-            return sigmoid.get();
+        Optional<ITensor> tanh = ctx.getSavedTensor("tanh");
+        if (tanh.isPresent()) {
+            return tanh.get();
         } else {
-            ITensor result = sigmoid(input);
-            ctx.saveForBackward("sigmoid", result);
+            ITensor result = tanh(input);
+            ctx.saveForBackward("tanh", result);
             return result;
         }
     }
@@ -64,14 +64,13 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input) {
         if (input.requiresGradients()) {
-            ITensor sigmoid = ctx.getSavedTensorOrPopulateWith("sigmoid", () -> sigmoid(input.getValue()));
-            try (ITensor negativeSigmoid = sigmoid.multiply(-1.0f)) {
-                try (ITensor negativeSigmoidPlusOne = negativeSigmoid.plus(1.0f)) {
-                    try (ITensor gradients = sigmoid.multiply(negativeSigmoidPlusOne)) {
-                        input.accumulateGradient(gradients.multiply(upstreamGradient));
-                    }
+            ITensor tanh = ctx.getSavedTensorOrPopulateWith("tanh", () -> tanh(input.getValue()));
+            try (ITensor tanhSquared = tanh.pow(2)) {
+                try (ITensor gradients = tanhSquared.leftMinus(1)) {
+                    input.accumulateGradient(gradients.multiply(upstreamGradient));
                 }
             }
         }
     }
+
 }

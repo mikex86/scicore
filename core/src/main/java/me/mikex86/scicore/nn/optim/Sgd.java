@@ -3,6 +3,7 @@ package me.mikex86.scicore.nn.optim;
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.tensor.LazyTensor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
