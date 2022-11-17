@@ -1,4 +1,5 @@
 #include "multiply.h"
+#include "optimize.h"
 #include "shapeutils.h"
 #include <cstring>
 

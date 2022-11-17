@@ -94,7 +94,7 @@ fun main() {
                             .use { logProbsMean ->
                                 -logProbsMean
                             }.use { negativeLogLikelyHood ->
-                                negativeLogLikelyHood.elementAsDouble();
+                                negativeLogLikelyHood.elementAsDouble(); optimizer.step(negativeLogLikelyHood); negativeLogLikelyHood.elementAsDouble()
                             }
                     }
                 }

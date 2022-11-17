@@ -58,7 +58,7 @@ public class GenCPUTanhOp implements IDifferentiableUnaryOperation {
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input) {
         if (input.requiresGradients()) {
             ITensor tanh = ctx.getSavedTensorOrPopulateWith("tanh", () -> tanh(input.getValue()));
-            try (ITensor tanhSquared = tanh.pow(2)) {
+            try (ITensor tanhSquared = tanh.pow(2f)) {
                 try (ITensor gradients = tanhSquared.leftMinus(1)) {
                     input.accumulateGradient(gradients.multiply(upstreamGradient));
                 }

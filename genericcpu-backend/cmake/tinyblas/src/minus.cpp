@@ -1,5 +1,6 @@
 #include "minus.h"
 #include "shapeutils.h"
+#include "optimize.h"
 #include <cstring>
 
 

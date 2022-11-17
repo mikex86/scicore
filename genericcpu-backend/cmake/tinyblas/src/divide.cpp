@@ -1,7 +1,7 @@
 #include "divide.h"
 #include "shapeutils.h"
+#include "optimize.h"
 #include <cstring>
-#include <iostream>
 
 template<typename A, typename B, typename C>
 void tblas_divide(const A *a, const B *b, C *c,
