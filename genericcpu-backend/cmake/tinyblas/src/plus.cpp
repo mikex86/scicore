@@ -22,18 +22,21 @@ void tblas_plus(const A *a, const B *b, C *c,
 
 // Arm Neon specific implementation
 #ifdef __ARM_NEON__
+
 #include "vectorize_armneon.h"
 
 nd_by_scalar_op(plus, float, vaddq_f32, +);
+
 nd_by_nd_op(plus, float, vaddq_f32, +);
+
 op_hook_optimizations(
         plus, float,
         {
             if (tblas_plus_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
-                                             shapeC, stridesC, nDimsC))
+                                        shapeC, stridesC, nDimsC))
                 return;
             if (tblas_plus_nd_by_nd(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
-                                         shapeC, stridesC, nDimsC))
+                                    shapeC, stridesC, nDimsC))
                 return;
         },
         {

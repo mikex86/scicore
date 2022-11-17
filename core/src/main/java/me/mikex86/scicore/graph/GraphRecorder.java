@@ -265,8 +265,8 @@ public class GraphRecorder implements IGraphRecorder {
                     IGraph.IGraphNode copy = copyNodeIncludeAlreadyComputed(input, nodeToInputs);
                     if (copy == null) {
                         throw new IllegalStateException("Cannot construct backpropagation graph, as the graph leads to tensors that are already disposed. Cannot safely continue. " +
-                                                        "Did the optimization operations leak into your main graph? " +
-                                                        "Check your usage of GraphRecorder#recordWithScope() or GraphRecorder#scopedRecording() in kotlin, or GraphRecorder#resetRecording()");
+                                "Did the optimization operations leak into your main graph? " +
+                                "Check your usage of GraphRecorder#recordWithScope() or GraphRecorder#scopedRecording() in kotlin, or GraphRecorder#resetRecording()");
                     }
                     copies.add(copy);
                     nodeToCopy.put(input, copy);

@@ -2,22 +2,39 @@ package me.mikex86.scicore.profiling;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Stack;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Profiler {
 
     public static final boolean USE_PROFILER = false;
 
     @NotNull
-    private final Stack<String> sections = new Stack<>();
+    private final Map<String, Long> totalTimeSpentInSection = new HashMap<>();
 
+    @NotNull
+    private final Map<String, Long> currentlyRunningSections = new HashMap<>();
 
-    public void push(@NotNull String sectionName) {
-        this.sections.push(sectionName);
+    public void startSection(String sectionName) {
+        long currentTime = System.nanoTime();
+        currentlyRunningSections.put(sectionName, currentTime);
     }
 
-    public void pop() {
-        this.sections.pop();
+    public void endSection(String sectionName) {
+        long currentTime = System.nanoTime();
+        Long started = currentlyRunningSections.get(sectionName);
+        if (started == null) {
+            throw new IllegalStateException("Section ended that was never started: \"" + sectionName + "\"");
+        }
+        long elapsed = currentTime - started;
+        totalTimeSpentInSection.compute(sectionName, (k, time) -> (time == null ? 0 : time) + elapsed);
     }
 
+    public void printStats() {
+        for (Map.Entry<String, Long> entry : totalTimeSpentInSection.entrySet()) {
+            String sectionName = entry.getKey();
+            long elapsed = entry.getValue();
+            System.out.println(sectionName + ": " + (elapsed / 1e9) + "s");
+        }
+    }
 }

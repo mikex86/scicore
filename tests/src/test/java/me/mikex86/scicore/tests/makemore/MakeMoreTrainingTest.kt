@@ -4,6 +4,7 @@ import me.mikex86.matplotlib.jplot.JPlot
 import me.mikex86.scicore.ISciCore
 import me.mikex86.scicore.SciCore
 import me.mikex86.scicore.data.DatasetIterator
+import me.mikex86.scicore.graph.GraphExecutor
 import me.mikex86.scicore.graph.scopedRecording
 import me.mikex86.scicore.nn.IModule
 import me.mikex86.scicore.nn.act.ReLU
@@ -94,7 +95,9 @@ fun main() {
                             .use { logProbsMean ->
                                 -logProbsMean
                             }.use { negativeLogLikelyHood ->
-                                negativeLogLikelyHood.elementAsDouble(); optimizer.step(negativeLogLikelyHood); negativeLogLikelyHood.elementAsDouble()
+                                val loss = negativeLogLikelyHood.elementAsDouble()
+                                optimizer.step(negativeLogLikelyHood)
+                                loss
                             }
                     }
                 }
@@ -128,6 +131,9 @@ fun main() {
             }
         println("Loss on dataset: $loss")
     }
+
+    println("GraphExecutor stats:")
+    GraphExecutor.printStats()
 }
 
 class MakeMoreNet(sciCore: SciCore) : IModule {

@@ -52,20 +52,20 @@ public class Sgd implements IOptimizer {
         try (IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, parameters)) {
             sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
                 graph.backward();
-                for (ITensor parameter : parameters) {
-                    try (ITensor gradient = graph.getGradient(parameter)
-                            .orElseThrow(() -> new IllegalStateException("No gradient for parameter"))) {
-                        float learningRate;
-                        if (adaptiveLearningRate) {
-                            learningRate = (float) (initialLearningRate * Math.pow(learningRateDecayFactor, nSteps));
-                        } else {
-                            learningRate = this.initialLearningRate;
-                        }
-                        try (ITensor scaledGradient = gradient.multiply(learningRate)) {
-                            parameter.subtract(scaledGradient);
-                        }
-                    }
-                }
+//                for (ITensor parameter : parameters) {
+//                    try (ITensor gradient = graph.getGradient(parameter)
+//                            .orElseThrow(() -> new IllegalStateException("No gradient for parameter"))) {
+//                        float learningRate;
+//                        if (adaptiveLearningRate) {
+//                            learningRate = (float) (initialLearningRate * Math.pow(learningRateDecayFactor, nSteps));
+//                        } else {
+//                            learningRate = this.initialLearningRate;
+//                        }
+//                        try (ITensor scaledGradient = gradient.multiply(learningRate)) {
+//                            parameter.subtract(scaledGradient);
+//                        }
+//                    }
+//                }
                 return null;
             });
             nSteps++;
