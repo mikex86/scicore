@@ -156,3 +156,5 @@ if __name__ == '__main__':
     logits = h @ W2.T + b2
     loss = F.cross_entropy(logits, Ytr)
     print("Loss on training set:", loss.item())
+
+

@@ -11,6 +11,7 @@ import me.mikex86.scicore.nn.act.ReLU
 import me.mikex86.scicore.nn.act.Tanh
 import me.mikex86.scicore.nn.layers.Linear
 import me.mikex86.scicore.nn.optim.Sgd
+import me.mikex86.scicore.profiling.Profiler
 import me.mikex86.scicore.tensor.DataType
 import me.mikex86.scicore.tensor.ITensor
 import me.mikex86.scicore.tensor.LazyTensor
@@ -23,7 +24,7 @@ import java.nio.file.Path
 import java.util.*
 
 private const val BATCH_SIZE = 32
-private const val BLOCK_SIZE = 3
+private const val BLOCK_SIZE = 8
 private const val EMBEDDING_SIZE = 10
 private const val N_HIDDEN = 200
 private const val VOCAB_SIZE = 26 + 1 // 26 letters + 1 padding char
@@ -108,7 +109,7 @@ fun main() {
         }
     val end = System.currentTimeMillis()
     println("Training time: " + (end - start) / 1000.0 + "s")
-    net.save(Path.of("make_more.scm"))
+    net.save(Path.of("makemore.scm"))
 
     // plot losses
     val plot = JPlot()
@@ -131,9 +132,6 @@ fun main() {
             }
         println("Loss on dataset: $loss")
     }
-
-    println("GraphExecutor stats:")
-    GraphExecutor.printStats()
 }
 
 class MakeMoreNet(sciCore: SciCore) : IModule {

@@ -10,17 +10,17 @@ public class Profiler {
     public static final boolean USE_PROFILER = false;
 
     @NotNull
-    private final Map<String, Long> totalTimeSpentInSection = new HashMap<>();
+    private static final Map<String, Long> totalTimeSpentInSection = new HashMap<>();
 
     @NotNull
-    private final Map<String, Long> currentlyRunningSections = new HashMap<>();
+    private static final Map<String, Long> currentlyRunningSections = new HashMap<>();
 
-    public void startSection(String sectionName) {
+    public static void startSection(String sectionName) {
         long currentTime = System.nanoTime();
         currentlyRunningSections.put(sectionName, currentTime);
     }
 
-    public void endSection(String sectionName) {
+    public static void endSection(String sectionName) {
         long currentTime = System.nanoTime();
         Long started = currentlyRunningSections.get(sectionName);
         if (started == null) {
@@ -30,7 +30,7 @@ public class Profiler {
         totalTimeSpentInSection.compute(sectionName, (k, time) -> (time == null ? 0 : time) + elapsed);
     }
 
-    public void printStats() {
+    public static void printStats() {
         for (Map.Entry<String, Long> entry : totalTimeSpentInSection.entrySet()) {
             String sectionName = entry.getKey();
             long elapsed = entry.getValue();

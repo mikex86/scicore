@@ -1,5 +1,6 @@
 package me.mikex86.scicore.graph;
 
+import me.mikex86.scicore.profiling.Profiler;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.OperationRegistry;
@@ -264,7 +265,7 @@ public class Graph implements IGraph {
             }
             if (node instanceof ITensorNodeWithGradient nodeWithGradient) {
                 if (!nodeWithGradient.requestsGradients()
-                    && !gradients.contains(nodeWithGradient.getGradient())) { // we can't delete the gradient, if another node shares the same tensor instance as a gradient, eg. due to a plus operation
+                        && !gradients.contains(nodeWithGradient.getGradient())) { // we can't delete the gradient, if another node shares the same tensor instance as a gradient, eg. due to a plus operation
                     nodeWithGradient.deleteGradient();
                 }
                 if (node instanceof OperationGraphNode operationNode) {
@@ -385,7 +386,10 @@ public class Graph implements IGraph {
                 this.upstreamGradient = gradient;
             } else {
                 Validator.assertTrue(ShapeUtils.equals(this.upstreamGradient.getShape(), gradient.getShape()), "Accumulative gradients must match shape");
-                this.upstreamGradient.add(gradient);
+                // TODO: USE IN-PLACE OPERATION
+                try (ITensor newGradient = this.upstreamGradient.plus(gradient)) {
+                    this.upstreamGradient.setContents(newGradient);
+                }
                 gradient.close();
             }
         }
@@ -530,7 +534,6 @@ public class Graph implements IGraph {
         public boolean hasValue() {
             return output != null;
         }
-
 
         /**
          * Performs the operation of this node.

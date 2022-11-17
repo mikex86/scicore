@@ -79,7 +79,7 @@ public class GraphRecorder implements IGraphRecorder {
                 // This is safe because the lifetime of the lazy copy will never exceed the lifetime of the original inputs[0],
                 // as it is either in the same recording scope as the original inputs[0], or in a "further pushed in" recording scope, meaning higher in this.recordingScopes,
                 // where the top is the current recording scope, with the shortest lifetime.
-                operation.performLazily(ctx, List.of(inputs));
+                try (ITensor ignored = operation.performLazily(ctx, List.of(inputs))) {}
                 originalLazyDst.forceReevaluation();
 
                 // NOTE 3 - "setOutput": When multiple inplace-operation nodes are chained, only the last inplace-operation-node should have the output of the tensor that the user handles.
@@ -391,8 +391,8 @@ public class GraphRecorder implements IGraphRecorder {
                 nBytesProbablyDeletedSinceLastOnSameThreadGC += value.getNumBytes();
                 node.deleteValue();
             }
-            this.valueToNodeMap.remove(value);
         }
+        this.valueToNodeMap.remove(value);
     }
 
 

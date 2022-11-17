@@ -123,7 +123,7 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
                 if (indexIntoGradient == null) {
                     indexIntoGradient = new long[upstreamGradient.getShape().length - currentView.getShape().length];
                 }
-                currentView.add(upstreamGradient.getView(indexIntoGradient));
+                currentView.setContents(upstreamGradient.getView(indexIntoGradient));
                 ShapeUtils.incrementIndex(indexIntoGradient, upstreamGradient.getShape());
             } while (ShapeUtils.incrementIndex(indexIntoFirstIndex, firstIndexShape));
 
