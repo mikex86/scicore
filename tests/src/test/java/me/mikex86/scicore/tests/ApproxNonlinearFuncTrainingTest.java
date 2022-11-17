@@ -83,7 +83,7 @@ public abstract class ApproxNonlinearFuncTrainingTest {
         int batchSize = 32;
 
         DatasetIterator dataIt = getData(batchSize);
-        IOptimizer optimizer = new Sgd(sciCore, 0.5f, bobNet.parameters(), true, 1e-6f);
+        IOptimizer optimizer = new Sgd(sciCore, 0.5f, 0.05f, nSteps, bobNet.parameters());
         for (int i = 0; i < nSteps; i++) {
             final int step = i;
             sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {

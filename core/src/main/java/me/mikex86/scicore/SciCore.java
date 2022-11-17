@@ -19,6 +19,7 @@ import java.nio.*;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class SciCore implements ISciCore {
 
@@ -98,6 +99,30 @@ public class SciCore implements ISciCore {
                 }
             }
             default -> throw new IllegalArgumentException("Unsupported data type: " + dataType);
+        }
+        return tensor;
+    }
+
+    @Override
+    @NotNull
+    public ITensor gaussian(@NotNull DataType dataType, long @NotNull ... shape) {
+        // TODO: CREATE FILL_GAUSSIAN OPERATION THAT CAN BE ACCELERATED
+        // TODO: USE setContents(buffer)
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = backend.createTensor(dataType, shape);
+        long numberOfElements = tensor.getNumberOfElements();
+        switch (dataType) {
+            case FLOAT32 -> {
+                for (long i = 0; i < numberOfElements; i++) {
+                    tensor.setFloatFlat((float) random.nextGaussian(), i);
+                }
+            }
+            case FLOAT64 -> {
+                for (long i = 0; i < numberOfElements; i++) {
+                    tensor.setDoubleFlat(random.nextGaussian(), i);
+                }
+            }
+            default -> throw new IllegalArgumentException("Unsupported data type for gaussian: " + dataType);
         }
         return tensor;
     }

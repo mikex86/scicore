@@ -31,6 +31,27 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
     @NotNull ITensor getReshapedView(long @NotNull [] shape, long @NotNull [] strides);
 
     default @NotNull ITensor getReshapedView(long @NotNull [] shape) {
+        shape = Arrays.copyOf(shape, shape.length);
+        long numElements = getNumberOfElements();
+        boolean hasInferredDimension = false;
+        int dimensionToInfer = -1;
+        long numOtherElements = 1;
+        for (int i = 0; i < shape.length; i++) {
+            long l = shape[i];
+            if (l == -1) {
+                if (hasInferredDimension) {
+                    throw new IllegalArgumentException("Only one dimension can be inferred");
+                }
+                hasInferredDimension = true;
+                dimensionToInfer = i;
+            } else {
+                numOtherElements *= l;
+            }
+        }
+        if (dimensionToInfer != -1) {
+            long inferredDimension = numElements / numOtherElements;
+            shape[dimensionToInfer] = inferredDimension;
+        }
         return getReshapedView(shape, ShapeUtils.makeStrides(shape));
     }
 

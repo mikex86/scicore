@@ -74,7 +74,7 @@ public abstract class ApproxLinearFuncTrainingTest {
         int batchSize = 32;
 
         DatasetIterator dataIt = getData(batchSize);
-        IOptimizer optimizer = new Sgd(sciCore, 0.6f, bobNet.parameters(), true, 1e-6f);
+        IOptimizer optimizer = new Sgd(sciCore, 0.6f, bobNet.parameters());
         for (int i = 0; i < 150; i++) {
             final int step = i;
             sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {

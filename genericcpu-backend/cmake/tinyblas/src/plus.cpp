@@ -1,6 +1,7 @@
 #include "plus.h"
 #include "shapeutils.h"
 #include <cstring>
+#include <iostream>
 
 template<typename A, typename B, typename C>
 void tblas_plus(const A *a, const B *b, C *c,
@@ -60,10 +61,10 @@ op_hook_optimizations(
         plus, float,
         {
             if (tblas_plus_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
-                                             shapeC, stridesC, nDimsC))
+                                        shapeC, stridesC, nDimsC))
                 return;
             if (tblas_plus_nd_by_nd(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
-                                         shapeC, stridesC, nDimsC))
+                                    shapeC, stridesC, nDimsC))
                 return;
         },
         {

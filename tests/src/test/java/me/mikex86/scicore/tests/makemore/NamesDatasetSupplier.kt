@@ -11,7 +11,8 @@ import kotlin.random.Random
 class NamesDatasetSupplier(
     private val sciCore: SciCore,
     private val blockSize: Int,
-    training: Boolean
+    training: Boolean,
+    shuffle: Boolean
 ) :
     Supplier<Pair<ITensor, ITensor>> {
 
@@ -45,13 +46,17 @@ class NamesDatasetSupplier(
         return Pair(xTensor, yTensor)
     }
 
-    private val random = Random(123)
+    private val random = if (shuffle) {
+        Random(123)
+    } else {
+        null
+    }
 
-    private val x: ITensor
-    private val y: ITensor
+    val x: ITensor
+    val y: ITensor
 
     init {
-        lines.shuffled(random)
+        random?.let { random -> lines.shuffled(random) }
 
         val n = (lines.size * 0.8).toInt()
         val (x, y) = buildDataset(if (training) lines.subList(0, n) else lines.subList(n, lines.size))
@@ -59,11 +64,11 @@ class NamesDatasetSupplier(
         this.y = y
     }
 
-
+    private var idx = 0L
     override fun get(): Pair<ITensor, ITensor> {
         return Pair(
-            x.getView(random.nextLong(x.shape[0])),
-            y.getView(random.nextLong(y.shape[0]))
+            x.getView(random?.nextLong(x.shape[0]) ?: (idx % y.shape[0])),
+            y.getView(random?.nextLong(y.shape[0]) ?: (idx++ % y.shape[0]))
         )
     }
 

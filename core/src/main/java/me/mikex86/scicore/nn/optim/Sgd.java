@@ -14,7 +14,9 @@ public class Sgd implements IOptimizer {
     @NotNull
     private final ISciCore sciCore;
 
-    private final float learningRate;
+    private final float initialLearningRate;
+
+
     @NotNull
     private final List<ITensor> parameters;
 
@@ -25,12 +27,21 @@ public class Sgd implements IOptimizer {
     private final float learningRateDecayFactor;
 
     public Sgd(@NotNull ISciCore sciCore, float learningRate, @NotNull List<ITensor> parameter) {
-        this(sciCore, learningRate, parameter, false, 0.0f);
+        this(sciCore, learningRate, false, 0.0f, parameter);
     }
 
-    public Sgd(@NotNull ISciCore sciCore, float learningRate, @NotNull List<ITensor> parameters, boolean adaptiveLearningRate, float learningRateDecayFactor) {
+    public Sgd(@NotNull ISciCore sciCore, float initialLearningRate, float endLearningRate, long nStepsUntilEndLearningRateReached, @NotNull List<ITensor> parameter) {
+        this(
+                sciCore, initialLearningRate,
+                true,
+                (float) Math.pow(endLearningRate / initialLearningRate, 1.0 / nStepsUntilEndLearningRateReached),
+                parameter
+        );
+    }
+
+    private Sgd(@NotNull ISciCore sciCore, float initialLearningRate, boolean adaptiveLearningRate, float learningRateDecayFactor, @NotNull List<ITensor> parameters) {
         this.sciCore = sciCore;
-        this.learningRate = learningRate;
+        this.initialLearningRate = initialLearningRate;
         this.parameters = parameters;
         this.adaptiveLearningRate = adaptiveLearningRate;
         this.learningRateDecayFactor = learningRateDecayFactor;
@@ -44,9 +55,11 @@ public class Sgd implements IOptimizer {
                 for (ITensor parameter : parameters) {
                     try (ITensor gradient = graph.getGradient(parameter)
                             .orElseThrow(() -> new IllegalStateException("No gradient for parameter"))) {
-                        float learningRate = this.learningRate;
+                        float learningRate;
                         if (adaptiveLearningRate) {
-                            learningRate *= (Math.pow(1f - learningRateDecayFactor, nSteps));
+                            learningRate = (float) (initialLearningRate * Math.pow(learningRateDecayFactor, nSteps));
+                        } else {
+                            learningRate = this.initialLearningRate;
                         }
                         try (ITensor scaledGradient = gradient.multiply(learningRate)) {
                             parameter.subtract(scaledGradient);
