@@ -53,7 +53,10 @@ fun main() {
             // cross entropy loss
             .use { logits -> logits.exp() }
             .use { counts -> counts / counts.reduceSum(1, true) }
-            .use { probs -> probs[sciCore.arange(0, y.shape[0], 1, DataType.INT64), y] }
+            .use { probs ->
+                sciCore.arange(0, y.shape[0], 1, DataType.INT64)
+                    .use { idx -> probs[idx, y] }
+            }
             .use { probsAssignedToCorrectLabels ->
                 -probsAssignedToCorrectLabels.log().mean().elementAsDouble()
             }
@@ -75,12 +78,23 @@ fun main() {
                     batch.use { x, y ->
                         lossValue = net(x)
                             .use { logits -> logits.exp() }
-                            .use { counts -> counts / counts.reduceSum(1, true) }
-                            .use { probs -> probs[sciCore.arange(0, 32, 1, DataType.INT64), y] }
+                            .use { counts ->
+                                counts.reduceSum(1, true)
+                                    .use { totalCounts -> counts / totalCounts }
+                            }
+                            .use { probs ->
+                                sciCore.arange(0, 32, 1, DataType.INT64)
+                                    .use { idx -> probs[idx, y] }
+                            }
                             .use { probsAssignedToCorrectLabels ->
-                                -probsAssignedToCorrectLabels.log().mean()
-                            }.use { loss ->
-                                optimizer.step(loss); loss.elementAsDouble()
+                                probsAssignedToCorrectLabels.log()
+                            }.use { logProbs ->
+                                logProbs.mean()
+                            }
+                            .use { logProbsMean ->
+                                -logProbsMean
+                            }.use { negativeLogLikelyHood ->
+                                negativeLogLikelyHood.elementAsDouble();
                             }
                     }
                 }

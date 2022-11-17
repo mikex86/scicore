@@ -77,7 +77,7 @@ bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
     size_t vecSize = OPERANDS_SIZE / sizeof(type);      \
     auto *outputIndex = new size_t[nDimsC]; \
     memset(outputIndex, 0, sizeof(size_t) * nDimsC);    \
-    if (nDimsA <= 1 || nDimsB <= 1) {\
+    if (nDimsA < 1 || nDimsB < 1) {\
         return false; /* tblas_##op_name##_nd_by_scalar handles this */\
     }\
     if (!unalteredStrides(stridesC, shapeC, nDimsC)) { \
