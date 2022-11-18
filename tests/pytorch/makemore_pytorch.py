@@ -7,7 +7,16 @@ from tqdm import trange
 from javarandom import Random
 import torch.nn.functional as F
 
+dataset_random = Random(123)
 words = open('names.txt', 'r').read().splitlines()
+
+# Shuffle conform with Java's Collections.shuffle() method
+for i in range(len(words), 1, -1):
+    j = dataset_random.next_int(i)
+    copy = words[i - 1]
+    words[i - 1] = words[j]
+    words[j] = copy
+
 chars = sorted(list(set(''.join(words))))
 stoi = {s: i + 1 for i, s in enumerate(chars)}
 stoi['.'] = 0
@@ -69,11 +78,11 @@ LEARNING_RATE_DECAY_FACTOR = (END_LEARNING_RATE / INITIAL_LEARNING_RATE) ** (1 /
 
 if __name__ == '__main__':
     # Declare parameters
-    C = torch.randn((VOCAB_SIZE, EMBEDDING_SIZE))
-    W1 = torch.randn((N_HIDDEN, BLOCK_SIZE * EMBEDDING_SIZE))
-    b1 = torch.randn(N_HIDDEN)
-    W2 = torch.randn((VOCAB_SIZE, N_HIDDEN))
-    b2 = torch.randn(VOCAB_SIZE)
+    C = torch.zeros((VOCAB_SIZE, EMBEDDING_SIZE))
+    W1 = torch.zeros((N_HIDDEN, BLOCK_SIZE * EMBEDDING_SIZE))
+    b1 = torch.zeros(N_HIDDEN)
+    W2 = torch.zeros((VOCAB_SIZE, N_HIDDEN))
+    b2 = torch.zeros(VOCAB_SIZE)
 
     # Initialize parameters
     _init_gaussian_like_java(C)
@@ -102,8 +111,6 @@ if __name__ == '__main__':
     lri = []
     lossi = []
     stepi = []
-
-    dataset_random = Random(123)
 
     start_idx = 0
     for step in trange(N_TRAINING_STEPS):

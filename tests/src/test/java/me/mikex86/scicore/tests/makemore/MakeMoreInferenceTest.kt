@@ -2,8 +2,8 @@ package me.mikex86.scicore.tests.makemore
 
 import me.mikex86.scicore.ISciCore
 import me.mikex86.scicore.SciCore
+import java.util.Random
 import kotlin.io.path.Path
-import kotlin.random.Random
 
 private const val BLOCK_SIZE = 3
 
@@ -31,10 +31,10 @@ fun main() {
                 .use { probs ->
                     // multinomial distribution sampling
                     val probValues = FloatArray(probs.shape[1].toInt())
-                    val probIndices = ByteArray(probs.shape[1].toInt())
+                    val probIndices = mutableListOf<Byte>()
                     for (idx in 0 until probs.shape[1]) {
                         probValues[idx.toInt()] = probs.getAsFloat(0, idx)
-                        probIndices[idx.toInt()] = idx.toByte()
+                        probIndices.add(idx.toByte())
                     }
                     probIndices.shuffle(random)
                     var cumulativeProb = 0f

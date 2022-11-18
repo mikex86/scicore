@@ -3,8 +3,8 @@ package me.mikex86.scicore.tests.makemore
 import me.mikex86.scicore.SciCore
 import me.mikex86.scicore.tensor.ITensor
 import me.mikex86.scicore.utils.ShapeUtils
+import java.util.Random
 import java.util.function.Supplier
-import kotlin.random.Random
 
 class NamesDatasetSupplier(
     private val sciCore: SciCore,
@@ -55,9 +55,10 @@ class NamesDatasetSupplier(
 
     private var idx = 0L
     override fun get(): Pair<ITensor, ITensor> {
+        val idx = random?.nextInt(x.shape[0].toInt()) ?: idx++.toInt()
         return Pair(
-            x.getView(random?.nextInt(x.shape[0].toInt())?.toLong() ?: (idx % y.shape[0])),
-            y.getView(random?.nextInt(y.shape[0].toInt())?.toLong() ?: (idx++ % y.shape[0]))
+            x.getView(idx.toLong()),
+            y.getView(idx.toLong())
         )
     }
 
