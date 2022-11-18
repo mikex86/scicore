@@ -74,7 +74,7 @@ class Random(object):
 
         for i in range(0, len(l)):
             if not i % 4:
-                n = self.nextInt()
+                n = self.next_int()
             b = n & 0xff
             # Flip signs. Ugh.
             if b & 0x80:
@@ -82,7 +82,7 @@ class Random(object):
             l[i] = b
             n >>= 8
 
-    def nextInt(self, n=None):
+    def next_int(self, n=None):
         """
         Return a random int in [0, `n`).
 

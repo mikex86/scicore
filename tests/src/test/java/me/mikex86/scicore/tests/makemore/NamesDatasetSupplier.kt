@@ -19,7 +19,8 @@ class NamesDatasetSupplier(
         val x = mutableListOf<ByteArray>()
         val y = mutableListOf<Byte>()
         for (line in lines) {
-            var context = ByteArray(blockSize) { NamesCharacterMapping.charToIndex['.']!! } // init with padding special char
+            var context =
+                ByteArray(blockSize) { NamesCharacterMapping.charToIndex['.']!! } // init with padding special char
             for (ch in "$line.") {
                 val ix = NamesCharacterMapping.charToIndex[ch]!!
                 x.add(context)
@@ -43,7 +44,8 @@ class NamesDatasetSupplier(
     val y: ITensor
 
     init {
-        val lines = random?.let { random -> NamesCharacterMapping.lines.shuffled(random) } ?: NamesCharacterMapping.lines
+        val lines =
+            random?.let { random -> NamesCharacterMapping.lines.shuffled(random) } ?: NamesCharacterMapping.lines
 
         val n = (lines.size * 0.8).toInt()
         val (x, y) = buildDataset(if (training) lines.subList(0, n) else lines.subList(n, lines.size))
@@ -54,8 +56,8 @@ class NamesDatasetSupplier(
     private var idx = 0L
     override fun get(): Pair<ITensor, ITensor> {
         return Pair(
-            x.getView(random?.nextLong(x.shape[0]) ?: (idx % y.shape[0])),
-            y.getView(random?.nextLong(y.shape[0]) ?: (idx++ % y.shape[0]))
+            x.getView(random?.nextInt(x.shape[0].toInt())?.toLong() ?: (idx % y.shape[0])),
+            y.getView(random?.nextInt(y.shape[0].toInt())?.toLong() ?: (idx++ % y.shape[0]))
         )
     }
 

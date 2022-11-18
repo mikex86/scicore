@@ -69,11 +69,11 @@ LEARNING_RATE_DECAY_FACTOR = (END_LEARNING_RATE / INITIAL_LEARNING_RATE) ** (1 /
 
 if __name__ == '__main__':
     # Declare parameters
-    C = torch.zeros((VOCAB_SIZE, EMBEDDING_SIZE))
-    W1 = torch.zeros((N_HIDDEN, BLOCK_SIZE * EMBEDDING_SIZE))
-    b1 = torch.zeros(N_HIDDEN)
-    W2 = torch.zeros((VOCAB_SIZE, N_HIDDEN))
-    b2 = torch.zeros(VOCAB_SIZE)
+    C = torch.randn((VOCAB_SIZE, EMBEDDING_SIZE))
+    W1 = torch.randn((N_HIDDEN, BLOCK_SIZE * EMBEDDING_SIZE))
+    b1 = torch.randn(N_HIDDEN)
+    W2 = torch.randn((VOCAB_SIZE, N_HIDDEN))
+    b2 = torch.randn(VOCAB_SIZE)
 
     # Initialize parameters
     _init_gaussian_like_java(C)
@@ -103,26 +103,33 @@ if __name__ == '__main__':
     lossi = []
     stepi = []
 
+    dataset_random = Random(123)
+
     start_idx = 0
     for step in trange(N_TRAINING_STEPS):
         # Construct Mini-batch
-        end_index = start_idx + BATCH_SIZE
-        if end_index >= Xtr.shape[0]:
-            over_shoot = end_index - Xtr.shape[0]
-            idx = torch.cat([
-                torch.arange(start_idx, Xtr.shape[0]),
-                torch.arange(0, over_shoot)
-            ])
-            start_idx = over_shoot
-        else:
-            idx = torch.arange(start_idx, end_index)
-            start_idx = end_index
+
+        # end_index = start_idx + BATCH_SIZE
+        # if end_index >= Xtr.shape[0]:
+        #     over_shoot = end_index - Xtr.shape[0]
+        #     idx = torch.cat([
+        #         torch.arange(start_idx, Xtr.shape[0]),
+        #         torch.arange(0, over_shoot)
+        #     ])
+        #     start_idx = over_shoot
+        # else:
+        #     idx = torch.arange(start_idx, end_index)
+        #     start_idx = end_index
+
+        idx = torch.zeros(BATCH_SIZE, dtype=torch.long)
+        for i in range(BATCH_SIZE):
+            idx[i] = dataset_random.next_int(Xtr.shape[0])
 
         X = Xtr[idx]  # (batch_size, block_size)
         Y = Ytr[idx]  # (batch_size,)
 
         emb = C[X]  # (batch_size, block_size, embedding_size)
-        emb_flat = emb.reshape(BATCH_SIZE, BLOCK_SIZE * EMBEDDING_SIZE)  # (batch_size, block_size * embedding_size)
+        emb_flat = emb.reshape(-1, BLOCK_SIZE * EMBEDDING_SIZE)  # (batch_size, block_size * embedding_size)
 
         # forward pass
         h = torch.tanh(emb_flat @ W1.T + b1)  # (batch_size, n_hidden)
@@ -157,4 +164,52 @@ if __name__ == '__main__':
     loss = F.cross_entropy(logits, Ytr)
     print("Loss on training set:", loss.item())
 
+    # visualize dimensions 0 and 1 of the embedding matrix C for all characters
+    plt.figure(figsize=(8, 8))
+    plt.scatter(C[:, 0].data, C[:, 1].data, s=200)
+    for i in range(C.shape[0]):
+        plt.text(C[i, 0].item(), C[i, 1].item(), itos[i], ha="center", va="center", color='white')
+    plt.grid('minor')
+    plt.show()
 
+    # Sample from the model
+    sampling_rand = Random(123)
+
+    for _ in range(20):
+        out = []
+        context = [0] * BLOCK_SIZE  # initialize with all ...
+
+        while True:
+            emb = C[torch.tensor([context])]  # (1,block_size,d)
+            h = torch.tanh(emb.view(1, -1) @ W1.T + b1)
+            logits = h @ W2.T + b2
+            probs = F.softmax(logits, dim=1)
+
+            # Multinomial sampling
+            # shuffle probs (conform with Kotlin .shuffle())
+            indices = torch.arange(0, probs.shape[1]).view(probs.shape)
+            for i in range(indices.shape[1] - 1, 1, -1):
+                j = sampling_rand.next_int(i + 1)
+                copy = indices[0, i].item()
+                indices[0, i] = indices[0, j].item()
+                indices[0, j] = copy
+
+            u = sampling_rand.next_float()
+            cumulative_probs = 0.0
+            ix = None
+            for i in range(indices.shape[1]):
+                cidx = indices[0, i].item()
+                cumulative_probs += probs[0, cidx].item()
+                if cumulative_probs >= u:
+                    ix = cidx
+                    break
+            if ix is None:
+                raise Exception("very bad")
+            context = context[1:] + [ix]
+            out.append(ix)
+            if ix == 0:
+                break
+
+        print(''.join(itos[i] for i in out))
+
+    print("Done")

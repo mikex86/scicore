@@ -24,7 +24,7 @@ import java.nio.file.Path
 import java.util.*
 
 private const val BATCH_SIZE = 32
-private const val BLOCK_SIZE = 8
+private const val BLOCK_SIZE = 3
 private const val EMBEDDING_SIZE = 10
 private const val N_HIDDEN = 200
 private const val VOCAB_SIZE = 26 + 1 // 26 letters + 1 padding char
@@ -38,7 +38,7 @@ fun main() {
     sciCore.setBackend(ISciCore.BackendType.CPU)
     sciCore.seed(123)
 
-    val namesSupplier = NamesDatasetSupplier(sciCore, BLOCK_SIZE, training = true, shuffle = false)
+    val namesSupplier = NamesDatasetSupplier(sciCore, BLOCK_SIZE, training = true, shuffle = true)
     val trainIt = DatasetIterator(BATCH_SIZE, namesSupplier)
 
     val net = MakeMoreNet(sciCore)
