@@ -10,7 +10,7 @@ void tblas_exp(const T *in, T *out, size_t nElements) {
 }
 
 // AVX specific implementation
-#ifdef __AVX__
+#ifdef __AVX2__
 #include "vectorize_avx.h"
 unary_op_nd(exp, float, _mm256_exp_ps, std::exp);
 unary_op_hook_optimizations(
