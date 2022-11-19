@@ -195,10 +195,10 @@ if __name__ == '__main__':
             # Multinomial sampling
             # shuffle probs (conform with Kotlin .shuffle())
             indices = torch.arange(0, probs.shape[1]).view(probs.shape)
-            for i in range(indices.shape[1] - 1, 1, -1):
-                j = sampling_rand.next_int(i + 1)
-                copy = indices[0, i].item()
-                indices[0, i] = indices[0, j].item()
+            for i in range(indices.shape[1], 1, -1):
+                j = sampling_rand.next_int(i)
+                copy = indices[0, i - 1].item()
+                indices[0, i - 1] = indices[0, j].item()
                 indices[0, j] = copy
 
             u = sampling_rand.next_float()

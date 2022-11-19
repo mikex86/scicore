@@ -24,7 +24,7 @@ void tblas_multiply(const A *a, const B *b, C *c,
 #ifdef __ARM_NEON__
 #include "vectorize_armneon.h"
 
-nd_by_scalar_op(multiply, float, vmulq_f32, *);
+binary_op_nd_by_scalar(multiply, float, vmulq_f32, *);
 binary_op_nd_by_nd(multiply, float, vmulq_f32, *);
 binary_op_hook_optimizations(
         multiply, float,

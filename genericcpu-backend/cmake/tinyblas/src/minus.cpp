@@ -25,7 +25,7 @@ void tblas_minus(const A *a, const B *b, C *c,
 #ifdef __ARM_NEON__
 #include "vectorize_armneon.h"
 
-nd_by_scalar_op(minus, float, vsubq_f32, -);
+binary_op_nd_by_scalar(minus, float, vsubq_f32, -);
 binary_op_nd_by_nd(minus, float, vsubq_f32, -);
 binary_op_hook_optimizations(
         minus, float,

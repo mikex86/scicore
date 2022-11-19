@@ -20,7 +20,7 @@ void tblas_##op_name##_nd(const type *in, type *out, size_t nElements) {\
     }\
 }
 
-#define nd_by_scalar_op(op_name, type, vec_inst, scalar_op) \
+#define binary_op_nd_by_scalar(op_name, type, vec_inst, scalar_op) \
 bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
                                  const size_t *shapeA, const size_t *stridesA, size_t nDimsA,\
                                  const size_t *shapeB, const size_t *, size_t nDimsB,\
@@ -84,7 +84,7 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
     return true;\
 }
 
-#define nd_by_nd_op(op_name, type, vec_inst, scalar_op) \
+#define binary_op_nd_by_nd(op_name, type, vec_inst, scalar_op) \
 bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
                              const size_t *shapeA, const size_t *stridesA, size_t nDimsA, \
                              const size_t *shapeB, const size_t *stridesB, size_t nDimsB, \

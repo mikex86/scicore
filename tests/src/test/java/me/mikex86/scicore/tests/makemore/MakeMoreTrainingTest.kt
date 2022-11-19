@@ -132,9 +132,6 @@ fun main() {
         println("Loss on dataset: $loss")
     }
 
-    // Profiler stats
-    Profiler.printStats()
-
     // Print number of executed operations
     println("Number of performed operations: " + GraphExecutor.getNumOperations())
 }
