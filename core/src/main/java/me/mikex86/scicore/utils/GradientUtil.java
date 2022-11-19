@@ -1,5 +1,6 @@
 package me.mikex86.scicore.utils;
 
+import me.mikex86.scicore.profiling.Profiler;
 import me.mikex86.scicore.tensor.ITensor;
 import org.jetbrains.annotations.NotNull;
 

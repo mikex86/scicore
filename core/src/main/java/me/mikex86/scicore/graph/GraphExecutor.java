@@ -1,6 +1,5 @@
 package me.mikex86.scicore.graph;
 
-import me.mikex86.scicore.profiling.Profiler;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
 import org.jetbrains.annotations.NotNull;
@@ -11,6 +10,8 @@ import java.util.List;
 import java.util.Queue;
 
 public class GraphExecutor {
+
+    private static int numOperations = 0;
 
     // TODO: REVISIT WHETHER INPLACE OPERATIONS CAN BREAK THE BACKWARDS PASS OF OPERATIONS WHICH DEPEND ON THE SAME TENSOR, BUT IN THE PAST, WHEN IT HAD A DIFFERENT VALUE
 
@@ -38,14 +39,18 @@ public class GraphExecutor {
                 if (operationGraphNode.hasOutput()) {
                     ITensor nodeOutput = operationGraphNode.getOutput();
                     if (nodeOutput instanceof LazyTensor lazyTensor && !lazyTensor.hasResult()) {
-                        String sectionName = operationGraphNode.getOperationType().name();
                         ITensor output = operationGraphNode.perform();
                         lazyTensor.setResult(output);
+                        numOperations++;
                     }
                 } else {
                     throw new IllegalStateException("operation graph node has no output.");
                 }
             }
         }
+    }
+
+    public static int getNumOperations() {
+        return numOperations;
     }
 }

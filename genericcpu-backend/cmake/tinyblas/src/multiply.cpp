@@ -25,8 +25,8 @@ void tblas_multiply(const A *a, const B *b, C *c,
 #include "vectorize_armneon.h"
 
 nd_by_scalar_op(multiply, float, vmulq_f32, *);
-nd_by_nd_op(multiply, float, vmulq_f32, *);
-op_hook_optimizations(
+binary_op_nd_by_nd(multiply, float, vmulq_f32, *);
+binary_op_hook_optimizations(
         multiply, float,
         {
             if (tblas_multiply_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
@@ -56,9 +56,9 @@ op_hook_optimizations(
 #ifdef __AVX__
 #include "vectorize_avx.h"
 
-nd_by_scalar_op(multiply, float, _mm256_mul_ps, *);
-nd_by_nd_op(multiply, float, _mm256_mul_ps, *);
-op_hook_optimizations(
+binary_op_nd_by_scalar(multiply, float, _mm256_mul_ps, *);
+binary_op_nd_by_nd(multiply, float, _mm256_mul_ps, *);
+binary_op_hook_optimizations(
         multiply, float,
         {
             if (tblas_multiply_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,

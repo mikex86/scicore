@@ -197,7 +197,7 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                 //     dL/dX = W.T.T @ G    # virtual transpose occurred, so we need to transpose W again
                 //     dL/dX = W @ G        # W.T.T = W
                 // else if transposeA == false:
-                //     dL/dX = W.T @ G      # no virtual transpose occurred, because W here is what was actually used in the forward pass
+                //     dL/dX = W.T @ G      # no virtual transpose occurred, because 'W' here is what was actually used in the forward pass
 
                 // interpretation: never transpose G, transpose W if transposeA == false
                 dLdX = a.getValue().matmul(upstreamGradient, !transposeA, false);
@@ -212,7 +212,7 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                 //     dL/dX = (W @ G).T          # transpose because of would be transpose op chain rule
                 //     dL/dX = G.T @ W.T          # apply identity
                 // else if transposeA == false:
-                //    dL/dX_local = W.T @ G       # no virtual transpose occurred, because W here is what was actually used in the forward pass
+                //    dL/dX_local = W.T @ G       # no virtual transpose occurred, because 'W' here is what was actually used in the forward pass
                 //    dL/dX = (W.T @ G).T         # transpose because of would be transpose op chain rule
                 //    dL/dX = G.T @ W             # apply identity
 

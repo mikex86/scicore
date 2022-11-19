@@ -24,8 +24,8 @@ void tblas_pow(const A *a, const B *b, C *c,
     delete[] outputIndex;
 }
 
-op_hook_optimizations(pow, float,
-                      {
+binary_op_hook_optimizations(pow, float,
+                             {
                           // check if B is scalar and is 2, then use tblas_multiply
                           if ((nDimsB == 0 || (nDimsB == 1 && shapeB[0] == 1)) && b[0] == 2) {
                               tblas_multiply(
@@ -37,7 +37,7 @@ op_hook_optimizations(pow, float,
                               return;
                           }
                       },
-                      {
+                             {
                           auto *outputIndex = new size_t[nDimsC];
                           memset(outputIndex, 0, sizeof(size_t) * nDimsC);
 

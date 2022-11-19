@@ -7,7 +7,6 @@ import me.mikex86.scicore.data.DatasetIterator
 import me.mikex86.scicore.graph.GraphExecutor
 import me.mikex86.scicore.graph.scopedRecording
 import me.mikex86.scicore.nn.IModule
-import me.mikex86.scicore.nn.act.ReLU
 import me.mikex86.scicore.nn.act.Tanh
 import me.mikex86.scicore.nn.layers.Linear
 import me.mikex86.scicore.nn.optim.Sgd
@@ -132,6 +131,12 @@ fun main() {
             }
         println("Loss on dataset: $loss")
     }
+
+    // Profiler stats
+    Profiler.printStats()
+
+    // Print number of executed operations
+    println("Number of performed operations: " + GraphExecutor.getNumOperations())
 }
 
 class MakeMoreNet(sciCore: SciCore) : IModule {

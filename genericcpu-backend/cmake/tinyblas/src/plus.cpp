@@ -25,11 +25,11 @@ void tblas_plus(const A *a, const B *b, C *c,
 
 #include "vectorize_armneon.h"
 
-nd_by_scalar_op(plus, float, vaddq_f32, +);
+binary_op_nd_by_scalar(plus, float, vaddq_f32, +);
 
-nd_by_nd_op(plus, float, vaddq_f32, +);
+binary_op_nd_by_nd(plus, float, vaddq_f32, +);
 
-op_hook_optimizations(
+binary_op_hook_optimizations(
         plus, float,
         {
             if (tblas_plus_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,
@@ -58,9 +58,9 @@ op_hook_optimizations(
 #ifdef __AVX__
 #include "vectorize_avx.h"
 
-nd_by_scalar_op(plus, float, _mm256_add_ps, +);
-nd_by_nd_op(plus, float, _mm256_add_ps, +);
-op_hook_optimizations(
+binary_op_nd_by_scalar(plus, float, _mm256_add_ps, +);
+binary_op_nd_by_nd(plus, float, _mm256_add_ps, +);
+binary_op_hook_optimizations(
         plus, float,
         {
             if (tblas_plus_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,

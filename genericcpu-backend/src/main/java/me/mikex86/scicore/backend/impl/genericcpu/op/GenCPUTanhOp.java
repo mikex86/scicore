@@ -1,6 +1,7 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
+import me.mikex86.scicore.backend.impl.genericcpu.jni.ReluJNI;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.TanhJNI;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.graph.Graph;
@@ -57,11 +58,17 @@ public class GenCPUTanhOp implements IDifferentiableUnaryOperation {
     @Override
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient input) {
         if (input.requiresGradients()) {
-            ITensor tanh = ctx.getSavedTensorOrPopulateWith("tanh", () -> tanh(input.getValue()));
-            try (ITensor tanhSquared = tanh.pow(2f)) {
-                try (ITensor gradients = tanhSquared.leftMinus(1)) {
-                    input.accumulateGradient(gradients.multiply(upstreamGradient));
-                }
+            ITensor inputValue = input.getValue();
+            DataType dataType = inputValue.getDataType();
+            long[] shape = inputValue.getShape();
+            long nElements = ShapeUtils.getNumElements(shape);
+            ITensor tanh = ctx.getSavedTensorOrPopulateWith("tanh", () -> tanh(inputValue));
+            try (ITensor gradient = this.backend.createTensor(dataType, shape)) {
+                DirectMemoryHandle savedTanhHandle = tanh.getContentsAsDirectMemory();
+                DirectMemoryHandle gradientHandle = gradient.getContentsAsDirectMemory();
+                TanhJNI.tanhGradients(savedTanhHandle.getNativePtr(), gradientHandle.getNativePtr(), nElements, dataType);
+                ITensor finalGradient = gradient.multiply(upstreamGradient);
+                input.accumulateGradient(finalGradient);
             }
         }
     }

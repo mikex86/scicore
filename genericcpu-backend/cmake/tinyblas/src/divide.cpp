@@ -23,10 +23,10 @@ void tblas_divide(const A *a, const B *b, C *c,
 #ifdef __AVX__
 
 #include "vectorize_avx.h"
-nd_by_scalar_op(divide, float, _mm256_div_ps, /)
-nd_by_nd_op(divide, float, _mm256_div_ps, /);
+binary_op_nd_by_scalar(divide, float, _mm256_div_ps, /)
+binary_op_nd_by_nd(divide, float, _mm256_div_ps, /);
 
-op_hook_optimizations(
+binary_op_hook_optimizations(
         divide, float,
         {
             if (tblas_divide_nd_by_scalar(a, b, c, shapeA, stridesA, nDimsA, shapeB, stridesB, nDimsB,

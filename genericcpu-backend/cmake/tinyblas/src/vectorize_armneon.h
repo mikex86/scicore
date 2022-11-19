@@ -5,6 +5,21 @@
 
 #define OPERANDS_SIZE 16
 
+#define unary_op_nd(op_name, type, vec_inst, scalar_inst)\
+void tblas_##op_name##_nd(const type *in, type *out, size_t nElements) {\
+    size_t vecSize = OPERANDS_SIZE / sizeof(type);\
+    size_t i = 0; \
+    size_t vectorizeEndIdx = nElements - vecSize;\
+    for (; i < vectorizeEndIdx; i += vecSize) {\
+        float32x4_t inVec = vdupq_n_f32(in[i]);\
+        float32x4_t outVec = vec_inst(inVec);\
+        _mm256_storeu_ps(out + i, outVec);\
+    }\
+    for (; i < nElements; i++) {\
+        out[i] = scalar_inst(in[i]);\
+    }\
+}
+
 #define nd_by_scalar_op(op_name, type, vec_inst, scalar_op) \
 bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
                                  const size_t *shapeA, const size_t *stridesA, size_t nDimsA,\

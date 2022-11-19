@@ -1,5 +1,6 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
+import me.mikex86.scicore.profiling.Profiler;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
@@ -87,7 +88,6 @@ public class GenCPUReduceSumOp implements IDifferentiableBiParametricOperation<I
             try (ITensor gradients = backend.createTensor(upstreamGradient.getDataType(), node.getValue().getShape())) {
                 gradients.fill(1);
                 ITensor finalGradients = gradients.multiply(upstreamGradient);
-
                 node.accumulateGradient(finalGradients);
             }
         }

@@ -3,6 +3,7 @@ package me.mikex86.scicore.tensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
+import me.mikex86.scicore.profiling.Profiler;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import me.mikex86.scicore.utils.dispose.IDisposable;

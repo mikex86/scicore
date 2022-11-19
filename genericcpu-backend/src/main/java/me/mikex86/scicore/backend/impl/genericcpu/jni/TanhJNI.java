@@ -9,8 +9,13 @@ public class TanhJNI {
 
     private static native void ntanh(long inPtr, long outPtr, long nElements, int dataType);
 
+    private static native void ntanhGradients(long inPtr, long outPtr, long nElements, int dataType);
+
     public static void tanh(long inPtr, long outPtr, long nElements, @NotNull DataType dataType) {
         ntanh(inPtr, outPtr, nElements, dataTypeToInt(dataType));
     }
 
+    public static void tanhGradients(long inPtr, long outPtr, long nElements, @NotNull DataType dataType) {
+        ntanhGradients(inPtr, outPtr, nElements, dataTypeToInt(dataType));
+    }
 }

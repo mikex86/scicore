@@ -5,6 +5,7 @@ import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.op.IDifferentiableOperation;
 import me.mikex86.scicore.graph.op.IOperation;
+import me.mikex86.scicore.profiling.Profiler;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.utils.ShapeUtils;

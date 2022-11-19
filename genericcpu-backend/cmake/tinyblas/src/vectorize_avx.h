@@ -5,7 +5,23 @@
 
 #define OPERANDS_SIZE 32
 
-#define nd_by_scalar_op(op_name, type, vec_inst, scalar_op) \
+#define unary_op_nd(op_name, type, vec_inst, scalar_inst)\
+void tblas_##op_name##_nd(const type *in, type *out, size_t nElements) {\
+    size_t vecSize = OPERANDS_SIZE / sizeof(type);\
+    size_t i = 0; \
+    size_t vectorizeEndIdx = nElements - vecSize;\
+    for (; i < vectorizeEndIdx; i += vecSize) {\
+        __m256 inVec = _mm256_loadu_ps(in + i);\
+        __m256 outVec = vec_inst(inVec);\
+        _mm256_storeu_ps(out + i, outVec);\
+    }\
+    for (; i < nElements; i++) {\
+        out[i] = scalar_inst(in[i]);\
+    }\
+}
+
+
+#define binary_op_nd_by_scalar(op_name, type, vec_inst, scalar_op) \
 bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
                                  const size_t *shapeA, const size_t *stridesA, size_t nDimsA,\
                                  const size_t *shapeB, const size_t *stridesB, size_t nDimsB,\
@@ -73,7 +89,7 @@ bool tblas_##op_name##_nd_by_scalar(const type *a, const type *b, type *c,\
     return true;\
 }
 
-#define nd_by_nd_op(op_name, type, vec_inst, scalar_op) \
+#define binary_op_nd_by_nd(op_name, type, vec_inst, scalar_op) \
 bool tblas_##op_name##_nd_by_nd(const type *a, const type *b, type *c, \
                              const size_t *shapeA, const size_t *stridesA, size_t nDimsA, \
                              const size_t *shapeB, const size_t *stridesB, size_t nDimsB, \
