@@ -14,14 +14,14 @@ void tblas_sigmoid(const T *in, T *out, size_t nElements) {
     }
 }
 
-#ifdef __AVX__
-// AVX specific implementation
+// check SVML is available
+#if defined(__AVX__) && (defined(__INTEL_COMPILER) || defined(_MSC_VER))
 #include "vectorize_avx.h"
 
 __m256 sigmoid_ps(__m256 x) {
     // sigmoid(x) = 1 / (1 + exp(-x))
     __m256 minus_x = _mm256_sub_ps(_mm256_set1_ps(0.0f), x);
-    __m256 exp_x = exp_ps(minus_x);
+    __m256 exp_x = _mm256_exp_ps(minus_x);
     __m256 exp_x_plus_1 = _mm256_add_ps(exp_x, _mm256_set1_ps(1.0f));
     return _mm256_div_ps(_mm256_set1_ps(1.0f), exp_x_plus_1);
 }
