@@ -12,9 +12,9 @@ void tblas_##op_name##_nd(const type *in, type *out, size_t nElements) {\
     if (nElements >= vecSize) {\
         size_t vectorizeEndIdx = nElements - vecSize;\
         for (; i < vectorizeEndIdx; i += vecSize) {\
-            float32x4_t inVec = vdupq_n_f32(in[i]);\
+            float32x4_t inVec = vld1q_f32(in + i);\
             float32x4_t outVec = vec_inst(inVec);\
-            _mm256_storeu_ps(out + i, outVec);\
+            vst1q_f32(out + i, outVec);\
         }\
     }\
     for (; i < nElements; i++) {\

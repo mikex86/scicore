@@ -25,6 +25,22 @@ tblas_exp_nd(in, out, nElements);
 }
 );
 #endif
+#if __ARM_NEON__
+// Arm Neon specific implementation
+#include "vectorize_armneon.h"
+#include <neon_mathfun.h>
+
+unary_op_nd(exp, float, exp_ps, std::exp);
+
+unary_op_hook_optimizations(
+        exp, float,
+        {
+            tblas_exp_nd(in, out, nElements);
+        },
+        {
+        }
+);
+#endif
 
 
 UNARY_OPERATION_FOR_ALL_DATA_TYPES_IMPL(tblas_exp)

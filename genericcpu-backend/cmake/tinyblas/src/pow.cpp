@@ -6,6 +6,8 @@
 #include <cmath>
 #include <iostream>
 
+// TODO: VECTORIZE POW
+
 template<typename A, typename B, typename C>
 void tblas_pow(const A *a, const B *b, C *c,
                const size_t *shapeA, const size_t *stridesA, size_t nDimsA,
