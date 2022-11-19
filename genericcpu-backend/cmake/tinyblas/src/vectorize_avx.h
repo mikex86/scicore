@@ -8,12 +8,14 @@
 #define unary_op_nd(op_name, type, vec_inst, scalar_inst)\
 void tblas_##op_name##_nd(const type *in, type *out, size_t nElements) {\
     size_t vecSize = OPERANDS_SIZE / sizeof(type);\
-    size_t i = 0; \
-    size_t vectorizeEndIdx = nElements - vecSize;\
-    for (; i < vectorizeEndIdx; i += vecSize) {\
-        __m256 inVec = _mm256_loadu_ps(in + i);\
-        __m256 outVec = vec_inst(inVec);\
-        _mm256_storeu_ps(out + i, outVec);\
+    size_t i = 0;\
+    if (nElements >= vecSize) {\
+        size_t vectorizeEndIdx = nElements - vecSize;\
+        for (; i < vectorizeEndIdx; i += vecSize) {\
+            __m256 inVec = _mm256_loadu_ps(in + i);\
+            __m256 outVec = vec_inst(inVec);\
+            _mm256_storeu_ps(out + i, outVec);\
+        }\
     }\
     for (; i < nElements; i++) {\
         out[i] = scalar_inst(in[i]);\
