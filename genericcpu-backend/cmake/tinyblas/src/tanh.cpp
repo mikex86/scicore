@@ -16,8 +16,10 @@ void tblas_tanh_gradients(const T *tanhResulIn, T* out, size_t nElements) {
     }
 }
 
-// AVX specific implementation
-#ifdef __AVX__
+// check SVML is available
+// This is mostly compiler damage control, as most compilers will automatically vectorize
+// the std::log call.
+#if defined(__AVX__) && (defined(__INTEL_COMPILER) || defined(_MSC_VER))
 
 #include "vectorize_avx.h"
 unary_op_nd(tanh, float, _mm256_tanh_ps, std::tanh);
