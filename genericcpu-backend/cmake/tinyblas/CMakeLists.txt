@@ -19,15 +19,21 @@ if (UNIX AND NOT APPLE)
 endif ()
 
 # Check if arm neon is available
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag("-mfpu=neon" USE_ARM_NEON)
-if (USE_ARM_NEON)
+include(CheckCXXSourceCompiles)
+check_cxx_source_compiles("
+#include <arm_neon.h>
+int main() {
+    int32x4_t a = vdupq_n_s32(0);
+    return 0;
+}
+" HAS_ARM_NEON)
+if (HAS_ARM_NEON)
     add_subdirectory(libraries/neon_mathfun)
 endif ()
 
 add_library(tinyblas STATIC src/matmul.cpp src/multiply.cpp src/plus.cpp src/minus.cpp src/divide.cpp src/exp.cpp src/pow.cpp src/relu.cpp src/reducesum.cpp src/argmax.cpp src/sigmoid.cpp src/tanh.cpp src/log.cpp)
 target_include_directories(tinyblas PUBLIC include)
 
-if (USE_ARM_NEON)
+if (HAS_ARM_NEON)
     target_link_libraries(tinyblas PRIVATE neon_mathfun)
 endif ()
