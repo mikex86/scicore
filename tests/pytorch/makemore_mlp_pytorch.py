@@ -32,14 +32,11 @@ N_HIDDEN = 200
 def build_dataset(words):
     X, Y = [], []
     for w in words:
-
-        # print(w)
         context = [0] * BLOCK_SIZE
         for ch in w + '.':
             ix = stoi[ch]
             X.append(context)
             Y.append(ix)
-            # print(''.join(itos[i] for i in context), '--->', itos[ix])
             context = context[1:] + [ix]  # crop and append
 
     X = torch.tensor(X)
@@ -78,11 +75,11 @@ LEARNING_RATE_DECAY_FACTOR = (END_LEARNING_RATE / INITIAL_LEARNING_RATE) ** (1 /
 
 if __name__ == '__main__':
     # Declare parameters
-    C = torch.zeros((VOCAB_SIZE, EMBEDDING_SIZE))
-    W1 = torch.zeros((N_HIDDEN, BLOCK_SIZE * EMBEDDING_SIZE))
-    b1 = torch.zeros(N_HIDDEN)
-    W2 = torch.zeros((VOCAB_SIZE, N_HIDDEN))
-    b2 = torch.zeros(VOCAB_SIZE)
+    C = torch.zeros((VOCAB_SIZE, EMBEDDING_SIZE), dtype=torch.float32)
+    W1 = torch.zeros((N_HIDDEN, BLOCK_SIZE * EMBEDDING_SIZE), dtype=torch.float32)
+    b1 = torch.zeros(N_HIDDEN, dtype=torch.float32)
+    W2 = torch.zeros((VOCAB_SIZE, N_HIDDEN), dtype=torch.float32)
+    b2 = torch.zeros(VOCAB_SIZE, dtype=torch.float32)
 
     # Initialize parameters
     _init_gaussian_like_java(C)
@@ -193,7 +190,7 @@ if __name__ == '__main__':
             probs = F.softmax(logits, dim=1)
 
             # Multinomial sampling
-            # shuffle probs (conform with Kotlin .shuffle())
+            # shuffle probs (conform with Java's Collections .shuffle())
             indices = torch.arange(0, probs.shape[1]).view(probs.shape)
             for i in range(indices.shape[1], 1, -1):
                 j = sampling_rand.next_int(i)

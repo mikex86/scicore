@@ -10,7 +10,6 @@ import me.mikex86.scicore.nn.IModule
 import me.mikex86.scicore.nn.act.Tanh
 import me.mikex86.scicore.nn.layers.Linear
 import me.mikex86.scicore.nn.optim.Sgd
-import me.mikex86.scicore.profiling.Profiler
 import me.mikex86.scicore.tensor.DataType
 import me.mikex86.scicore.tensor.ITensor
 import me.mikex86.scicore.tensor.LazyTensor
@@ -134,6 +133,55 @@ fun main() {
 
     // Print number of executed operations
     println("Number of performed operations: " + GraphExecutor.getNumOperations())
+
+    // Inference
+    run {
+        val slidingWindowEncoder = SlidingWindowEncoder(blockSize = BLOCK_SIZE)
+        val random = Random(123)
+        for (i in 0 until 20) {
+            var windowString = ""
+            var totalString = ""
+
+            while (!windowString.endsWith(".")) {
+                val window = slidingWindowEncoder.getWindow(windowString)
+                val windowTensor = sciCore.array(window)
+                val nextChar = net(windowTensor)
+                    .use { logits ->
+                        sciCore.softmax(logits, 1)
+                    }
+                    .use { probs ->
+                        // multinomial distribution sampling
+                        val probValues = FloatArray(probs.shape[1].toInt())
+                        val probIndices = mutableListOf<Byte>()
+                        for (idx in 0 until probs.shape[1]) {
+                            probValues[idx.toInt()] = probs.getAsFloat(0, idx)
+                            probIndices.add(idx.toByte())
+                        }
+                        probIndices.shuffle(random)
+                        var cumulativeProb = 0f
+                        var chosenIndex = 0
+                        val u = random.nextFloat()
+                        for (idx in probIndices) {
+                            val prob = probValues[idx.toInt()]
+                            cumulativeProb += prob
+                            if (cumulativeProb >= u) {
+                                chosenIndex = idx.toInt()
+                                break
+                            }
+                        }
+                        chosenIndex
+                    }.let { idx ->
+                        NamesCharacterMapping.indexToChar[idx.toByte()]!!
+                    }
+                totalString += nextChar
+                windowString += nextChar
+                if (windowString.length > BLOCK_SIZE) {
+                    windowString = windowString.substring(1)
+                }
+            }
+            println(totalString)
+        }
+    }
 }
 
 class MakeMoreNet(sciCore: SciCore) : IModule {
