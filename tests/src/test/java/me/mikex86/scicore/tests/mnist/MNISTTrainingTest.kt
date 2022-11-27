@@ -54,7 +54,10 @@ fun main() {
                             .use { diff -> diff.pow(2f) }
                             .use { diffSquared -> diffSquared.reduceSum(-1) }
                             .use { sum -> sum.divide(BATCH_SIZE.toFloat()) }
-                            .use { loss -> optimizer.step(loss); loss.elementAsDouble() }
+                            .use { loss ->
+                                optimizer.step(loss)
+                                loss.elementAsDouble()
+                            }
                     }
                 }
                 progressBar.step()
@@ -64,6 +67,7 @@ fun main() {
     val end = System.currentTimeMillis()
     println("Training time: " + (end - start) / 1000.0 + "s")
     println("Final loss value: $lossValue")
+    println("Examples per second: " + N_TRAINING_STEPS * BATCH_SIZE / ((end - start) / 1000.0))
 
     System.out.flush()
 

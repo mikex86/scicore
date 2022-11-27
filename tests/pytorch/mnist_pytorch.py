@@ -105,6 +105,7 @@ if __name__ == '__main__':
 
     print(f'Final loss: {loss.item()}')
     print(f'Train time: {time.time() - start_time:.2f}s')
+    print(f'Examples/Second: {n_steps * batch_size / (time.time() - start_time):.2f}')
 
     # Test the network
     correct = 0
