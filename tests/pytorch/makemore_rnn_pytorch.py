@@ -1,4 +1,4 @@
-from typing import Tuple, Iterator, Mapping
+from typing import Tuple, Mapping
 
 import torch
 from torch.nn import Linear, Embedding
@@ -6,7 +6,7 @@ from torch.nn import Module, Parameter
 from torch.utils.data import Dataset
 from torch.nn import functional as F
 
-EMBEDDING_SIZE = 64
+EMBEDDING_SIZE = 32
 HIDDEN_SIZE = 64
 VOCAB_SIZE = 26 + 1  # +1 for start/end token
 
@@ -34,7 +34,7 @@ class NamesDataset(Dataset):
 
             # shift all items in x by one to the right
             y = x[1:] + [-1]
-            y_tensor = torch.tensor(y + [-1] * (self.max_word_len + 2 - len(x)))
+            y_tensor = torch.tensor(y + [-1] * (self.max_word_len + 2 - len(y)))
             Y.append(y_tensor)
         return torch.stack(X), torch.stack(Y)
 

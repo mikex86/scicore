@@ -1,4 +1,4 @@
-package me.mikex86.scicore.tests.makemore
+package me.mikex86.scicore.tests.makemore.mlp
 
 import me.mikex86.matplotlib.jplot.JPlot
 import me.mikex86.scicore.ISciCore
@@ -10,10 +10,10 @@ import me.mikex86.scicore.nn.IModule
 import me.mikex86.scicore.nn.act.Tanh
 import me.mikex86.scicore.nn.layers.Linear
 import me.mikex86.scicore.nn.optim.Sgd
-import me.mikex86.scicore.tensor.DataType
-import me.mikex86.scicore.tensor.ITensor
-import me.mikex86.scicore.tensor.LazyTensor
-import me.mikex86.scicore.tensor.unaryMinus
+import me.mikex86.scicore.tensor.*
+import me.mikex86.scicore.tests.makemore.NamesCharacterMapping
+import me.mikex86.scicore.tests.makemore.NamesSlidingWindowDatasetSupplier
+import me.mikex86.scicore.tests.makemore.SlidingWindowEncoder
 import me.mikex86.scicore.utils.use
 import me.tongfei.progressbar.ProgressBarBuilder
 import me.tongfei.progressbar.ProgressBarStyle
@@ -36,14 +36,13 @@ fun main() {
     sciCore.setBackend(ISciCore.BackendType.CPU)
     sciCore.seed(123)
 
-    val namesSupplier = NamesDatasetSupplier(sciCore, BLOCK_SIZE, training = true, shuffle = true)
+    val namesSupplier = NamesSlidingWindowDatasetSupplier(sciCore, BLOCK_SIZE, training = true, shuffle = true)
     val trainIt = DatasetIterator(BATCH_SIZE, namesSupplier)
 
-    val net = MakeMoreNet(sciCore)
+    val net = MakeMoreMLPNet(sciCore)
 
     val optimizer = Sgd(sciCore, INITIAL_LEARNING_RATE, END_LEARNING_RATE, N_TRAINING_STEPS, net.parameters())
     var lossValue = -1.0
-
 
     // loss on dataset
     sciCore.backend.operationRecorder.scopedRecording {
@@ -83,12 +82,12 @@ fun main() {
                                     .use { totalCounts -> counts / totalCounts }
                             }
                             .use { probs ->
-                                sciCore.arange(0, 32, 1, DataType.INT64)
-                                    .use { idx -> probs[idx, y] }
+                                probs[0 until BATCH_SIZE, y]
                             }
                             .use { probsAssignedToCorrectLabels ->
                                 probsAssignedToCorrectLabels.log()
-                            }.use { logProbs ->
+                            }
+                            .use { logProbs ->
                                 logProbs.mean()
                             }
                             .use { logProbsMean ->
@@ -124,7 +123,7 @@ fun main() {
             // cross entropy loss
             .use { logits -> logits.exp() }
             .use { counts -> counts / counts.reduceSum(1, true) }
-            .use { probs -> probs[sciCore.arange(0, y.shape[0], 1, DataType.INT64), y] }
+            .use { probs -> probs[0 until y.shape[0], y] }
             .use { probsAssignedToCorrectLabels ->
                 -probsAssignedToCorrectLabels.log().mean().elementAsDouble()
             }
@@ -184,13 +183,13 @@ fun main() {
     }
 }
 
-class MakeMoreNet(sciCore: SciCore) : IModule {
+class MakeMoreMLPNet(sciCore: SciCore) : IModule {
 
-    private val embedding = (sciCore.gaussian(
+    private val embedding = sciCore.gaussian(
         DataType.FLOAT32,
         VOCAB_SIZE.toLong(),
         EMBEDDING_SIZE.toLong()
-    ).minus(0.5f) as LazyTensor).result()
+    )
 
     private val fc1 = Linear(sciCore, DataType.FLOAT32, (EMBEDDING_SIZE * BLOCK_SIZE).toLong(), N_HIDDEN.toLong(), true)
     private val fc2 = Linear(sciCore, DataType.FLOAT32, N_HIDDEN.toLong(), VOCAB_SIZE.toLong(), true)

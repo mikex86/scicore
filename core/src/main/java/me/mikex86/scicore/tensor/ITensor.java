@@ -505,6 +505,17 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
         return (T) value;
     }
 
+    @NotNull
+    default ITensor broadcast(long... sizes) {
+        Validator.assertTrue(sizes.length == getShape().length, "The number of broadcast dimensions must match the tensor rank");
+        for (int i = 0; i < sizes.length; i++) {
+            Validator.assertTrue(sizes[i] == 1 || sizes[i] == getShape()[i], "The broadcast dimensions must be either 1 or the same as the tensor shape");
+        }
+        try (ITensor one = getSciCoreBackend().createTensor(getDataType(), new long[]{1L})) {
+            return this.multiply(one.getReshapedView(sizes));
+        }
+    }
+
     @NotNull ITensor copy();
 
     void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor);
@@ -821,6 +832,7 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
     @NotNull ITensor tanh();
 
     @NotNull ITensor log();
+
     @NotNull ITensor argmax(int dimension);
 
     /**

@@ -6,19 +6,17 @@ import me.mikex86.scicore.utils.ShapeUtils
 import java.util.Random
 import java.util.function.Supplier
 
-class NamesDatasetSupplier(
+class NamesSlidingWindowDatasetSupplier(
     private val sciCore: SciCore,
     private val blockSize: Int,
     training: Boolean,
     shuffle: Boolean
-) :
-    Supplier<Pair<ITensor, ITensor>> {
+) : Supplier<Pair<ITensor, ITensor>> {
 
-
-    private fun buildDataset(lines: List<String>): Pair<ITensor, ITensor> {
+    private fun buildDataset(words: List<String>): Pair<ITensor, ITensor> {
         val x = mutableListOf<ByteArray>()
         val y = mutableListOf<Byte>()
-        for (line in lines) {
+        for (line in words) {
             var context =
                 ByteArray(blockSize) { NamesCharacterMapping.charToIndex['.']!! } // init with padding special char
             for (ch in "$line.") {

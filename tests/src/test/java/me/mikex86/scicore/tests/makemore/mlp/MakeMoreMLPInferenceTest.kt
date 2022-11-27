@@ -1,7 +1,9 @@
-package me.mikex86.scicore.tests.makemore
+package me.mikex86.scicore.tests.makemore.mlp
 
 import me.mikex86.scicore.ISciCore
 import me.mikex86.scicore.SciCore
+import me.mikex86.scicore.tests.makemore.NamesCharacterMapping
+import me.mikex86.scicore.tests.makemore.SlidingWindowEncoder
 import java.util.Random
 import kotlin.io.path.Path
 
@@ -11,7 +13,7 @@ fun main() {
     val sciCore = SciCore()
     sciCore.setBackend(ISciCore.BackendType.CPU)
 
-    val net = MakeMoreNet(sciCore)
+    val net = MakeMoreMLPNet(sciCore)
     net.load(Path("makemore.scm"))
 
     val slidingWindowEncoder = SlidingWindowEncoder(blockSize = BLOCK_SIZE)
