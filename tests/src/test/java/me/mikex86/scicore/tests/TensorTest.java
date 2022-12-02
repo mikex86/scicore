@@ -955,9 +955,9 @@ abstract class TensorTest {
 
     @Test
     void exp() {
-        ITensor matrix = sciCore.matrix(new float[][]{{3.8f, 16.3f}, {2.7f, 1.9f}, {3.7f, 1.7f}});
+        ITensor matrix = sciCore.matrix(new float[][]{{3.8f, 7.3f}, {2.7f, 1.9f}, {3.7f, 1.7f}});
         ITensor exp = matrix.exp();
-        assertEquals(sciCore.matrix(new float[][]{{(float) Math.exp(3.8), (float) Math.exp(46.3)}, {(float) Math.exp(2.7), (float) Math.exp(1.9)}, {(float) Math.exp(3.7), (float) Math.exp(1.7)}}), exp);
+        assertEquals(sciCore.matrix(new float[][]{{(float) Math.exp(3.8), (float) Math.exp(7.3)}, {(float) Math.exp(2.7), (float) Math.exp(1.9)}, {(float) Math.exp(3.7), (float) Math.exp(1.7)}}), exp);
     }
 
 
