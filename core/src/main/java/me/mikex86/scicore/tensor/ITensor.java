@@ -16,7 +16,7 @@ import java.util.List;
 
 public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
-    float EPSILON = 1E-3f;
+    float EPSILON = 1E-4f;
 
     long getId();
 

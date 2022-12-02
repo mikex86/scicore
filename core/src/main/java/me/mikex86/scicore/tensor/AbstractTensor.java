@@ -998,7 +998,9 @@ public abstract class AbstractTensor implements ITensor {
         long[] index = new long[shape.length];
         if (dataType.isFloatingPoint()) {
             do {
-                if (Math.abs(getAsDouble(index) - other.getAsDouble(index)) > EPSILON) {
+                double v1 = getAsDouble(index);
+                double v2 = other.getAsDouble(index);
+                if (Math.abs(v1 - v2) > EPSILON + Math.ulp(v1) + Math.ulp(v2)) {
                     return false;
                 }
             } while (ShapeUtils.incrementIndex(index, shape));
