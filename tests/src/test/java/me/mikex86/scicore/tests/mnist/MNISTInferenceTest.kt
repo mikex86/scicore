@@ -36,7 +36,7 @@ fun main() {
             val output = net.forward(input)
             val prediction = output.argmax(1)
 
-            val bufferedImage = input.getReshapedView(longArrayOf(28, 28)).transpose().toGrayScaleImage()
+            val bufferedImage = input.reshape(longArrayOf(28, 28)).transpose().toGrayScaleImage()
             jFrame.graphics.drawImage(bufferedImage, 0, 0, jFrame.width, jFrame.height, null)
 
             g.color = Color.WHITE

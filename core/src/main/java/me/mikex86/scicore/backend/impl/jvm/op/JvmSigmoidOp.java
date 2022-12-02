@@ -40,7 +40,7 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
                 result.setByLongFlat(sigmoid, i);
             }
         }
-        result = result.getReshapedView(shape, strides);
+        result = result.reshape(shape, strides);
         return result;
     }
 

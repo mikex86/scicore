@@ -52,6 +52,7 @@ fun main() {
 //                for (i in 0 until seqLen) {
 //                    val embedding = embeddingsForSequence[LongRange.ALL, i, LongRange.ALL]
 //                    val rnnInput = hidden.concat(embedding, 1)
+//
 //                }
 //                lmHead(hidden)
 //            }

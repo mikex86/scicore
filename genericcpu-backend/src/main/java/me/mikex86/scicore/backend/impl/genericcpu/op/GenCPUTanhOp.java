@@ -1,9 +1,7 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
-import me.mikex86.scicore.backend.impl.genericcpu.jni.ReluJNI;
 import me.mikex86.scicore.backend.impl.genericcpu.jni.TanhJNI;
-import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
@@ -34,7 +32,7 @@ public class GenCPUTanhOp implements IDifferentiableUnaryOperation {
         DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
         DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
         TanhJNI.tanh(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
-        result = result.getReshapedView(shape, strides);
+        result = result.reshape(shape, strides);
         return result;
     }
 

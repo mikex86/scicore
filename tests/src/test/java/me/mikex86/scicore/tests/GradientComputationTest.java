@@ -8,6 +8,7 @@ import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -188,7 +189,7 @@ abstract class GradientComputationTest {
 
     @Test
     void testMatmulWithMultiply4dby2d_2dBroadcast() {
-        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, DataType.FLOAT32).getReshapedView(new long[]{5, 4, 3, 2});
+        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, DataType.FLOAT32).reshape(new long[]{5, 4, 3, 2});
         ITensor b = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});
         ITensor c = a.multiply(b);
         ITensor d = c.reduceSum(0);
@@ -734,7 +735,7 @@ abstract class GradientComputationTest {
     @Test
     void test4dPlus2dAndMatmul_2dBroadcast() {
         // (5, 4, 3, 2) + (3, 2) = (5, 4, 3, 2)
-        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, DataType.FLOAT32).getReshapedView(new long[]{5, 4, 3, 2});
+        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, DataType.FLOAT32).reshape(new long[]{5, 4, 3, 2});
         ITensor b = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});
         ITensor c = a.plus(b);
         ITensor d = c.reduceSum(0);
@@ -1149,5 +1150,90 @@ abstract class GradientComputationTest {
         assertThrows(IllegalStateException.class, () -> sciCore.getBackpropagationGraphUpTo(exp, List.of(a, exp, b)));
     }
 
+
+    @Nested
+    class TestGet {
+
+        @Test
+        void testGetBackward2d() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}});
+            ITensor b = a.exp().get(
+                    sciCore.array(new long[]{0, 1}),
+                    sciCore.array(new long[]{0, 1})
+            );
+            ITensor c = b.reduceSum(-1, false);
+            IGraph graph = sciCore.getBackpropagationGraphUpTo(c, List.of(a));
+            graph.backward();
+            ITensor dCdA = graph.getGradient(a).orElseThrow();
+            Assertions.assertEquals(sciCore.matrix(new float[][]{{(float) Math.exp(1), 0, 0, 0, 0}, {0, (float) Math.exp(7), 0, 0, 0}}), dCdA);
+        }
+
+        @Test
+        void testGetBackward3dWithoutRepetition() {
+            ITensor a = sciCore.ndarray(new float[][][]{{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}}});
+            ITensor b = a.exp().get(
+                    sciCore.array(new long[]{0, 0, 0, 0}),
+                    sciCore.array(new long[]{0, 0, 1, 1}),
+                    sciCore.array(new long[]{0, 1, 0, 2})
+            );
+            ITensor c = b.reduceSum(-1, false);
+            IGraph graph = sciCore.getBackpropagationGraphUpTo(c, List.of(a));
+            graph.backward();
+            ITensor dCdA = graph.getGradient(a).orElseThrow();
+            Assertions.assertEquals(
+                    sciCore.ndarray(new float[][][]{{
+                            {(float) Math.exp(1), (float) Math.exp(2), 0, 0, 0},
+                            {(float) Math.exp(6), 0, (float) Math.exp(8), 0, 0}}}
+                    ),
+                    dCdA
+            );
+        }
+
+        @Test
+        void testGetBackward3dWithRepetition() {
+            ITensor a = sciCore.ndarray(new float[][][]{{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}}});
+            ITensor b = a.exp().get(
+                    sciCore.array(new long[]{0, 0, 0, 0, 0}),
+                    sciCore.array(new long[]{0, 0, 0, 1, 1}),
+                    sciCore.array(new long[]{0, 1, 0, 0, 2})
+            );
+            ITensor c = b.reduceSum(-1, false);
+            IGraph graph = sciCore.getBackpropagationGraphUpTo(c, List.of(a));
+            graph.backward();
+            ITensor dCdA = graph.getGradient(a).orElseThrow();
+            Assertions.assertEquals(
+                    sciCore.ndarray(new float[][][]{{
+                            {(float) Math.exp(1) + (float) Math.exp(1), (float) Math.exp(2), 0, 0, 0},
+                            {(float) Math.exp(6), 0, (float) Math.exp(8), 0, 0}}}
+                    ),
+                    dCdA
+            );
+        }
+    }
+
+    @Nested
+    class TestCat {
+
+        @Test
+        void testConcatToMatrixAndMatmul() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
+            ITensor b = sciCore.matrix(new float[][]{{6, 7, 8, 9, 10}});
+            ITensor c = a.concat(b, 0); // (2, 5)
+            ITensor d = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}}); // (5, 2)
+            ITensor e = c.matmul(d); // (2, 2)
+            ITensor f = e.reduceSum(-1, false); // ()
+            IGraph graph = sciCore.getBackpropagationGraphUpTo(f, List.of(a, b, c, d, e));
+            graph.backward();
+            ITensor dFdA = graph.getGradient(a).orElseThrow();
+            ITensor dFdB = graph.getGradient(b).orElseThrow();
+            ITensor dFdC = graph.getGradient(c).orElseThrow();
+            ITensor dFdD = graph.getGradient(d).orElseThrow();
+            Assertions.assertEquals(sciCore.matrix(new float[][]{{3, 7, 11, 15, 19}}), dFdA);
+            Assertions.assertEquals(sciCore.matrix(new float[][]{{3, 7, 11, 15, 19}}), dFdB);
+            Assertions.assertEquals(sciCore.matrix(new float[][]{{3, 7, 11, 15, 19}, {3, 7, 11, 15, 19}}), dFdC);
+            Assertions.assertEquals(sciCore.matrix(new float[][]{{7, 7}, {9, 9}, {11, 11}, {13, 13}, {15, 15}}), dFdD);
+        }
+
+    }
 
 }

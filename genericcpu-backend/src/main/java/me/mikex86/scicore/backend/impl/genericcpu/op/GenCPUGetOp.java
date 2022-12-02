@@ -5,19 +5,13 @@ import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.op.IDifferentiableOperation;
 import me.mikex86.scicore.graph.op.IOperation;
-import me.mikex86.scicore.profiling.Profiler;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
 
@@ -47,6 +41,9 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
         long[] inputShape = input.getShape();
         long[] firstIndexShape = firstIndex.getShape();
         int nIndices = indicesList.size();
+        if (nIndices > inputShape.length) {
+            throw new IllegalArgumentException("Too many indices for get operation");
+        }
         long[] resultShape = new long[firstIndexShape.length + inputShape.length - nIndices];
         System.arraycopy(firstIndexShape, 0, resultShape, 0, firstIndexShape.length);
         System.arraycopy(inputShape, nIndices, resultShape, firstIndexShape.length, inputShape.length - nIndices);
@@ -86,6 +83,9 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
             }
         }
         int nIndices = indicesList.size();
+        if (nIndices > inputShape.length) {
+            throw new IllegalArgumentException("Too many indices for get operation");
+        }
         long[] resultShape = new long[indicesShape.length + inputShape.length - nIndices];
         System.arraycopy(indicesShape, 0, resultShape, 0, indicesShape.length);
         System.arraycopy(inputShape, nIndices, resultShape, indicesShape.length, inputShape.length - nIndices);
@@ -124,7 +124,7 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
                 if (indexIntoGradient == null) {
                     indexIntoGradient = new long[upstreamGradient.getShape().length - currentView.getShape().length];
                 }
-                currentView.setContents(upstreamGradient.getView(indexIntoGradient));
+                currentView.add(upstreamGradient.getView(indexIntoGradient));
                 ShapeUtils.incrementIndex(indexIntoGradient, upstreamGradient.getShape());
             } while (ShapeUtils.incrementIndex(indexIntoFirstIndex, firstIndexShape));
 

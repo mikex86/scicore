@@ -2610,6 +2610,113 @@ abstract class TensorTest {
             }), b);
         }
 
+        @Test
+        void test_get2IndexTensorsInto2d_success() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}});
+            ITensor b = a.get(sciCore.array(new long[]{0}), sciCore.array(new long[]{1}));
+            ITensor c = a.get(sciCore.array(new long[]{1}), sciCore.array(new long[]{1}));
+            ITensor d = a.get(sciCore.array(new long[]{0, 1}), sciCore.array(new long[]{1, 1}));
+            assertEquals(sciCore.array(new float[]{2f}), b);
+            assertEquals(sciCore.array(new float[]{7f}), c);
+            assertEquals(sciCore.array(new float[]{2, 7}), d);
+        }
+
+        @Test
+        void test_get3dTooManyIndices_failure() {
+            ITensor a = sciCore.ndarray(new float[][][]{{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}}});
+            assertThrows(IllegalArgumentException.class, () -> a.get(
+                    sciCore.array(new long[]{0, 0, 0}),
+                    sciCore.array(new long[]{0, 0, 1}),
+                    sciCore.array(new long[]{0, 1, 0}),
+                    sciCore.array(new long[]{0, 1, 1}),
+                    sciCore.array(new long[]{0, 0, 0})
+            ));
+        }
+
+    }
+
+    @Nested
+    class Concat {
+
+        @Test
+        void test_concat_2dDim0_success() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1}, {2}, {3}
+            });
+            ITensor b = sciCore.matrix(new float[][]{
+                    {4}
+            });
+            ITensor c = a.concat(b, 0);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {1}, {2}, {3}, {4}
+            }), c);
+        }
+
+        @Test
+        void test_concat_2dDim1_success() {
+            ITensor a = sciCore.matrix(new float[][]{
+                    {1, 2, 3}, {4, 5, 6}
+            });
+            ITensor b = sciCore.matrix(new float[][]{
+                    {7, 8, 9}, {10, 11, 12}
+            });
+            ITensor c = a.concat(b, 1);
+            assertEquals(sciCore.matrix(new float[][]{
+                    {1, 2, 3, 7, 8, 9}, {4, 5, 6, 10, 11, 12}
+            }), c);
+        }
+
+        @Test
+        void test_concat_3dDim0_success() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{1, 2, 3}, {4, 5, 6}},
+                    {{7, 8, 9}, {10, 11, 12}}
+            });
+            ITensor b = sciCore.ndarray(new float[][][]{
+                    {{13, 14, 15}, {16, 17, 18}}
+            });
+            ITensor c = a.concat(b, 0);
+            assertEquals(sciCore.ndarray(new float[][][]{
+                    {{1, 2, 3}, {4, 5, 6}},
+                    {{7, 8, 9}, {10, 11, 12}},
+                    {{13, 14, 15}, {16, 17, 18}}
+            }), c);
+        }
+
+        @Test
+        void test_concat_3dDim1_success() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{1, 2, 3}, {4, 5, 6}},
+                    {{7, 8, 9}, {10, 11, 12}}
+            });
+            ITensor b = sciCore.ndarray(new float[][][]{
+                    {{13, 14, 15}, {16, 17, 18}},
+                    {{19, 20, 21}, {22, 23, 24}}
+            });
+            ITensor c = a.concat(b, 1);
+            assertEquals(sciCore.ndarray(new float[][][]{
+                    {{1, 2, 3}, {4, 5, 6}, {13, 14, 15}, {16, 17, 18}},
+                    {{7, 8, 9}, {10, 11, 12}, {19, 20, 21}, {22, 23, 24}}
+            }), c);
+        }
+
+        @Test
+        void test_concat_3dDim2_success() {
+            ITensor a = sciCore.ndarray(new float[][][]{
+                    {{1, 2, 3}, {4, 5, 6}},
+                    {{7, 8, 9}, {10, 11, 12}}
+            });
+            ITensor b = sciCore.ndarray(new float[][][]{
+                    {{13, 14}, {16, 17}},
+                    {{19, 20}, {22, 23}}
+            });
+            ITensor c = a.concat(b, 2);
+            assertEquals(sciCore.ndarray(new float[][][]{
+                    {{1, 2, 3, 13, 14}, {4, 5, 6, 16, 17}},
+                    {{7, 8, 9, 19, 20}, {10, 11, 12, 22, 23}}
+            }), c);
+        }
+
     }
 
 }

@@ -13,8 +13,7 @@ public interface IGraphRecorder {
     @NotNull ITensor recordOperation(@NotNull OperationType operation, @NotNull OptionBundle optionBundle, @NotNull ITensor... inputs);
 
     default @NotNull ITensor recordOperation(@NotNull OperationType operation, @NotNull ISciCoreBackend backend, @NotNull ITensor... inputs) {
-        ITensor result = recordOperation(operation, OptionBundle.newEmpty(backend), inputs);
-        return result;
+        return recordOperation(operation, OptionBundle.newEmpty(backend), inputs);
     }
 
     /**

@@ -28,8 +28,6 @@ public class GraphRecorder implements IGraphRecorder {
     @NotNull
     private final Stack<Map<ITensor, IGraph.ITensorNode>> recordingScopes = new Stack<>();
 
-    private boolean gradEnabled = true;
-
     {
         recordingScopes.push(new IdentityHashMap<>());
     }
@@ -44,10 +42,6 @@ public class GraphRecorder implements IGraphRecorder {
         List<Graph.IGraphNode> inputNodes = new ArrayList<>();
         if (operation instanceof IInplaceOperation && inputs.length < 1) {
             throw new IllegalStateException("Inplace operation must have at least one input. inputs[0] is the output tensor.");
-        }
-        ITensor originalInputs0 = inputs[0];
-        if (operation instanceof IInplaceOperation && inputs[0] instanceof LazyTensor lazyDst) {
-            inputs[0] = lazyDst.lazyCopy(); // See note "lazyCopy" below.
         }
         for (ITensor input : inputs) {
             Graph.ITensorNode node = getGraphNode(input);
@@ -64,51 +58,16 @@ public class GraphRecorder implements IGraphRecorder {
         Graph.IOperationContext ctx = new Graph.OperationContext(optionBundle);
         Graph.OperationGraphNode operationGraphNode = new Graph.OperationGraphNode(operationType, inputNodes, ctx, operationRegistry);
 
+        ITensor result;
         if (operation instanceof IInplaceOperation) {
-            if (originalInputs0 instanceof LazyTensor originalLazyDst) {
-                // NOTE 1 - "lazyCopy": We force a forceReevaluation of lazyDst, because the tensor that is being inplace-modified will receive a new associated operation graph node that is this the inplace operation.
-                // This ensures that when the tensor is accessed the next time, it does not have a result and the inplace operation is performed.
-                // However, if inputs[0] was lazyDst, the result value of inputs[0] before the inplace operation is performed (which is required to perform the operation) would thus be lost,
-                // because forceReevaluation() would set the result to null.
-                // Therefore, we copy the lazy tensor "lazily" to save this pre-inplace-operation state.
-                // This lazy copy contains the result of the pre-inplace-operation lazy tensor, if it was already present,
-                // or else the lazy tensor copy is associated with the operation graph node that computed the pre-inplace-operation tensor, allowing the result to be computed lazily up to this point.
-
-                // NOTE 2 - "usafe cleanup": inputs[0] which is a lazy copy of the original inputs[0] is not inside a try-with-resources block, as disposing this tensor would dispose the original inputs[0] as well.
-                // The original inputs[0] is still handled by the user, and if by either try-with-resources or GC disposal, the original inputs[0] is disposed, the lazy copy will be disposed as well.
-                // This is safe because the lifetime of the lazy copy will never exceed the lifetime of the original inputs[0],
-                // as it is either in the same recording scope as the original inputs[0], or in a "further pushed in" recording scope, meaning higher in this.recordingScopes,
-                // where the top is the current recording scope, with the shortest lifetime.
-                try (ITensor ignored = operation.performLazily(ctx, List.of(inputs))) {}
-                originalLazyDst.forceReevaluation();
-
-                // NOTE 3 - "setOutput": When multiple inplace-operation nodes are chained, only the last inplace-operation-node should have the output of the tensor that the user handles.
-                // This is because the output of the individual inplace operations needs to be a different instance, because otherwise the first operation in the chain will populate the LazyTensor's result field
-                // with a premature value, and when the second operation is performed, the result field will be non-null, and the operation will not be performed, as the operation would be considered as "already performed".
-                // Therefore, we need different LazyTensor instances for each operation in the chain.
-                // We set the output of the graph node of this operation to the original inputs[0], which is the tensor that the user handles and destination for the inplace operation.
-                // At this point in time, this operation is the last operation in the chain, so this is the correct output.
-                // As we find ourselves in invocations of recordOperation(), where the output of an operation is the input of the next inplace operation,
-                // we set the output of these previous operations to new LazyTensor instances to ensure that the GraphExecutor works correctly.
-                operationGraphNode.setOutput(originalLazyDst);
-                if (originalLazyDst.getAssociatedGraphNode() instanceof Graph.OperationGraphNode prevOperation) {
-                    prevOperation.setOutput(new LazyTensor(originalLazyDst.getSciCoreBackend(), originalLazyDst.getShape(), originalLazyDst.getDataType()));
-                }
-                putGraphNode(originalLazyDst, operationGraphNode);
-                return originalLazyDst;
-            } else {
-                // perform inplace operation eagerly
-                ITensor result = operation.perform(ctx, List.of(inputs)); // result == inputs[0] == output tensor
-                operationGraphNode.setOutput(result);
-                putGraphNode(result, operationGraphNode);
-                return result;
-            }
+            // perform inplace operation eagerly
+            result = operation.perform(ctx, List.of(inputs));
         } else {
-            ITensor result = operation.performLazily(ctx, List.of(inputs));
-            operationGraphNode.setOutput(result);
-            putGraphNode(result, operationGraphNode);
-            return result;
+            result = operation.performLazily(ctx, List.of(inputs));
         }
+        operationGraphNode.setOutput(result);
+        putGraphNode(result, operationGraphNode);
+        return result;
     }
 
     @Nullable
@@ -265,8 +224,8 @@ public class GraphRecorder implements IGraphRecorder {
                     IGraph.IGraphNode copy = copyNodeIncludeAlreadyComputed(input, nodeToInputs);
                     if (copy == null) {
                         throw new IllegalStateException("Cannot construct backpropagation graph, as the graph leads to tensors that are already disposed. Cannot safely continue. " +
-                                "Did the optimization operations leak into your main graph? " +
-                                "Check your usage of GraphRecorder#recordWithScope() or GraphRecorder#scopedRecording() in kotlin, or GraphRecorder#resetRecording()");
+                                                        "Did the optimization operations leak into your main graph? " +
+                                                        "Check your usage of GraphRecorder#recordWithScope() or GraphRecorder#scopedRecording() in kotlin, or GraphRecorder#resetRecording()");
                     }
                     copies.add(copy);
                     nodeToCopy.put(input, copy);

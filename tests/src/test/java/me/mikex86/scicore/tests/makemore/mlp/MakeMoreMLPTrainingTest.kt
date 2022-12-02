@@ -200,7 +200,7 @@ class MakeMoreMLPNet(sciCore: SciCore) : IModule {
         val logits = embedding[input] // embeddingsForSequence: (batchSize, blockSize, embeddingSize)
             .use { embeddingsForSequence ->
                 // embeddingsForSequenceFlat: (batchSize, blockSize * embeddingSize)
-                embeddingsForSequence.getReshapedView(
+                embeddingsForSequence.reshape(
                     longArrayOf(
                         -1,
                         (EMBEDDING_SIZE * BLOCK_SIZE).toLong()

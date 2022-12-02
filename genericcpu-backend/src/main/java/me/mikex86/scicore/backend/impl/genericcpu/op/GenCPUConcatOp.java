@@ -1,6 +1,6 @@
-package me.mikex86.scicore.backend.impl.jvm.op;
+package me.mikex86.scicore.backend.impl.genericcpu.op;
 
-import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
+import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.OptionBundle;
@@ -15,12 +15,12 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 
 
-public class JvmConcatOp implements IDifferentiableBinaryOperation {
+public class GenCPUConcatOp implements IDifferentiableBinaryOperation {
 
     @NotNull
-    private final JvmBackend backend;
+    private final GenCPUBackend backend;
 
-    public JvmConcatOp(@NotNull JvmBackend backend) {
+    public GenCPUConcatOp(@NotNull GenCPUBackend backend) {
         this.backend = backend;
     }
 

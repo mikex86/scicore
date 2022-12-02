@@ -3,7 +3,6 @@ package me.mikex86.scicore.tensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.profiling.Profiler;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import me.mikex86.scicore.utils.dispose.IDisposable;
@@ -29,9 +28,9 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor getView(long @NotNull ... indices);
 
-    @NotNull ITensor getReshapedView(long @NotNull [] shape, long @NotNull [] strides);
+    @NotNull ITensor reshape(long @NotNull [] shape, long @NotNull [] strides);
 
-    default @NotNull ITensor getReshapedView(long @NotNull [] shape) {
+    default @NotNull ITensor reshape(long @NotNull [] shape) {
         shape = Arrays.copyOf(shape, shape.length);
         long numElements = getNumberOfElements();
         boolean hasInferredDimension = false;
@@ -53,8 +52,10 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
             long inferredDimension = numElements / numOtherElements;
             shape[dimensionToInfer] = inferredDimension;
         }
-        return getReshapedView(shape, ShapeUtils.makeStrides(shape));
+        return reshape(shape, ShapeUtils.makeStrides(shape));
     }
+
+    @NotNull ITensor concat(@NotNull ITensor tensor, int dim);
 
     byte getByteFlat(long flatIndex);
 
@@ -512,7 +513,7 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
             Validator.assertTrue(sizes[i] == 1 || sizes[i] == getShape()[i], "The broadcast dimensions must be either 1 or the same as the tensor shape");
         }
         try (ITensor one = getSciCoreBackend().createTensor(getDataType(), new long[]{1L})) {
-            return this.multiply(one.getReshapedView(sizes));
+            return this.multiply(one.reshape(sizes));
         }
     }
 

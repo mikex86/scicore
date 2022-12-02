@@ -38,7 +38,7 @@ public class GenCPUCastOp implements IDifferentiableSingleParametricOperation<In
         for (int i = 0; i < numElements; i++) {
             result.setByDoubleFlat(input.getAsDoubleFlat(i), i);
         }
-        result = result.getReshapedView(shape, strides);
+        result = result.reshape(shape, strides);
         return result;
     }
 

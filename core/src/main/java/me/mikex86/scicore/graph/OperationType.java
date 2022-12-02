@@ -2,10 +2,14 @@ package me.mikex86.scicore.graph;
 
 public enum OperationType {
 
-    MATMUL, DIVIDE, PLUS, MINUS, REDUCE_SUM, EXP, TRANSPOSE, POW, MULTIPLY, RELU, SIGMOID, ARGMAX, CAST, COMPARE_ELEMENTS,
-    ONE_HOT, GET, TANH, RESHAPE, LOG,
+    EXP, TANH, LOG, RELU, SIGMOID, // Unary arithmetic ops
+    MATMUL, DIVIDE, PLUS, MINUS, POW, MULTIPLY, // Binary arithmetic ops
+    REDUCE_SUM, RESHAPE, CONCAT, TRANSPOSE, // Reshape ops
+    ARGMAX, COMPARE_ELEMENTS,
+    ONE_HOT, GET,
 
-    PLUS_INPLACE(true), MINUS_INPLACE(true);
+    CAST,
+    PLUS_INPLACE(true), MINUS_INPLACE(true); // Inplace ops (TODO: FIX)
 
     private final boolean inplace;
 

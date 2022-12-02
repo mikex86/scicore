@@ -37,12 +37,28 @@ public class ShapeUtils {
      * @param dim   the specified dimension
      * @return the number of elements in the shape
      */
-    public static int getNumElements(long @NotNull [] shape, int dim) {
+    public static int getNumElementsOfMostSignificantDims(long @NotNull [] shape, int dim) {
         int numElements = 1;
         for (int i = 0; i < shape.length; i++) {
             if (i > dim) {
                 break;
             }
+            long l = shape[i];
+            numElements *= l;
+        }
+        return numElements;
+    }
+
+    /**
+     * Computes the number of elements in the n least significant dimensions of a shape.
+     *
+     * @param shape the specified shape
+     * @param n     the number of least significant dimensions
+     * @return the number of elements in the n least significant dimensions
+     */
+    public static int getNumElementsOfLeastSignificantDims(long @NotNull [] shape, int n) {
+        int numElements = 1;
+        for (int i = shape.length - n; i < shape.length; i++) {
             long l = shape[i];
             numElements *= l;
         }
@@ -120,7 +136,7 @@ public class ShapeUtils {
      *
      * @param index   the n-dimensional index. indices.length may be less than strides.length, when the offset
      *                to the first element of a particular dimension that is not the lowest-level dimension (individual scalars).
-     * @param shape the shape that constrain the index
+     * @param shape   the shape that constrain the index
      * @param strides the strides as defined byte {@link #makeStrides(long[])}
      * @return the flat index
      * @throws IndexOutOfBoundsException if the index is out of bounds

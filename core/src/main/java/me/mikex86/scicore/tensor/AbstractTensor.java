@@ -693,7 +693,7 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
-    public @NotNull ITensor getReshapedView(long @NotNull [] shape, long @NotNull [] strides) {
+    public @NotNull ITensor reshape(long @NotNull [] shape, long @NotNull [] strides) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         try (ITensor shapeTensor = backend.createTensor(DataType.INT64, new long[]{shape.length});
@@ -708,6 +708,15 @@ public abstract class AbstractTensor implements ITensor {
         }
     }
 
+    @Override
+    public @NotNull ITensor concat(@NotNull ITensor tensor, int dimension) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor dimensionScalar = backend.createTensor(DataType.INT32, new long[0])) {
+            dimensionScalar.setIntFlat(dimension, 0);
+            return operationRecorder.recordOperation(OperationType.CONCAT, OptionBundle.of(backend, Map.of("dimension", dimensionScalar)), this, tensor);
+        }
+    }
 
     @Override
     public @NotNull ITensor pow(byte exponent) {
