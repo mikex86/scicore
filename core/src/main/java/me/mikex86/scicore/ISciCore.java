@@ -18,6 +18,8 @@ public interface ISciCore {
 
     @NotNull ITensor uniform(@NotNull DataType dataType, long @NotNull ... shape);
 
+    @NotNull ITensor randint(@NotNull DataType dataType, long min, long max, long @NotNull ... shape);
+
     @NotNull ITensor gaussian(@NotNull DataType dataType, long @NotNull ... shape);
 
     void setBackend(@NotNull BackendType backendType);

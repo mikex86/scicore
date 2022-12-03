@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Disabled // this test is disabled because it is abstract
 abstract class TensorTest {
 
-    private static final float EPSILON = 1E-6f;
+    private static final float EPSILON = 1E-3f;
 
     ISciCore sciCore;
 

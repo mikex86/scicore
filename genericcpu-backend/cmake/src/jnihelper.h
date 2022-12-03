@@ -84,7 +84,12 @@ JNIEXPORT void JNICALL jniMethodName(JNIEnv *jniEnv, jclass,\
         jniEnv->ReleaseLongArrayElements(stridesBArr, stridesBLongArray, JNI_ABORT);\
         jniEnv->ReleaseLongArrayElements(stridesCArr, stridesCLongArray, JNI_ABORT);\
     }\
-    if (dataTypeA == DATA_TYPE_INT8 && dataTypeB == DATA_TYPE_INT8) {\
+    if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_FLOAT32) {\
+        auto *a = (const float *) aPtr;\
+        auto *b = (const float *) bPtr;\
+        auto *c = (float *) cPtr;\
+        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
+    } else if (dataTypeA == DATA_TYPE_INT8 && dataTypeB == DATA_TYPE_INT8) {\
         auto *a = (const int8_t *) aPtr;\
         auto *b = (const int8_t *) bPtr;\
         auto *c = (int8_t *) cPtr;\
@@ -222,11 +227,6 @@ JNIEXPORT void JNICALL jniMethodName(JNIEnv *jniEnv, jclass,\
     } else if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_INT64) {  \
         auto *a = (const float *) aPtr;\
         auto *b = (const int64_t *) bPtr;\
-        auto *c = (float *) cPtr;\
-        operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
-    } else if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_FLOAT32) {                        \
-        auto *a = (const float *) aPtr;\
-        auto *b = (const float *) bPtr;\
         auto *c = (float *) cPtr;\
         operationFunction(a, b, c, (const size_t*) shapeA, (const size_t*) stridesA, nDimsA, (const size_t*) shapeB, (const size_t*) stridesB, nDimsB, shapeC, stridesC, nDimsC);\
     } else if (dataTypeA == DATA_TYPE_FLOAT32 && dataTypeB == DATA_TYPE_FLOAT64) {                        \

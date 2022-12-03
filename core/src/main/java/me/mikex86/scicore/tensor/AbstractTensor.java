@@ -156,6 +156,13 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
+    public void copyFrom(@NotNull ITensor src) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        operationRecorder.recordOperation(OperationType.COPY, backend, this, src);
+    }
+
+    @Override
     @NotNull
     public ITensor matmul(@NotNull ITensor other) {
         ISciCoreBackend backend = getSciCoreBackend();

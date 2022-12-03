@@ -25,7 +25,7 @@ itos = {i: s for s, i in stoi.items()}
 # build the dataset
 BLOCK_SIZE = 3  # context length: how many characters do we take to predict the next one?
 VOCAB_SIZE = len(chars) + 1  # +1 for the dot
-EMBEDDING_SIZE = 10
+EMBEDDING_SIZE = 8
 N_HIDDEN = 200
 
 

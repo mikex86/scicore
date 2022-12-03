@@ -39,6 +39,7 @@ public class JvmBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.MINUS_INPLACE, new JvmMinusInplaceOp(this));
         operationTable.put(OperationType.COMPARE_ELEMENTS, new JvmCompareElementsOp(this));
         operationTable.put(OperationType.CONCAT, new JvmConcatOp(this));
+        operationTable.put(OperationType.COPY, new JvmCopyOp());
     }
 
     @Override

@@ -26,16 +26,16 @@ public class Sgd implements IOptimizer {
 
     private final float learningRateDecayFactor;
 
-    public Sgd(@NotNull ISciCore sciCore, float learningRate, @NotNull List<ITensor> parameter) {
-        this(sciCore, learningRate, false, 0.0f, parameter);
+    public Sgd(@NotNull ISciCore sciCore, float learningRate, @NotNull List<ITensor> parameters) {
+        this(sciCore, learningRate, false, 0.0f, parameters);
     }
 
-    public Sgd(@NotNull ISciCore sciCore, float initialLearningRate, float endLearningRate, long nStepsUntilEndLearningRateReached, @NotNull List<ITensor> parameter) {
+    public Sgd(@NotNull ISciCore sciCore, float initialLearningRate, float endLearningRate, long nStepsUntilEndLearningRateReached, @NotNull List<ITensor> parameters) {
         this(
                 sciCore, initialLearningRate,
                 true,
                 (float) Math.pow(endLearningRate / initialLearningRate, 1.0 / nStepsUntilEndLearningRateReached),
-                parameter
+                parameters
         );
     }
 
@@ -62,9 +62,7 @@ public class Sgd implements IOptimizer {
                             learningRate = this.initialLearningRate;
                         }
                         try (ITensor scaledGradient = gradient.multiply(learningRate)) {
-                            try (ITensor newGradient = parameter.minus(scaledGradient)) {
-                                parameter.setContents(newGradient);
-                            }
+                            parameter.subtract(scaledGradient);
                         }
                     }
                 }

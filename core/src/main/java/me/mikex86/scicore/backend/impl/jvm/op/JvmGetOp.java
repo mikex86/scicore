@@ -7,12 +7,11 @@ import me.mikex86.scicore.graph.op.IDifferentiableOperation;
 import me.mikex86.scicore.graph.op.IOperation;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
+import me.mikex86.scicore.tensor.View;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class JvmGetOp implements IOperation, IDifferentiableOperation {
 
@@ -111,19 +110,33 @@ public class JvmGetOp implements IOperation, IDifferentiableOperation {
 
             long[] indexIntoFirstIndex = new long[firstIndexShape.length];
             long[] indexIntoGradient = null;
+
+            // used to check for duplicate indices
+            // When an index is duplicated, multiple gradient contributions need to be accumulated,
+            // which means we cannot use fast .setContents() but slower .add()
+            Set<Long> visitedOffsets = new HashSet<>();
             do {
-                ITensor currentView = gradient;
-                for (ITensor index : indicesList) {
-                    long indexValue = index.getAsLong(indexIntoFirstIndex);
-                    if (indexValue < 0 || indexValue >= currentView.getShape()[0]) {
+                long offset = 0;
+                long[] index = new long[indicesList.size()];
+                for (int dim = 0; dim < indicesList.size(); dim++) {
+                    ITensor indexDimTensor = indicesList.get(dim);
+                    long indexValue = indexDimTensor.getAsLong(indexIntoFirstIndex);
+                    if (indexValue < 0 || indexValue >= gradient.getShape()[dim]) {
                         throw new IllegalArgumentException("Index out of bounds");
                     }
-                    currentView = currentView.getView(indexValue);
+                    index[dim] = indexValue;
+                    offset += indexValue * gradient.getStrides()[dim];
                 }
+                ITensor currentView = gradient.getView(index);
                 if (indexIntoGradient == null) {
                     indexIntoGradient = new long[upstreamGradient.getShape().length - currentView.getShape().length];
                 }
-                currentView.add(upstreamGradient.getView(indexIntoGradient));
+                if (visitedOffsets.contains(offset)) {
+                    currentView.add(upstreamGradient.getView(indexIntoGradient));
+                } else {
+                    currentView.setContents(upstreamGradient.getView(indexIntoGradient));
+                    visitedOffsets.add(offset);
+                }
                 ShapeUtils.incrementIndex(indexIntoGradient, upstreamGradient.getShape());
             } while (ShapeUtils.incrementIndex(indexIntoFirstIndex, firstIndexShape));
 

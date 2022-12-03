@@ -1147,7 +1147,7 @@ abstract class GradientComputationTest {
         ITensor exp = a.exp();
         ITensor b = sciCore.matrix(new float[][]{{6, 7, 8, 9, 10}, {11, 12, 13, 14, 15}});
         exp.add(b);
-        assertThrows(IllegalStateException.class, () -> sciCore.getBackpropagationGraphUpTo(exp, List.of(a, exp, b)));
+        assertThrows(IllegalArgumentException.class, () -> sciCore.getBackpropagationGraphUpTo(exp, List.of(a, exp, b)));
     }
 
 

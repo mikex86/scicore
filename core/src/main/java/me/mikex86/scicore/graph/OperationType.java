@@ -4,7 +4,8 @@ public enum OperationType {
 
     EXP, TANH, LOG, RELU, SIGMOID, // Unary arithmetic ops
     MATMUL, DIVIDE, PLUS, MINUS, POW, MULTIPLY, // Binary arithmetic ops
-    REDUCE_SUM, RESHAPE, CONCAT, TRANSPOSE, // Reshape ops
+    REDUCE_SUM, RESHAPE, TRANSPOSE, // Reshape ops
+    COPY, CONCAT, // Copy ops
     ARGMAX, COMPARE_ELEMENTS,
     ONE_HOT, GET,
 

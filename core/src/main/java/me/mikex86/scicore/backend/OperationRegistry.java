@@ -30,8 +30,9 @@ public class OperationRegistry {
     @NotNull
     public IOperation getOperation(@NotNull OperationType operationType) {
         // lookup cache
-        if (operationTable.containsKey(operationType)) {
-            return operationTable.get(operationType);
+        IOperation lookupResult = operationTable.get(operationType);
+        if (lookupResult != null) {
+            return lookupResult;
         }
 
         // fallback

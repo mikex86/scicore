@@ -1,17 +1,23 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
+import me.mikex86.scicore.backend.impl.genericcpu.jni.PlusJNI;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.op.IDifferentiableOperation;
 import me.mikex86.scicore.graph.op.IOperation;
+import me.mikex86.scicore.memory.DirectMemoryHandle;
+import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
+import me.mikex86.scicore.tensor.View;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
 
@@ -112,19 +118,38 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
             // TODO: MOVE THIS TO JNI
             long[] indexIntoFirstIndex = new long[firstIndexShape.length];
             long[] indexIntoGradient = null;
+
+            // used to check for duplicate indices
+            // When an index is duplicated, multiple gradient contributions need to be accumulated,
+            // which means we cannot use fast .setContents() but slower .add()
+            Set<Long> visitedOffsets = new HashSet<>();
             do {
-                ITensor currentView = gradient;
-                for (ITensor index : indicesList) {
-                    long indexValue = index.getAsLong(indexIntoFirstIndex);
-                    if (indexValue < 0 || indexValue >= currentView.getShape()[0]) {
+                long offset = 0;
+                long[] index = new long[indicesList.size()];
+                for (int dim = 0; dim < indicesList.size(); dim++) {
+                    ITensor indexDimTensor = indicesList.get(dim);
+                    long indexValue = indexDimTensor.getAsLong(indexIntoFirstIndex);
+                    if (indexValue < 0 || indexValue >= gradient.getShape()[dim]) {
                         throw new IllegalArgumentException("Index out of bounds");
                     }
-                    currentView = currentView.getView(indexValue);
+                    index[dim] = indexValue;
+                    offset += indexValue * gradient.getStrides()[dim];
                 }
+                ITensor gradientView = gradient.getView(index);
                 if (indexIntoGradient == null) {
-                    indexIntoGradient = new long[upstreamGradient.getShape().length - currentView.getShape().length];
+                    indexIntoGradient = new long[upstreamGradient.getShape().length - gradientView.getShape().length];
                 }
-                currentView.add(upstreamGradient.getView(indexIntoGradient));
+                if (visitedOffsets.contains(offset)) {
+                    ITensor src = upstreamGradient.getView(indexIntoGradient);
+                    DirectMemoryHandle srcHandle = src.getContentsAsDirectMemory();
+                    DirectMemoryHandle dstHandle = gradientView.getContentsAsDirectMemory();
+                    PlusJNI.plus(dstHandle.getNativePtr(), gradientView.getShape(), gradientView.getStrides(), gradientView.getDataType(),
+                            srcHandle.getNativePtr(), src.getShape(), src.getStrides(), src.getDataType(),
+                            dstHandle.getNativePtr(), gradientView.getShape(), gradientView.getStrides(), gradientView.getDataType());
+                } else {
+                    gradientView.setContents(upstreamGradient.getView(indexIntoGradient));
+                    visitedOffsets.add(offset);
+                }
                 ShapeUtils.incrementIndex(indexIntoGradient, upstreamGradient.getShape());
             } while (ShapeUtils.incrementIndex(indexIntoFirstIndex, firstIndexShape));
 

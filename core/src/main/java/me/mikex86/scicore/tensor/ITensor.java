@@ -519,6 +519,7 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor copy();
 
+    void copyFrom(@NotNull ITensor src);
     void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor);
 
     default void setContents(@NotNull ITensor tensor) {

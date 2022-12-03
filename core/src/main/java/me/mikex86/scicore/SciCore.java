@@ -16,6 +16,7 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
@@ -68,26 +69,6 @@ public class SciCore implements ISciCore {
         ITensor tensor = backend.createTensor(dataType, shape);
         long numberOfElements = tensor.getNumberOfElements();
         switch (dataType) {
-            case INT8 -> {
-                for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setByteFlat((byte) (random.nextInt(255) - 128), i);
-                }
-            }
-            case INT16 -> {
-                for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setShortFlat((short) (random.nextInt(65535) - 32768), i);
-                }
-            }
-            case INT32 -> {
-                for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setIntFlat(random.nextInt(), i);
-                }
-            }
-            case INT64 -> {
-                for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setLongFlat(random.nextLong(), i);
-                }
-            }
             case FLOAT32 -> {
                 for (long i = 0; i < numberOfElements; i++) {
                     tensor.setFloatFlat(random.nextFloat(), i);
@@ -99,6 +80,36 @@ public class SciCore implements ISciCore {
                 }
             }
             default -> throw new IllegalArgumentException("Unsupported data type: " + dataType);
+        }
+        return tensor;
+    }
+
+    @Override
+    public @NotNull ITensor randint(@NotNull DataType dataType, long min, long max, long @NotNull ... shape) {
+        ISciCoreBackend backend = getBackend();
+        ITensor tensor = backend.createTensor(dataType, shape);
+        long numberOfElements = tensor.getNumberOfElements();
+        switch (dataType) {
+            case INT8 -> {
+                for (long i = 0; i < numberOfElements; i++) {
+                    tensor.setByteFlat((byte) (random.nextInt((int) (max - min)) + min), i);
+                }
+            }
+            case INT16 -> {
+                for (long i = 0; i < numberOfElements; i++) {
+                    tensor.setShortFlat((short) (random.nextInt((int) (max - min)) + min), i);
+                }
+            }
+            case INT32 -> {
+                for (long i = 0; i < numberOfElements; i++) {
+                    tensor.setIntFlat(random.nextInt((int) ((max - min) + min)), i);
+                }
+            }
+            case INT64 -> {
+                for (long i = 0; i < numberOfElements; i++) {
+                    tensor.setLongFlat(random.nextLong() % (max - min) + min, i);
+                }
+            }
         }
         return tensor;
     }

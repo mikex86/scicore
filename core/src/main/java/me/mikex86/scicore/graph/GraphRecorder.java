@@ -39,34 +39,33 @@ public class GraphRecorder implements IGraphRecorder {
     @Override
     public @NotNull ITensor recordOperation(@NotNull OperationType operationType, @NotNull OptionBundle optionBundle, @NotNull ITensor... inputs) {
         IOperation operation = operationRegistry.getOperation(operationType);
-        List<Graph.IGraphNode> inputNodes = new ArrayList<>();
+        List<Graph.IGraphNode> inputNodes = new ArrayList<>(inputs.length);
         if (operation instanceof IInplaceOperation && inputs.length < 1) {
             throw new IllegalStateException("Inplace operation must have at least one input. inputs[0] is the output tensor.");
         }
-        for (ITensor input : inputs) {
-            Graph.ITensorNode node = getGraphNode(input);
-            if (node == null) {
-                if (input instanceof LazyTensor lazyTensor && !lazyTensor.hasResult()) {
-                    throw new IllegalArgumentException("Lost track of tensor");
-                }
-                node = new Graph.TensorDeclarationGraphNode(input);
-                input.setAssociatedGraphNode(node);
-                putGraphNode(input, node);
-            }
-            inputNodes.add(node);
-        }
         Graph.IOperationContext ctx = new Graph.OperationContext(optionBundle);
-        Graph.OperationGraphNode operationGraphNode = new Graph.OperationGraphNode(operationType, inputNodes, ctx, operationRegistry);
-
         ITensor result;
         if (operation instanceof IInplaceOperation) {
             // perform inplace operation eagerly
             result = operation.perform(ctx, List.of(inputs));
         } else {
+            for (ITensor input : inputs) {
+                Graph.ITensorNode node = getGraphNode(input);
+                if (node == null) {
+                    if (input instanceof LazyTensor lazyTensor && !lazyTensor.hasResult()) {
+                        throw new IllegalArgumentException("Lost track of tensor");
+                    }
+                    node = new Graph.TensorDeclarationGraphNode(input);
+                    input.setAssociatedGraphNode(node);
+                    putGraphNode(input, node);
+                }
+                inputNodes.add(node);
+            }
+            Graph.OperationGraphNode operationGraphNode = new Graph.OperationGraphNode(operationType, inputNodes, ctx, operationRegistry);
             result = operation.performLazily(ctx, List.of(inputs));
+            putGraphNode(result, operationGraphNode);
+            operationGraphNode.setOutput(result);
         }
-        operationGraphNode.setOutput(result);
-        putGraphNode(result, operationGraphNode);
         return result;
     }
 

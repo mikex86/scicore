@@ -64,7 +64,7 @@ class MakeMoreRNN(Module):
         for i in range(X.shape[1]):
             embi = emb[:, i, :]  # (batch_size, embedding_size)
             xh = torch.cat((embi, hprev), dim=1)
-            hprev = self.rnn_cell(xh)
+            hprev = torch.tanh(self.rnn_cell(xh))
             hiddens.append(hprev)
 
         hiddens = torch.stack(hiddens, dim=1)  # (batch_size, seq_len, hidden_size)
@@ -129,7 +129,7 @@ def main():
     train_dataset, test_dataset = create_datasets()
 
     model = MakeMoreRNN()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.0005, weight_decay=0.01)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
 
     for step in range(N_TRAINING_STEPS):
         idx = torch.randint(0, len(train_dataset), (BATCH_SIZE,))
