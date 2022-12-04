@@ -210,6 +210,9 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
 
+        ITensor aValue = a.getValue();
+        ITensor bValue = b.getValue();
+
         if (a.requiresGradients()) {
             ITensor dLdW;
             if (!transposeA) {
@@ -223,7 +226,7 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                 //     dL/dW = G @ X.T      # no virtual transpose occurred, because X here is what was actually used in the forward pass
 
                 // interpretation: never transpose G, transpose X if transposeB == false
-                dLdW = upstreamGradient.matmul(b.getValue(), false, !transposeB);
+                dLdW = upstreamGradient.matmul(bValue, false, !transposeB);
             } else {
                 // Normally, if this were a transpose op node, this would compute the upstream gradients for
                 // a transpose op, which would transpose it again as part of its gradient computation.
@@ -244,7 +247,16 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                 //    dL/dW = X @ G.T             # apply identity
 
                 // interpretation: always transpose G, transpose X if transposeB == true
-                dLdW = b.getValue().matmul(upstreamGradient, transposeB, true);
+                dLdW = bValue.matmul(upstreamGradient, transposeB, true);
+            }
+            // if we are performing a 3d matrix multiplication and 'a' is 3d with batch size 1,
+            // or 'a' is 2d, then we need to sum the gradients over the batch dimension
+            if (aValue.getShape().length == 3 || bValue.getShape().length == 3) {
+                if (aValue.getShape().length == 3 && aValue.getShape()[0] == 1) {
+                    dLdW = dLdW.reduceSum(0, true);
+                } else if (aValue.getShape().length == 2) {
+                    dLdW = dLdW.reduceSum(0, false);
+                }
             }
             a.accumulateGradient(dLdW);
         }
@@ -257,10 +269,10 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                 //     dL/dX = W.T.T @ G    # virtual transpose occurred, so we need to transpose W again
                 //     dL/dX = W @ G        # W.T.T = W
                 // else if transposeA == false:
-                //     dL/dX = W.T @ G      # no virtual transpose occurred, because 'W' here is what was actually used in the forward pass
+                //     dL/dX = W.T @ G      # no virtual transpose occurred, because W here is what was actually used in the forward pass
 
                 // interpretation: never transpose G, transpose W if transposeA == false
-                dLdX = a.getValue().matmul(upstreamGradient, !transposeA, false);
+                dLdX = aValue.matmul(upstreamGradient, !transposeA, false);
             } else {
                 // See above
 
@@ -272,12 +284,21 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                 //     dL/dX = (W @ G).T          # transpose because of would be transpose op chain rule
                 //     dL/dX = G.T @ W.T          # apply identity
                 // else if transposeA == false:
-                //    dL/dX_local = W.T @ G       # no virtual transpose occurred, because 'W' here is what was actually used in the forward pass
+                //    dL/dX_local = W.T @ G       # no virtual transpose occurred, because W here is what was actually used in the forward pass
                 //    dL/dX = (W.T @ G).T         # transpose because of would be transpose op chain rule
                 //    dL/dX = G.T @ W             # apply identity
 
                 // interpretation: always transpose G, transpose W if transposeA == true
-                dLdX = upstreamGradient.matmul(a.getValue(), true, transposeA);
+                dLdX = upstreamGradient.matmul(aValue, true, transposeA);
+            }
+            // if we are performing a 3d matrix multiplication and 'b' is 3d with batch size 1,
+            // or 'b' is 2d, then we need to sum the gradients over the batch dimension
+            if (aValue.getShape().length == 3 || bValue.getShape().length == 3) {
+                if (bValue.getShape().length == 3 && bValue.getShape()[0] == 1) {
+                    dLdX = dLdX.reduceSum(0, true);
+                } else if (bValue.getShape().length == 2) {
+                    dLdX = dLdX.reduceSum(0, false);
+                }
             }
             b.accumulateGradient(dLdX);
         }

@@ -1059,6 +1059,76 @@ abstract class GradientComputationTest {
     }
 
     @Test
+    void testMatmul3dWithFirstBatchSize1() {
+        // (1, 3, 5) * (2, 5, 1) = (2, 3, 1)
+        ITensor X = sciCore.ndarray(new float[][][]{{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}, {11, 12, 13, 14, 15}}});
+        ITensor W = sciCore.ndarray(new float[][][]{{{1}, {2}, {3}, {4}, {5}}, {{6}, {7}, {8}, {9}, {10}}});
+        ITensor D = X.matmul(W);
+
+        ITensor Y = sciCore.ndarray(new float[][][]{{{1}, {2}, {3}}, {{4}, {5}, {6}}});
+        ITensor diff = Y.minus(D);
+        ITensor squared = sciCore.pow(diff, 2f);
+        ITensor lossPerSample = squared.reduceSum(0);
+        ITensor loss = lossPerSample.reduceSum(0).divide((float) X.getShape()[0]);
+
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, List.of(W, X, D, Y, diff, squared, lossPerSample, loss));
+        graph.backward();
+
+        ITensor dLdW = graph.getGradient(W).orElseThrow();
+        ITensor dLdX = graph.getGradient(X).orElseThrow();
+        ITensor dLdD = graph.getGradient(D).orElseThrow();
+        ITensor dLdY = graph.getGradient(Y).orElseThrow();
+        ITensor dLddiff = graph.getGradient(diff).orElseThrow();
+        ITensor dLdsquared = graph.getGradient(squared).orElseThrow();
+        ITensor dLdlossPerSample = graph.getGradient(lossPerSample).orElseThrow();
+        ITensor dLdloss = graph.getGradient(loss).orElseThrow();
+
+        assertEquals(sciCore.array(new float[]{1f}), dLdloss);
+        assertEquals(sciCore.matrix(new float[][]{{1f}, {1f}, {1f}}), dLdlossPerSample);
+        assertEquals(sciCore.ndarray(new float[][][]{{{1f}, {1f}, {1f}}, {{1f}, {1f}, {1f}}}), dLdsquared);
+        assertEquals(sciCore.ndarray(new float[][][]{{{-108f}, {-256f}, {-404f}}, {{-252f}, {-650f}, {-1048f}}}), dLddiff);
+        assertEquals(sciCore.ndarray(new float[][][]{{{108f}, {256f}, {404f}}, {{252f}, {650f}, {1048f}}}), dLdD);
+        assertEquals(sciCore.ndarray(new float[][][]{{{-108f}, {-256f}, {-404f}}, {{-252f}, {-650f}, {-1048f}}}), dLdY);
+        assertEquals(sciCore.ndarray(new float[][][]{{{1620f, 1980f, 2340f, 2700f, 3060f}, {4156f, 5062f, 5968f, 6874f, 7780f}, {6692f, 8144f, 9596f, 11048f, 12500f}}}), dLdX);
+        assertEquals(sciCore.ndarray(new float[][][]{{{6088f}, {6856f}, {7624f}, {8392f}, {9160f}}, {{15680f}, {17630f}, {19580f}, {21530f}, {23480f}}}), dLdW);
+    }
+
+    @Test
+    void testMatmul2dby3dWithFirstBatchSize1() {
+        // (1, 3, 5) * (2, 5, 1) = (2, 3, 1)
+        ITensor X = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}, {11, 12, 13, 14, 15}});
+        ITensor W = sciCore.ndarray(new float[][][]{{{1}, {2}, {3}, {4}, {5}}, {{6}, {7}, {8}, {9}, {10}}});
+        ITensor D = X.matmul(W);
+
+        ITensor Y = sciCore.ndarray(new float[][][]{{{1}, {2}, {3}}, {{4}, {5}, {6}}});
+        ITensor diff = Y.minus(D);
+        ITensor squared = sciCore.pow(diff, 2f);
+        ITensor lossPerSample = squared.reduceSum(0);
+        ITensor loss = lossPerSample.reduceSum(0);
+
+        IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, List.of(W, X, D, Y, diff, squared, lossPerSample, loss));
+        graph.backward();
+
+        ITensor dLdW = graph.getGradient(W).orElseThrow();
+        ITensor dLdX = graph.getGradient(X).orElseThrow();
+        ITensor dLdD = graph.getGradient(D).orElseThrow();
+        ITensor dLdY = graph.getGradient(Y).orElseThrow();
+        ITensor dLddiff = graph.getGradient(diff).orElseThrow();
+        ITensor dLdsquared = graph.getGradient(squared).orElseThrow();
+        ITensor dLdlossPerSample = graph.getGradient(lossPerSample).orElseThrow();
+        ITensor dLdloss = graph.getGradient(loss).orElseThrow();
+
+        assertEquals(sciCore.array(new float[]{1f}), dLdloss);
+        assertEquals(sciCore.matrix(new float[][]{{1f}, {1f}, {1f}}), dLdlossPerSample);
+        assertEquals(sciCore.ndarray(new float[][][]{{{1f}, {1f}, {1f}}, {{1f}, {1f}, {1f}}}), dLdsquared);
+        assertEquals(sciCore.ndarray(new float[][][]{{{-108f}, {-256f}, {-404f}}, {{-252f}, {-650f}, {-1048f}}}), dLddiff);
+        assertEquals(sciCore.ndarray(new float[][][]{{{108f}, {256f}, {404f}}, {{252f}, {650f}, {1048f}}}), dLdD);
+        assertEquals(sciCore.ndarray(new float[][][]{{{-108f}, {-256f}, {-404f}}, {{-252f}, {-650f}, {-1048f}}}), dLdY);
+        assertEquals(sciCore.matrix(new float[][]{{1620f, 1980f, 2340f, 2700f, 3060f}, {4156f, 5062f, 5968f, 6874f, 7780f}, {6692f, 8144f, 9596f, 11048f, 12500f}}), dLdX);
+        assertEquals(sciCore.ndarray(new float[][][]{{{6088f}, {6856f}, {7624f}, {8392f}, {9160f}}, {{15680f}, {17630f}, {19580f}, {21530f}, {23480f}}}), dLdW);
+    }
+
+    @Test
     void testOnlyComputeGradientForRequested() {
         ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
         ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
@@ -1121,8 +1191,6 @@ abstract class GradientComputationTest {
         Assertions.assertEquals(sciCore.matrix(new float[][]{{11, 12, 13, 14, 15}}), dgraph2dA);
         Assertions.assertEquals(sciCore.matrix(new float[][]{{1}, {2}, {3}, {4}, {5}}), dgraph2dB2);
     }
-
-    // TODO: TEST reduceSum(1)
 
     @Test
     void testMatmulWithSoftmaxAndMSE() {

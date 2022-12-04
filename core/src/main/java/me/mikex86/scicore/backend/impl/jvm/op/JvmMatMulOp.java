@@ -8,6 +8,7 @@ import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.OptionBundle;
+import me.mikex86.scicore.utils.GradientUtil;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -175,6 +176,9 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
 
+        ITensor aValue = a.getValue();
+        ITensor bValue = b.getValue();
+
         if (a.requiresGradients()) {
             ITensor dLdW;
             if (!transposeA) {
@@ -188,7 +192,7 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
                 //     dL/dW = G @ X.T      # no virtual transpose occurred, because X here is what was actually used in the forward pass
 
                 // interpretation: never transpose G, transpose X if transposeB == false
-                dLdW = upstreamGradient.matmul(b.getValue(), false, !transposeB);
+                dLdW = upstreamGradient.matmul(bValue, false, !transposeB);
             } else {
                 // Normally, if this were a transpose op node, this would compute the upstream gradients for
                 // a transpose op, which would transpose it again as part of its gradient computation.
@@ -209,7 +213,16 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
                 //    dL/dW = X @ G.T             # apply identity
 
                 // interpretation: always transpose G, transpose X if transposeB == true
-                dLdW = b.getValue().matmul(upstreamGradient, transposeB, true);
+                dLdW = bValue.matmul(upstreamGradient, transposeB, true);
+            }
+            // if we are performing a 3d matrix multiplication and 'a' is 3d with batch size 1,
+            // or 'a' is 2d, then we need to sum the gradients over the batch dimension
+            if (aValue.getShape().length == 3 || bValue.getShape().length == 3) {
+                if (aValue.getShape().length == 3 && aValue.getShape()[0] == 1) {
+                    dLdW = dLdW.reduceSum(0, true);
+                } else if (aValue.getShape().length == 2) {
+                    dLdW = dLdW.reduceSum(0, false);
+                }
             }
             a.accumulateGradient(dLdW);
         }
@@ -225,7 +238,7 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
                 //     dL/dX = W.T @ G      # no virtual transpose occurred, because W here is what was actually used in the forward pass
 
                 // interpretation: never transpose G, transpose W if transposeA == false
-                dLdX = a.getValue().matmul(upstreamGradient, !transposeA, false);
+                dLdX = aValue.matmul(upstreamGradient, !transposeA, false);
             } else {
                 // See above
 
@@ -242,7 +255,16 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
                 //    dL/dX = G.T @ W             # apply identity
 
                 // interpretation: always transpose G, transpose W if transposeA == true
-                dLdX = upstreamGradient.matmul(a.getValue(), true, transposeA);
+                dLdX = upstreamGradient.matmul(aValue, true, transposeA);
+            }
+            // if we are performing a 3d matrix multiplication and 'b' is 3d with batch size 1,
+            // or 'b' is 2d, then we need to sum the gradients over the batch dimension
+            if (aValue.getShape().length == 3 || bValue.getShape().length == 3) {
+                if (bValue.getShape().length == 3 && bValue.getShape()[0] == 1) {
+                    dLdX = dLdX.reduceSum(0, true);
+                } else if (bValue.getShape().length == 2) {
+                    dLdX = dLdX.reduceSum(0, false);
+                }
             }
             b.accumulateGradient(dLdX);
         }
