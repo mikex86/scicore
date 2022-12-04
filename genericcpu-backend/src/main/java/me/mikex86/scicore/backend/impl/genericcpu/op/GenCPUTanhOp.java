@@ -32,7 +32,7 @@ public class GenCPUTanhOp implements IDifferentiableUnaryOperation {
         DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
         DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
         TanhJNI.tanh(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
-        result = result.reshape(shape, strides);
+        result = result.view(shape, strides);
         return result;
     }
 

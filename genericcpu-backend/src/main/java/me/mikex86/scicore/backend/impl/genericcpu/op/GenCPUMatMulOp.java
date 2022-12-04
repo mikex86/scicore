@@ -15,6 +15,10 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
 import static me.mikex86.scicore.backend.impl.genericcpu.jni.MatmulJNI.*;
 
 public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
@@ -26,6 +30,8 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         this.backend = backend;
     }
 
+    private static final Executor batchExecutor = Executors.newCachedThreadPool();
+
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
@@ -33,41 +39,47 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         long[] stridesA = a.getStrides();
         long[] stridesB = b.getStrides();
 
-        Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
+        Validator.assertTrue(shapeA.length == 2 || shapeA.length == 3, "Only 2D and 3D tensors are supported");
+        Validator.assertTrue(shapeB.length == 2 || shapeB.length == 3, "Only 2D and 3D tensors are supported");
+
         OptionBundle options = ctx.getOptionBundle();
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
-        if (!(stridesA[0] == shapeA[1] && stridesA[1] == 1)) {
-            throw new IllegalArgumentException("Invalid strides for matrix A"); // TODO: Support strides
-        }
-        if (!(stridesB[0] == shapeB[1] && stridesB[1] == 1)) {
-            throw new IllegalArgumentException("Invalid strides for matrix B"); // TODO: Support strides
-        }
-        long[] opShapeA, opShapeB;
+
         if (transposeA) {
-            opShapeA = new long[]{shapeA[1], shapeA[0]};
-        } else {
-            opShapeA = shapeA;
+            if (shapeA.length == 2) {
+                shapeA = new long[]{shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
+            } else {
+                shapeA = new long[]{shapeA[0], shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
+            }
         }
         if (transposeB) {
-            opShapeB = new long[]{shapeB[1], shapeB[0]};
-        } else {
-            opShapeB = shapeB;
+            if (shapeB.length == 2) {
+                shapeB = new long[]{shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
+            } else {
+                shapeB = new long[]{shapeB[0], shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
+            }
         }
-        Validator.assertTrue(opShapeA[1] == opShapeB[0], "Shape mismatch. A.shape[1] != B.shape[0]");
+        Validator.assertTrue(shapeA[shapeA.length - 1] == shapeB[shapeB.length - 2], "Matrix multiplication shape mismatch: " + ShapeUtils.toString(shapeA) + " x " + ShapeUtils.toString(shapeB));
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
-        long[] resultShape = ShapeUtils.matrixMultiplyShape(opShapeA, opShapeB);
+
+        if (shapeA.length == 3 && shapeB.length == 3) {
+            Validator.assertTrue(shapeA[0] == shapeB[0] || shapeA[0] == 1 || shapeB[0] == 1, "Batch size mismatch");
+        }
+
+        long[] resultShape = ShapeUtils.matrixMultiplyShape(shapeA, shapeB);
         DataType aDataType = a.getDataType();
         DataType bDataType = b.getDataType();
         DataType resultDataType = DataType.getLarger(aDataType, bDataType);
 
         ITensor result = this.backend.createTensor(resultDataType, resultShape);
 
-        int m = Math.toIntExact(opShapeA[0]),
-                n = Math.toIntExact(opShapeB[1]),
-                k = Math.toIntExact(opShapeA[1]);
+        long[] resultStrides = result.getStrides();
+
+        int m = Math.toIntExact(shapeA[shapeA.length - 2]),
+                n = Math.toIntExact(shapeB[shapeB.length - 1]),
+                k = Math.toIntExact(shapeA[shapeA.length - 1]);
 
         int lda = transposeA ? m : k;
         int ldb = transposeB ? k : n;
@@ -76,21 +88,56 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         DirectMemoryHandle bPtr = backend.getDirectMemoryManager().ensureDirect(b);
         DirectMemoryHandle resultPtr = result.getContentsAsDirectMemory();
 
-        // TODO: MAKE THIS RESPECT STRIDES
-        matmul(transposeA ? OP_TRANSPOSE : OP_NONE,
-                transposeB ? OP_TRANSPOSE : OP_NONE,
-                m, n, k,
-                aPtr.getNativePtr(),
-                getMatmulDataType(aDataType),
-                lda,
-                bPtr.getNativePtr(),
-                getMatmulDataType(bDataType),
-                ldb,
-                resultPtr.getNativePtr(),
-                getMatmulDataType(resultDataType),
-                n
-        );
+        long aBatchSize = shapeA.length == 3 ? shapeA[0] : 1;
+        long bBatchSize = shapeB.length == 3 ? shapeB[0] : 1;
+        long batchSize = Math.max(aBatchSize, bBatchSize);
 
+        long aBatchStride = stridesA.length == 3 ? stridesA[0] : 0;
+        long bBatchStride = stridesB.length == 3 ? stridesB[0] : 0;
+        long cBatchStride = resultStrides.length == 3 ? resultStrides[0] : 0;
+
+        // TODO: MAKE THIS RESPECT STRIDES
+        if (batchSize == 1) {
+            matmul(transposeA ? OP_TRANSPOSE : OP_NONE,
+                    transposeB ? OP_TRANSPOSE : OP_NONE,
+                    m, n, k,
+                    aPtr.getNativePtr(),
+                    getMatmulDataType(aDataType),
+                    lda,
+                    bPtr.getNativePtr(),
+                    getMatmulDataType(bDataType),
+                    ldb,
+                    resultPtr.getNativePtr(),
+                    getMatmulDataType(resultDataType),
+                    n
+            );
+        } else {
+            CountDownLatch latch = new CountDownLatch(Math.toIntExact(batchSize));
+            for (long i = 0; i < batchSize; i++) {
+                final long batchIndex = i;
+                batchExecutor.execute(() -> {
+                    matmul(transposeA ? OP_TRANSPOSE : OP_NONE,
+                            transposeB ? OP_TRANSPOSE : OP_NONE,
+                            m, n, k,
+                            aPtr.offset(aDataType.getSizeOf((batchIndex % aBatchSize) * aBatchStride)).getNativePtr(),
+                            getMatmulDataType(aDataType),
+                            lda,
+                            bPtr.offset(bDataType.getSizeOf((batchIndex % bBatchSize) * bBatchStride)).getNativePtr(),
+                            getMatmulDataType(bDataType),
+                            ldb,
+                            resultPtr.offset(resultDataType.getSizeOf(batchIndex * cBatchStride)).getNativePtr(),
+                            getMatmulDataType(resultDataType),
+                            n
+                    );
+                    latch.countDown();
+                });
+            }
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
         if (aPtr.canFree()) {
             aPtr.free();
         }
@@ -105,20 +152,33 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
-        Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
+        Validator.assertTrue(shapeA.length == 2 || shapeA.length == 3, "Only 2D or 3D matrices are supported");
+        Validator.assertTrue(shapeB.length == 2 || shapeB.length == 3, "Only 2D or 3D matrices are supported");
         OptionBundle options = ctx.getOptionBundle();
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
         if (transposeA) {
-            shapeA = new long[]{shapeA[1], shapeA[0]};
+            if (shapeA.length == 2) {
+                shapeA = new long[]{shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
+            } else {
+                shapeA = new long[]{shapeA[0], shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
+            }
         }
         if (transposeB) {
-            shapeB = new long[]{shapeB[1], shapeB[0]};
+            if (shapeB.length == 2) {
+                shapeB = new long[]{shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
+            } else {
+                shapeB = new long[]{shapeB[0], shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
+            }
         }
-        Validator.assertTrue(shapeA[1] == shapeB[0], "Shape mismatch. A.shape[1] != B.shape[0]");
+        Validator.assertTrue(shapeA[shapeA.length - 1] == shapeB[shapeB.length - 2], "Matrix multiplication shape mismatch: " + ShapeUtils.toString(shapeA) + " x " + ShapeUtils.toString(shapeB));
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
+
+        if (shapeA.length == 3 && shapeB.length == 3) {
+            Validator.assertTrue(shapeA[0] == shapeB[0] || shapeA[0] == 1 || shapeB[0] == 1, "Batch size mismatch");
+        }
+
         Validator.assertTrue(ShapeUtils.shapeFitsInInt(shapeA), "Shape of A is too large, no dimension must exceed Integer.MAX_VALUE");
         Validator.assertTrue(ShapeUtils.shapeFitsInInt(shapeB), "Shape of B is too large, no dimension must exceed Integer.MAX_VALUE");
         long[] resultShape = ShapeUtils.matrixMultiplyShape(shapeA, shapeB);

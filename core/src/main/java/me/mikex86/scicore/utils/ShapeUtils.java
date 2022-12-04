@@ -240,6 +240,24 @@ public class ShapeUtils {
         return broadcastShape;
     }
 
+    public static boolean areShapesBroadcastable(long @NotNull [] shapeA, long @NotNull [] shapeB) {
+        if (shapeB.length > shapeA.length) {
+            // swap shapes, make shapeA always larger
+            // this is just a reference swap because java, making this cheap
+            long[] tmp = shapeB;
+            shapeB = shapeA;
+            shapeA = tmp;
+        }
+        for (int i = 0; i < shapeA.length; i++) {
+            long elementA = shapeA[shapeA.length - 1 - i];
+            long elementB = i < shapeB.length ? shapeB[shapeB.length - 1 - i] : -1;
+            if ((elementA != elementB && elementB != 1 && elementB != -1) && elementA != 1) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Constrains the index in the specified shape. This means that every dimension of the index will be modulo-ed by the
      * length of said dimension as specified at shape[dimension].
@@ -426,13 +444,35 @@ public class ShapeUtils {
     }
 
     public static long[] matrixMultiplyShape(long[] shapeA, long[] shapeB) {
-        if (shapeA.length != 2 || shapeB.length != 2) {
-            throw new IllegalArgumentException("Matrix multiply only works on 2D matrices");
+        // supports 2d and 3d matmul
+        if (shapeA.length < 2 || shapeA.length > 3) {
+            throw new IllegalArgumentException("Shape A must be 2d or 3d");
         }
-        if (shapeA[1] != shapeB[0]) {
-            throw new IllegalArgumentException("Matrix multiply only works on matrices where the number of columns of the first matrix equals the number of rows of the second matrix");
+        if (shapeB.length < 2 || shapeB.length > 3) {
+            throw new IllegalArgumentException("Shape B must be 2d or 3d");
         }
-        return new long[]{shapeA[0], shapeB[1]};
+        if (shapeA.length == 2 && shapeB.length == 2) {
+            return new long[]{shapeA[0], shapeB[1]};
+        } else if (shapeA.length == 2 && shapeB.length == 3) {
+            return new long[]{shapeB[0], shapeA[0], shapeB[2]};
+        } else if (shapeA.length == 3 && shapeB.length == 2) {
+            return new long[]{shapeA[0], shapeA[1], shapeB[1]};
+        } else {
+            if (shapeA[2] != shapeB[1]) {
+                throw new IllegalArgumentException("Shape A[2] must be equal to shape B[1]");
+            }
+            long batchSize;
+            if (shapeA[0] == shapeB[0]) {
+                batchSize = shapeA[0];
+            } else if (shapeA[0] == 1) {
+                batchSize = shapeB[0];
+            } else if (shapeB[0] == 1) {
+                batchSize = shapeA[0];
+            } else {
+                throw new IllegalArgumentException("Batch size mismatch");
+            }
+            return new long[]{batchSize, shapeA[1], shapeB[2]};
+        }
     }
 
     /**

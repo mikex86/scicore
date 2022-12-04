@@ -27,29 +27,35 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         long[] shapeB = b.getShape();
         long[] stridesA = a.getStrides();
         long[] stridesB = b.getStrides();
-        Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
-        assert stridesA.length == 2;
-        assert stridesB.length == 2;
+
+        Validator.assertTrue(shapeA.length == 2 || shapeA.length == 3, "Only 2D and 3D tensors are supported");
+        Validator.assertTrue(shapeB.length == 2 || shapeB.length == 3, "Only 2D and 3D tensors are supported");
+
         OptionBundle options = ctx.getOptionBundle();
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
-        if (!(stridesA[0] == shapeA[1] && stridesA[1] == 1)) {
-            throw new IllegalArgumentException("Invalid strides for matrix A"); // TODO: Support strides
-        }
-        if (!(stridesB[0] == shapeB[1] && stridesB[1] == 1)) {
-            throw new IllegalArgumentException("Invalid strides for matrix B"); // TODO: Support strides
-        }
-
         if (transposeA) {
-            shapeA = new long[]{shapeA[1], shapeA[0]};
+            if (shapeA.length == 2) {
+                shapeA = new long[]{shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
+            } else {
+                shapeA = new long[]{shapeA[0], shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
+            }
         }
         if (transposeB) {
-            shapeB = new long[]{shapeB[1], shapeB[0]};
+            if (shapeB.length == 2) {
+                shapeB = new long[]{shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
+            } else {
+                shapeB = new long[]{shapeB[0], shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
+            }
         }
-        Validator.assertTrue(shapeA[1] == shapeB[0], "Shape mismatch. A.shape[1] != B.shape[0]");
+        Validator.assertTrue(shapeA[shapeA.length - 1] == shapeB[shapeB.length - 2], "Matrix multiplication shape mismatch: " + ShapeUtils.toString(shapeA) + " x " + ShapeUtils.toString(shapeB));
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
+
+        if (shapeA.length == 3 && shapeB.length == 3) {
+            Validator.assertTrue(shapeA[0] == shapeB[0] || shapeA[0] == 1 || shapeB[0] == 1, "Batch size mismatch");
+        }
+
         long[] resultShape = ShapeUtils.matrixMultiplyShape(shapeA, shapeB);
         DataType aDataType = a.getDataType();
         DataType bDataType = b.getDataType();
@@ -57,19 +63,52 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
 
         ITensor result = this.backend.createTensor(resultDataType, resultShape);
 
-        long m = shapeA[0],
-                n = shapeB[1],
-                k = shapeA[1];
+        long[] resultStrides = result.getStrides();
 
-        long lda = stridesA[0];
-        long ldb = stridesB[0];
+        int m = Math.toIntExact(shapeA[shapeA.length - 2]),
+                n = Math.toIntExact(shapeB[shapeB.length - 1]),
+                k = Math.toIntExact(shapeA[shapeA.length - 1]);
 
-        matmul(transposeA, transposeB,
-                m, n, k,
-                a, lda,
-                b, ldb,
-                result, n
-        );
+        int lda = transposeA ? m : k;
+        int ldb = transposeB ? k : n;
+
+        long aBatchSize = shapeA.length == 3 ? shapeA[0] : 1;
+        long bBatchSize = shapeB.length == 3 ? shapeB[0] : 1;
+        long batchSize = Math.max(aBatchSize, bBatchSize);
+
+        long aBatchStride = stridesA.length == 3 ? stridesA[0] : 0;
+        long bBatchStride = stridesB.length == 3 ? stridesB[0] : 0;
+        long cBatchStride = resultStrides.length == 3 ? resultStrides[0] : 0;
+
+        // TODO: MAKE THIS RESPECT STRIDES
+        if (batchSize == 1) {
+            matmul(transposeA,
+                    transposeB,
+                    m, n, k,
+                    a,
+                    0, lda,
+                    b,
+                    0, ldb,
+                    result,
+                    n,
+                    0);
+        } else {
+            for (long i = 0; i < batchSize; i++) {
+                matmul(transposeA,
+                        transposeB,
+                        m, n, k,
+                        a,
+                        (i % aBatchSize) * aBatchStride,
+                        lda,
+                        b,
+                        (i % bBatchSize) * bBatchStride,
+                        ldb,
+                        result,
+                        n,
+                        i * cBatchStride
+                );
+            }
+        }
 
         return result;
     }
@@ -78,24 +117,39 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
-        Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
+        Validator.assertTrue(shapeA.length == 2 || shapeA.length == 3, "Only 2D or 3D matrices are supported");
+        Validator.assertTrue(shapeB.length == 2 || shapeB.length == 3, "Only 2D or 3D matrices are supported");
         OptionBundle options = ctx.getOptionBundle();
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
         if (transposeA) {
-            shapeA = new long[]{shapeA[1], shapeA[0]};
+            if (shapeA.length == 2) {
+                shapeA = new long[]{shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
+            } else {
+                shapeA = new long[]{shapeA[0], shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
+            }
         }
         if (transposeB) {
-            shapeB = new long[]{shapeB[1], shapeB[0]};
+            if (shapeB.length == 2) {
+                shapeB = new long[]{shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
+            } else {
+                shapeB = new long[]{shapeB[0], shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
+            }
         }
-        Validator.assertTrue(shapeA[1] == shapeB[0], "Shape mismatch. A.shape[1] != B.shape[0]");
+        Validator.assertTrue(shapeA[shapeA.length - 1] == shapeB[shapeB.length - 2], "Matrix multiplication shape mismatch: " + ShapeUtils.toString(shapeA) + " x " + ShapeUtils.toString(shapeB));
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
+
+        if (shapeA.length == 3 && shapeB.length == 3) {
+            Validator.assertTrue(shapeA[0] == shapeB[0] || shapeA[0] == 1 || shapeB[0] == 1, "Batch size mismatch");
+        }
+
+        Validator.assertTrue(ShapeUtils.shapeFitsInInt(shapeA), "Shape of A is too large, no dimension must exceed Integer.MAX_VALUE");
+        Validator.assertTrue(ShapeUtils.shapeFitsInInt(shapeB), "Shape of B is too large, no dimension must exceed Integer.MAX_VALUE");
         long[] resultShape = ShapeUtils.matrixMultiplyShape(shapeA, shapeB);
-        DataType ownDataType = a.getDataType();
-        DataType otherDataType = b.getDataType();
-        DataType resultDataType = DataType.getLarger(ownDataType, otherDataType);
+        DataType aDataType = a.getDataType();
+        DataType bDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
         if (!resultDataType.isNumeric()) {
             throw new IllegalArgumentException("Cannot perform matrix multiplication on non-numeric data types");
         }
@@ -199,13 +253,15 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
             boolean transposeB,
             long m, long n, long k,
             ITensor a,
+            long aOffset,
             long lda,
             ITensor b,
+            long bOffset,
             long ldb,
-            ITensor result,
-            long ldc
-    ) {
-        if (result.getDataType().isFloatingPoint()) {
+            ITensor c,
+            long ldc,
+            long cOffset) {
+        if (c.getDataType().isFloatingPoint()) {
             for (long row = 0; row < m; row++) {
                 for (long inner = 0; inner < k; inner++) {
                     for (long col = 0; col < n; col++) {
@@ -216,8 +272,8 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
                                 col * ldb + inner :
                                 inner * ldb + col;
                         long cIdx = row * ldc + col;
-                        double c = result.getAsDoubleFlat(cIdx);
-                        result.setByDoubleFlat(c + a.getAsDoubleFlat(aIdx) * b.getAsDoubleFlat(bIdx), cIdx);
+                        double cValue = c.getAsDoubleFlat(cOffset + cIdx);
+                        c.setByDoubleFlat(cValue + a.getAsDoubleFlat(aOffset + aIdx) * b.getAsDoubleFlat(bOffset + bIdx), cOffset + cIdx);
                     }
                 }
             }
@@ -232,8 +288,8 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
                                 col * ldb + inner :
                                 inner * ldb + col;
                         long cIdx = row * ldc + col;
-                        long c = result.getAsLongFlat(cIdx);
-                        result.setByLongFlat(c + a.getAsLongFlat(aIdx) * b.getAsLongFlat(bIdx), cIdx);
+                        long cValue = c.getAsLongFlat(cOffset + cIdx);
+                        c.setByLongFlat(cValue + a.getAsLongFlat(aOffset + aIdx) * b.getAsLongFlat(bOffset + bIdx), cOffset + cIdx);
                     }
                 }
             }

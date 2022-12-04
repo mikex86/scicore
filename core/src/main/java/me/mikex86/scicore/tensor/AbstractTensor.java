@@ -156,13 +156,6 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
-    public void copyFrom(@NotNull ITensor src) {
-        ISciCoreBackend backend = getSciCoreBackend();
-        IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        operationRecorder.recordOperation(OperationType.COPY, backend, this, src);
-    }
-
-    @Override
     @NotNull
     public ITensor matmul(@NotNull ITensor other) {
         ISciCoreBackend backend = getSciCoreBackend();
@@ -654,6 +647,68 @@ public abstract class AbstractTensor implements ITensor {
         operationRecorder.recordOperation(OperationType.MINUS_INPLACE, backend, this, other);
     }
 
+    // TODO: ACCELERATE WHERE OPERATIONS
+
+    @Override
+    public @NotNull ITensor where(byte condition, byte x, byte y) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        ITensor result = backend.createTensor(DataType.INT8, getShape());
+        for (int i = 0; i < numElements; i++) {
+            result.setByByteFlat(getAsByteFlat(i) == condition ? x : y, i);
+        }
+        return result;
+    }
+
+    @Override
+    public @NotNull ITensor where(short condition, short x, short y) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        ITensor result = backend.createTensor(DataType.INT16, getShape());
+        for (int i = 0; i < numElements; i++) {
+            result.setByShortFlat(getAsShortFlat(i) == condition ? x : y, i);
+        }
+        return result;
+    }
+
+    @Override
+    public @NotNull ITensor where(int condition, int x, int y) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        ITensor result = backend.createTensor(DataType.INT32, getShape());
+        for (int i = 0; i < numElements; i++) {
+            result.setByIntFlat(getAsIntFlat(i) == condition ? x : y, i);
+        }
+        return result;
+    }
+
+    @Override
+    public @NotNull ITensor where(long condition, long x, long y) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        ITensor result = backend.createTensor(DataType.INT64, getShape());
+        for (int i = 0; i < numElements; i++) {
+            result.setByLongFlat(getAsLongFlat(i) == condition ? x : y, i);
+        }
+        return result;
+    }
+
+    @Override
+    public @NotNull ITensor where(float condition, float x, float y) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        ITensor result = backend.createTensor(DataType.FLOAT32, getShape());
+        for (int i = 0; i < numElements; i++) {
+            result.setByFloatFlat(getAsFloatFlat(i) == condition ? x : y, i);
+        }
+        return result;
+    }
+
+    @Override
+    public @NotNull ITensor where(double condition, double x, double y) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        ITensor result = backend.createTensor(DataType.FLOAT64, getShape());
+        for (int i = 0; i < numElements; i++) {
+            result.setByDoubleFlat(getAsDoubleFlat(i) == condition ? x : y, i);
+        }
+        return result;
+    }
+
     @Override
     @NotNull
     public ITensor exp() {
@@ -700,7 +755,7 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
-    public @NotNull ITensor reshape(long @NotNull [] shape, long @NotNull [] strides) {
+    public @NotNull ITensor view(long @NotNull [] shape, long @NotNull [] strides) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
         try (ITensor shapeTensor = backend.createTensor(DataType.INT64, new long[]{shape.length});

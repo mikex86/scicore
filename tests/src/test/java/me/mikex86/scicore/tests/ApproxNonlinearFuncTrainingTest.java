@@ -127,7 +127,7 @@ public abstract class ApproxNonlinearFuncTrainingTest {
         float[] modelPredictionY = new float[nPoints];
         float[] realY = new float[nPoints];
         float intervalStart = 0, intervalEnd = 1;
-        ITensor X = sciCore.arange(intervalStart, intervalEnd, (intervalEnd - intervalStart) / (float) (nPoints - 1), DataType.FLOAT32).reshape(new long[]{nPoints, 1});
+        ITensor X = sciCore.arange(intervalStart, intervalEnd, (intervalEnd - intervalStart) / (float) (nPoints - 1), DataType.FLOAT32).view(new long[]{nPoints, 1});
         ITensor YPred = bobNet.forward(X);
         for (int i = 0; i < nPoints; i++) {
             modelPredictionY[i] = YPred.getFloat(i, 0);

@@ -28,9 +28,9 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor getView(long @NotNull ... indices);
 
-    @NotNull ITensor reshape(long @NotNull [] shape, long @NotNull [] strides);
+    @NotNull ITensor view(long @NotNull [] shape, long @NotNull [] strides);
 
-    default @NotNull ITensor reshape(long @NotNull [] shape) {
+    default @NotNull ITensor view(long @NotNull ... shape) {
         shape = Arrays.copyOf(shape, shape.length);
         long numElements = getNumberOfElements();
         boolean hasInferredDimension = false;
@@ -52,7 +52,7 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
             long inferredDimension = numElements / numOtherElements;
             shape[dimensionToInfer] = inferredDimension;
         }
-        return reshape(shape, ShapeUtils.makeStrides(shape));
+        return view(shape, ShapeUtils.makeStrides(shape));
     }
 
     @NotNull ITensor concat(@NotNull ITensor tensor, int dim);
@@ -507,19 +507,27 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
     }
 
     @NotNull
-    default ITensor broadcast(long... sizes) {
-        Validator.assertTrue(sizes.length == getShape().length, "The number of broadcast dimensions must match the tensor rank");
-        for (int i = 0; i < sizes.length; i++) {
-            Validator.assertTrue(sizes[i] == 1 || sizes[i] == getShape()[i], "The broadcast dimensions must be either 1 or the same as the tensor shape");
+    default ITensor broadcast(long... targetShape) {
+        long[] shape = getShape();
+        Validator.assertTrue(targetShape.length == shape.length, "The number of broadcast dimensions must match the tensor rank");
+        boolean containsInfer = false;
+        for (int i = 0; i < targetShape.length; i++) {
+            if (targetShape[i] == -1) {
+                Validator.assertTrue(!containsInfer, "Only one dimension can be inferred");
+                targetShape[i] = shape[i];
+                containsInfer = true;
+                continue;
+            }
+            Validator.assertTrue(targetShape[i] == 1 || shape[i] == 1 || targetShape[i] == shape[i], "The broadcast dimensions must be either 1 or the same as the tensor shape");
         }
-        try (ITensor one = getSciCoreBackend().createTensor(getDataType(), new long[]{1L})) {
-            return this.multiply(one.reshape(sizes));
+        try (ITensor one = getSciCoreBackend().createTensor(getDataType(), targetShape)) {
+            one.fill(1);
+            return one.multiply(this); // TODO: handle this with in-place op
         }
     }
 
     @NotNull ITensor copy();
 
-    void copyFrom(@NotNull ITensor src);
     void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor);
 
     default void setContents(@NotNull ITensor tensor) {
@@ -758,6 +766,18 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
     default void fill(boolean value) {
         fillRegion(0, getNumberOfElements(), value);
     }
+
+    @NotNull ITensor where(byte condition, byte x, byte y);
+
+    @NotNull ITensor where(short condition, short x, short y);
+
+    @NotNull ITensor where(int condition, int x, int y);
+
+    @NotNull ITensor where(long condition, long x, long y);
+
+    @NotNull ITensor where(float condition, float x, float y);
+
+    @NotNull ITensor where(double condition, double x, double y);
 
     @NotNull ITensor exp();
 

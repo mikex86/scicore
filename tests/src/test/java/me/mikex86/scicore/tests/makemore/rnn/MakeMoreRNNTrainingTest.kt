@@ -3,6 +3,7 @@ package me.mikex86.scicore.tests.makemore.rnn
 import me.mikex86.scicore.ISciCore
 import me.mikex86.scicore.SciCore
 import me.mikex86.scicore.data.DatasetIterator
+import me.mikex86.scicore.graph.scopedRecording
 import me.mikex86.scicore.nn.IModule
 import me.mikex86.scicore.nn.act.Tanh
 import me.mikex86.scicore.nn.layers.Linear
@@ -15,6 +16,7 @@ import me.mikex86.scicore.tests.makemore.NamesLeftShiftDatasetSupplier
 import me.mikex86.scicore.utils.use
 import me.tongfei.progressbar.ProgressBarBuilder
 import me.tongfei.progressbar.ProgressBarStyle
+import java.util.*
 
 private const val VOCAB_SIZE = 26L + 1 // 26 letters + 1 start/end char
 private const val EMBEDDING_SIZE = 32L
@@ -46,10 +48,23 @@ fun main() {
         .setUpdateIntervalMillis(100)
         .build().use { progressBar ->
             for (step in 0 until N_TRAINING_STEPS) {
-                val batch = trainIt.next()
-                batch.use { x, y ->
-                    val logits = net(x)
-
+                sciCore.backend.operationRecorder.scopedRecording {
+                    val batch = trainIt.next()
+                    batch.use { x, y ->
+                        val lossValue = net(x)
+                            .use { logits ->
+                                sciCore.crossEntropy(
+                                    logits.view(-1L, logits.shape.last()),
+                                    y.view(-1L), -1L
+                                )
+                            }
+                            .use { loss ->
+                                optimizer.step(loss)
+                                loss.elementAsDouble()
+                            }
+                        progressBar.step()
+                        progressBar.extraMessage = String.format(Locale.US, "loss: %.5f", lossValue)
+                    }
                 }
             }
         }
@@ -85,20 +100,14 @@ class MakeMoreRnnNet(private val sciCore: SciCore) : IModule {
         val hiddenStatesList = mutableListOf<ITensor>()
         for (i in 0 until seqLen) {
             val embeddingForItem =
-                embeddingsForSequence[LongRange.ALL, i, LongRange.ALL] // (batch_size, embedding_size)
+                embeddingsForSequence[LongRange.ALL, i] // (batch_size, embedding_size)
             val xh = hprev.concat(embeddingForItem, 1)
             hprev = act(rnnCell(xh)) // (batch_size, hidden_size)
             hiddenStatesList.add(hprev)
         }
 
         // stack hidden states
-        val hiddenStates = sciCore.zeros(DataType.FLOAT32, batchSize, seqLen, HIDDEN_SIZE)
-        for (i in 0 until batchSize.toInt()) {
-            for (j in 0 until seqLen.toInt()) {
-                val row = hiddenStates.getView(i.toLong(), j.toLong()) // (hidden_size)
-                row.copyFrom(hiddenStatesList[j][i])
-            }
-        }
+        val hiddenStates = sciCore.stack(1, hiddenStatesList) // (batch_size, seq_len, hidden_size)
         return lmHead(hiddenStates)
     }
 

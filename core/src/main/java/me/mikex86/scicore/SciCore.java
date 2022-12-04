@@ -4,23 +4,20 @@ import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.backend.OperationRegistry;
 import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
+import me.mikex86.scicore.graph.*;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.memory.DirectMemoryManager;
-import me.mikex86.scicore.graph.GraphRecorder;
-import me.mikex86.scicore.graph.IGraph;
-import me.mikex86.scicore.graph.IGraphRecorder;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.utils.ArrayUtils;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.*;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class SciCore implements ISciCore {
 
@@ -628,6 +625,47 @@ public class SciCore implements ISciCore {
             start += step;
         }
         return tensor;
+    }
+
+    @NotNull
+    public ITensor stack(int dimension, @NotNull ITensor @NotNull ... tensors) {
+        return operationRecorder.recordOperation(OperationType.STACK, OptionBundle.of(sciCoreBackend, Map.of(
+                "dimension", scalar(dimension)
+        )), tensors);
+    }
+
+    @Override
+    public @NotNull ITensor crossEntropy(@NotNull ITensor logits, @NotNull ITensor target, @Nullable Long ignoreIndex) {
+        try (ITensor counts = logits.exp(); ITensor totalCounts = counts.reduceSum(1, true);
+             ITensor probabilities = counts.divide(totalCounts);
+             ITensor allBatchesIdx = arange(0, logits.getShape()[0], 1, DataType.INT64)) {
+            ITensor targetIndices = target;
+            ITensor mask = null;
+            if (ignoreIndex != null) {
+                mask = targetIndices.where(ignoreIndex, 0, 1);
+                targetIndices = targetIndices.multiply(mask);
+            }
+            try (ITensor probabilitiesAssignedToCorrectLabels = probabilities.get(allBatchesIdx, targetIndices)) {
+                if (targetIndices != target) {
+                    targetIndices.close();
+                }
+                ITensor probabilitiesAssignedToCorrectLabelsMasked = probabilitiesAssignedToCorrectLabels;
+                if (mask != null) {
+                    probabilitiesAssignedToCorrectLabelsMasked = probabilitiesAssignedToCorrectLabels.multiply(mask);
+                }
+                try (ITensor logProbabilitiesAssignedToCorrectLabels = probabilitiesAssignedToCorrectLabelsMasked.log()) {
+                    if (mask != null) {
+                        mask.close();
+                    }
+                    if (probabilitiesAssignedToCorrectLabelsMasked != probabilitiesAssignedToCorrectLabels) {
+                        probabilitiesAssignedToCorrectLabelsMasked.close();
+                    }
+                    try (ITensor meanLogProbabilitiesAssignedToCorrectLabels = logProbabilitiesAssignedToCorrectLabels.mean()) {
+                        return meanLogProbabilitiesAssignedToCorrectLabels.multiply(-1f);
+                    }
+                }
+            }
+        }
     }
 
     @Override

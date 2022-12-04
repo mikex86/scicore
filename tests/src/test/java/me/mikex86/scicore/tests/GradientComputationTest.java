@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Disabled // this test is disabled because it is abstract
@@ -189,7 +190,7 @@ abstract class GradientComputationTest {
 
     @Test
     void testMatmulWithMultiply4dby2d_2dBroadcast() {
-        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, DataType.FLOAT32).reshape(new long[]{5, 4, 3, 2});
+        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, DataType.FLOAT32).view(new long[]{5, 4, 3, 2});
         ITensor b = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});
         ITensor c = a.multiply(b);
         ITensor d = c.reduceSum(0);
@@ -735,7 +736,7 @@ abstract class GradientComputationTest {
     @Test
     void test4dPlus2dAndMatmul_2dBroadcast() {
         // (5, 4, 3, 2) + (3, 2) = (5, 4, 3, 2)
-        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, DataType.FLOAT32).reshape(new long[]{5, 4, 3, 2});
+        ITensor a = sciCore.arange(0, 5 * 4 * 3 * 2, 1, DataType.FLOAT32).view(new long[]{5, 4, 3, 2});
         ITensor b = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});
         ITensor c = a.plus(b);
         ITensor d = c.reduceSum(0);
@@ -1234,6 +1235,47 @@ abstract class GradientComputationTest {
             Assertions.assertEquals(sciCore.matrix(new float[][]{{7, 7}, {9, 9}, {11, 11}, {13, 13}, {15, 15}}), dFdD);
         }
 
+    }
+
+    @Nested
+    class TestStack {
+
+        @Test
+        void testStackToMatrixAndMatmul() {
+            ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}}); // (1, 5)
+            ITensor b = sciCore.matrix(new float[][]{{6, 7, 8, 9, 10}}); // (1, 5)
+            ITensor c = sciCore.matrix(new float[][]{{11, 12, 13, 14, 15}}); // (1, 5)
+
+            ITensor d = sciCore.matrix(new float[][]{{1}, {2}, {3}, {4}, {5}}); // (5, 1)
+            ITensor e = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}}); // (5, 1)
+
+            ITensor f = sciCore.stack(1, a, b, c); // (1, 3, 5)
+            ITensor g = sciCore.stack(0, d, e); // (2, 5, 1)
+
+            ITensor h = f.matmul(g); // (2, 3, 1)
+            ITensor i = h.reduceSum(-1, false); // ()
+            IGraph graph = sciCore.getBackpropagationGraphUpTo(i, List.of(a, b, c, d, e, f, g, h));
+            graph.backward();
+
+            ITensor dIdA = graph.getGradient(a).orElseThrow();
+            ITensor dIdB = graph.getGradient(b).orElseThrow();
+            ITensor dIdC = graph.getGradient(c).orElseThrow();
+            ITensor dIdD = graph.getGradient(d).orElseThrow();
+            ITensor dIdE = graph.getGradient(e).orElseThrow();
+            ITensor dIdF = graph.getGradient(f).orElseThrow();
+            ITensor dIdG = graph.getGradient(g).orElseThrow();
+            ITensor dIdH = graph.getGradient(h).orElseThrow();
+
+            assertEquals(sciCore.ndarray(new float[][][]{{{1}, {1}, {1}}, {{1}, {1}, {1}}}), dIdH);
+            assertEquals(sciCore.ndarray(new float[][][]{{{18}, {21}, {24}, {27}, {30}}, {{18}, {21}, {24}, {27}, {30}}}), dIdG);
+            // TODO: FIX 3d MATMUL BACKWARD
+            assertEquals(sciCore.ndarray(new float[][][]{{{7, 9, 11, 13, 15}, {7, 9, 11, 13, 15}, {7, 9, 11, 13, 15}}}), dIdF);
+            assertEquals(sciCore.matrix(new float[][]{{18}, {21}, {24}, {27}, {30}}), dIdE);
+            assertEquals(sciCore.matrix(new float[][]{{18}, {21}, {24}, {27}, {30}}), dIdD);
+            assertEquals(sciCore.matrix(new float[][]{{7, 9, 11, 13, 15}}), dIdC);
+            assertEquals(sciCore.matrix(new float[][]{{7, 9, 11, 13, 15}}), dIdB);
+            assertEquals(sciCore.matrix(new float[][]{{7, 9, 11, 13, 15}}), dIdA);
+        }
     }
 
 }

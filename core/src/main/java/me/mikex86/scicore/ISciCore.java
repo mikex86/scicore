@@ -6,9 +6,12 @@ import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.Callable;
 
 public interface ISciCore {
@@ -122,6 +125,29 @@ public interface ISciCore {
     @NotNull ITensor arange(long start, long stop, long step, @NotNull DataType dataType);
 
     @NotNull ITensor arange(double start, double stop, double step, @NotNull DataType dataType);
+
+    /**
+     * Calculates cross-entropy loss between the given logits and labels.
+     *
+     * @param logits      the logits tensor (unnormalized log probabilities).
+     * @param target      the target tensor (integers).
+     * @param ignoreIndex the index to ignore in the target tensor. (must be negative)
+     * @return the cross-entropy loss.
+     */
+    @NotNull ITensor crossEntropy(@NotNull ITensor logits, @NotNull ITensor target, @Nullable Long ignoreIndex);
+
+    @NotNull
+    default ITensor crossEntropy(@NotNull ITensor input, @NotNull ITensor target) {
+        return crossEntropy(input, target, null);
+    }
+
+    @NotNull
+    default ITensor stack(int dimension, @NotNull List<ITensor> tensors) {
+        return stack(dimension, tensors.toArray(new ITensor[0]));
+    }
+
+    @NotNull
+    ITensor stack(int dimension, @NotNull ITensor @NotNull ... tensors);
 
     /**
      * Disables fallback to lower priority backends, when an implementation for a given operation is not available

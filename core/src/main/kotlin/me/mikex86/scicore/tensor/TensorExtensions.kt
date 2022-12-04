@@ -26,6 +26,9 @@ operator fun ITensor.unaryMinus() = multiply(-1f)
 
 operator fun ITensor.get(vararg indices: Any): ITensor {
     val backend = sciCoreBackend
+    if (indices.size > shape.size) {
+        throw IllegalArgumentException("Too many indices (expected ${shape.size} or fewer)")
+    }
     return indices.withIndex().map { (dim, idx) ->
         when (idx) {
             is Int -> backend.createTensor(DataType.INT32, longArrayOf(1L)).apply {
@@ -40,7 +43,7 @@ operator fun ITensor.get(vararg indices: Any): ITensor {
             is IntRange -> idx.let { range ->
                 if (range == IntRange.ALL) {
                     backend.createTensor(DataType.INT64, longArrayOf(shape[dim])).apply {
-                        for (i in 0 until shape[dim]) {
+                        for (i in 0 until this@get.shape[dim]) {
                             setLong(i, i)
                         }
                     }
@@ -56,7 +59,7 @@ operator fun ITensor.get(vararg indices: Any): ITensor {
             is LongRange -> idx.let { range ->
                 if (range == LongRange.ALL) {
                     backend.createTensor(DataType.INT64, longArrayOf(shape[dim])).apply {
-                        for (i in 0 until shape[dim]) {
+                        for (i in 0 until this@get.shape[dim]) {
                             setLong(i, i)
                         }
                     }

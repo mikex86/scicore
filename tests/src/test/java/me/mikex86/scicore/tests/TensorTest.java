@@ -12,6 +12,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -962,295 +963,378 @@ abstract class TensorTest {
 
 
     @Nested
-    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class Matmul {
 
-        Stream<Arguments> getMatmul_test_2x2by2x2Data() {
-            double[][] a = {{1, 2}, {3, 4}};
-            double[][] b = {{5, 6}, {7, 8}};
-            double[][] c = {{19, 22}, {43, 50}};
-            return allNumericDataTypeVariants(a, b, c);
-        }
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+        class Matmul2d {
 
-        DataType[] allDataTypes = {
-                DataType.INT8, DataType.INT16, DataType.INT32, DataType.INT64,
-                DataType.FLOAT32, DataType.FLOAT64
-        };
-
-        private Stream<Arguments> allNumericDataTypeVariants(Object a, Object b, Object c) {
-            ITensor aMatrix = sciCore.ndarray(a);
-            ITensor bMatrix = sciCore.ndarray(b);
-            ITensor cMatrix = sciCore.ndarray(c);
-            List<Arguments> arguments = new ArrayList<>(allDataTypes.length * allDataTypes.length);
-            for (DataType dataTypeA : allDataTypes) {
-                for (DataType dataTypeB : allDataTypes) {
-                    DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
-                    arguments.add(Arguments.of(aMatrix.cast(dataTypeA), bMatrix.cast(dataTypeB), cMatrix.cast(resultDataType)));
-                }
+            Stream<Arguments> getMatmul_test_2x2by2x2Data() {
+                double[][] a = {{1, 2}, {3, 4}};
+                double[][] b = {{5, 6}, {7, 8}};
+                double[][] c = {{19, 22}, {43, 50}};
+                return allNumericDataTypeVariants(a, b, c);
             }
-            return arguments.stream();
-        }
 
-        private Stream<Arguments> allNumericDataTypeVariants(Object a, Object b) {
-            ITensor aMatrix = sciCore.ndarray(a);
-            ITensor bMatrix = sciCore.ndarray(b);
-            List<Arguments> arguments = new ArrayList<>(allDataTypes.length * allDataTypes.length);
-            for (DataType dataTypeA : allDataTypes) {
-                for (DataType dataTypeB : allDataTypes) {
-                    arguments.add(Arguments.of(aMatrix.cast(dataTypeA), bMatrix.cast(dataTypeB)));
+            DataType[] allDataTypes = {
+                    DataType.INT8, DataType.INT16, DataType.INT32, DataType.INT64,
+                    DataType.FLOAT32, DataType.FLOAT64
+            };
+
+            private Stream<Arguments> allNumericDataTypeVariants(Object a, Object b, Object c) {
+                ITensor aMatrix = sciCore.ndarray(a);
+                ITensor bMatrix = sciCore.ndarray(b);
+                ITensor cMatrix = sciCore.ndarray(c);
+                List<Arguments> arguments = new ArrayList<>(allDataTypes.length * allDataTypes.length);
+                for (DataType dataTypeA : allDataTypes) {
+                    for (DataType dataTypeB : allDataTypes) {
+                        DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
+                        arguments.add(Arguments.of(aMatrix.cast(dataTypeA), bMatrix.cast(dataTypeB), cMatrix.cast(resultDataType)));
+                    }
                 }
+                return arguments.stream();
             }
-            return arguments.stream();
+
+            private Stream<Arguments> allNumericDataTypeVariants(Object a, Object b) {
+                ITensor aMatrix = sciCore.ndarray(a);
+                ITensor bMatrix = sciCore.ndarray(b);
+                List<Arguments> arguments = new ArrayList<>(allDataTypes.length * allDataTypes.length);
+                for (DataType dataTypeA : allDataTypes) {
+                    for (DataType dataTypeB : allDataTypes) {
+                        arguments.add(Arguments.of(aMatrix.cast(dataTypeA), bMatrix.cast(dataTypeB)));
+                    }
+                }
+                return arguments.stream();
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_2x2by2x2Data")
+            void matmul_test_2x2by2x2(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b);
+                assertEquals(c, result);
+            }
+
+            Stream<Arguments> getMatmul_test_2x2_by_2x2_transposeAData() {
+                double[][] a = {{1, 2}, {3, 4}};
+                double[][] b = {{5, 6}, {7, 8}};
+                double[][] c = {{26, 30}, {38, 44}};
+                return allNumericDataTypeVariants(a, b, c);
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_2x2_by_2x2_transposeAData")
+            void matmul_test_2x2_by_2x2_transposeA(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b, true, false);
+                assertEquals(c, result);
+            }
+
+            Stream<Arguments> getMatmul_test_2x2_by_2x2_transposeBData() {
+                double[][] a = {{1, 2}, {3, 4}};
+                double[][] b = {{5, 6}, {7, 8}};
+                double[][] c = {{17, 23}, {39, 53}};
+                return allNumericDataTypeVariants(a, b, c);
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_2x2_by_2x2_transposeBData")
+            void matmul_test_2x2_by_2x2_transposeB(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b, false, true);
+                assertEquals(c, result);
+            }
+
+            Stream<Arguments> getMatmul_test_2x2_by_2x2_transposeA_and_transposeBData() {
+                double[][] a = {{1, 2}, {3, 4}};
+                double[][] b = {{5, 6}, {7, 8}};
+                double[][] c = {{23, 31}, {34, 46}};
+                return allNumericDataTypeVariants(a, b, c);
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_2x2_by_2x2_transposeA_and_transposeBData")
+            void matmul_test_2x2_by_2x2_transposeA_and_transposeB(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b, true, true);
+                assertEquals(c, result);
+            }
+
+            Stream<Arguments> getMatmul_test_2x3by2x3__failureData() {
+                double[][] a = {{1, 2, 3}, {4, 5, 6}};
+                double[][] b = {{7, 8, 9}, {10, 11, 12}};
+                return allNumericDataTypeVariants(a, b);
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_2x3by2x3__failureData")
+            void matmul_test_2x3by2x3__failure(final ITensor a, final ITensor b) {
+                assertThrows(IllegalArgumentException.class, () -> a.matmul(b));
+            }
+
+            Stream<Arguments> getMatmul_test_3d_failureData() {
+                double[][][] a = new double[3][4][5];
+                double[][][] b = new double[8][9][10];
+                return allNumericDataTypeVariants(a, b);
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_3d_failureData")
+            void matmul_test_3d__failure(final ITensor a, final ITensor b) {
+                assertThrows(IllegalArgumentException.class, () -> a.matmul(b));
+            }
+
+            Stream<Arguments> getMatmul_test_2x3by3x2Data() {
+                double[][] a = {{1, 2, 3}, {4, 5, 6}};
+                double[][] b = {{7, 8}, {9, 10}, {11, 12}};
+                double[][] c = {{58, 64}, {139, 154}};
+                return allNumericDataTypeVariants(a, b, c);
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_2x3by3x2Data")
+            void matmul_test_2x3by3x2(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b);
+                assertEquals(c, result);
+            }
+
+            Stream<Arguments> getMatmul_test_2x3by3x2_transposeAData() {
+                double[][] a = {{1, 2, 3}, {4, 5, 6}};
+                double[][] b = {{7, 8}, {9, 10}, {11, 12}};
+                return allNumericDataTypeVariants(a, b);
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_2x3by3x2_transposeAData")
+            void matmul_test_2x3by3x2_transposeA_failure(final ITensor a, final ITensor b) {
+                assertThrows(IllegalArgumentException.class, () -> a.matmul(b, true, false));
+            }
+
+            Stream<Arguments> getMatmul_test_2x3by3x2_transposeBData() {
+                double[][] a = {{1, 2, 3}, {4, 5, 6}};
+                double[][] b = {{7, 8}, {9, 10}, {11, 12}};
+                return allNumericDataTypeVariants(a, b);
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_2x3by3x2_transposeBData")
+            void matmul_test_2x3by3x2_transposeB__failure(final ITensor a, final ITensor b) {
+                assertThrows(IllegalArgumentException.class, () -> a.matmul(b, false, true));
+            }
+
+            Stream<Arguments> getMatmul_test_2x3by3x2_transposeA_and_transposeBData() {
+                double[][] a = {{1, 2, 3}, {4, 5, 6}};
+                double[][] b = {{7, 8}, {9, 10}, {11, 12}};
+                double[][] c = {{39, 49, 59}, {54, 68, 82}, {69, 87, 105}};
+                return allNumericDataTypeVariants(a, b, c);
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_2x3by3x2_transposeA_and_transposeBData")
+            void matmul_test_2x3by3x2_transposeA_and_transposeB(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b, true, true);
+                assertEquals(c, result);
+            }
+
+
+            Stream<Arguments> getMatmul_test_2x3by3x4Data() {
+                double[][] a = {{1, 2, 3}, {4, 5, 6}};
+                double[][] b = {{7, 8, 9, 10}, {11, 12, 13, 14}, {15, 16, 17, 18}};
+                double[][] c = {{74, 80, 86, 92}, {173, 188, 203, 218}};
+                return allNumericDataTypeVariants(a, b, c);
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_2x3by3x4Data")
+            void matmul_test_2x3by3x4(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b);
+                assertEquals(c, result);
+            }
+
+            Stream<Arguments> getMatmul_test_withDimViewData() {
+                double[][][] a = {
+                        {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
+                        {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}
+                };
+                double[][][] b = {
+                        {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}},
+                        {{28, 29, 30}, {31, 32, 33}, {34, 35, 36}}
+                };
+                double[][] result = {{192, 198, 204}, {471, 486, 501}, {750, 774, 798}};
+                return allNumericDataTypeVariants(a, b, result).map(args -> {
+                    ITensor aMatrix = (ITensor) args.get()[0];
+                    ITensor bMatrix = (ITensor) args.get()[1];
+                    ITensor cMatrix = (ITensor) args.get()[2];
+                    return Arguments.of(aMatrix.getView(0), bMatrix.getView(1), cMatrix);
+                });
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_withDimViewData")
+            void matmul_test_withDimView(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b);
+                assertEquals(c, result);
+            }
+
+            Stream<Arguments> getMatmul_test_withBTransposedAsExtraOpTensor() {
+                double[][] a = {{1, 2, 3}, {4, 5, 6}};
+                double[][] b = {{7, 11, 15}, {8, 12, 16}, {9, 13, 17}, {10, 14, 18}};
+                double[][] c = {{74, 80, 86, 92}, {173, 188, 203, 218}};
+                return allNumericDataTypeVariants(a, b, c).map(args -> {
+                    ITensor aMatrix = (ITensor) args.get()[0];
+                    ITensor bMatrix = (ITensor) args.get()[1];
+                    ITensor cMatrix = (ITensor) args.get()[2];
+                    return Arguments.of(aMatrix, bMatrix.transpose(), cMatrix);
+                });
+            }
+
+            @Disabled // enable when strides are supported in matmul
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_withBTransposedAsExtraOpTensor")
+            void matmul_test_withBTransposedAsExtraOpTensor(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b);
+                assertEquals(c, result);
+            }
+
+            Stream<Arguments> getMatmul_test_withATransposedAsExtraOpTensor() {
+                double[][] a = {{1, 4}, {2, 5}, {3, 6}};
+                double[][] b = {{7, 8, 9, 10}, {11, 12, 13, 14}, {15, 16, 17, 18}};
+                double[][] c = {{74, 80, 86, 92}, {173, 188, 203, 218}};
+                return allNumericDataTypeVariants(a, b, c).map(args -> {
+                    ITensor aMatrix = (ITensor) args.get()[0];
+                    ITensor bMatrix = (ITensor) args.get()[1];
+                    ITensor cMatrix = (ITensor) args.get()[2];
+                    return Arguments.of(aMatrix.transpose(), bMatrix, cMatrix);
+                });
+            }
+
+            @Disabled // enable when strides are supported in matmul
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_withATransposedAsExtraOpTensor")
+            void matmul_test_withATransposedAsExtraOpTensor(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b);
+                assertEquals(c, result);
+            }
+
+            Stream<Arguments> getMatmul_test_withATransposedAsExtraOpTensor_and_BTransposedAsExtraOpTensor() {
+                double[][] a = {{1, 4}, {2, 5}, {3, 6}};
+                double[][] b = {{7, 11, 15}, {8, 12, 16}, {9, 13, 17}, {10, 14, 18}};
+                double[][] c = {{74, 80, 86, 92}, {173, 188, 203, 218}};
+                return allNumericDataTypeVariants(a, b, c).map(args -> {
+                    ITensor aMatrix = (ITensor) args.get()[0];
+                    ITensor bMatrix = (ITensor) args.get()[1];
+                    ITensor cMatrix = (ITensor) args.get()[2];
+                    return Arguments.of(aMatrix.transpose(), bMatrix.transpose(), cMatrix);
+                });
+            }
+
+            @Disabled // enable when strides are supported in matmul
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_withATransposedAsExtraOpTensor_and_BTransposedAsExtraOpTensor")
+            void matmul_test_withATransposedAsExtraOpTensor_and_BTransposedAsExtraOpTensor(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b);
+                assertEquals(c, result);
+            }
+
+            Stream<Arguments> getMatmul_test_withJvmTensorData() {
+                SciCore jvmSciCore = new SciCore();
+                jvmSciCore.setBackend(ISciCore.BackendType.JVM);
+                double[][] a = {{1, 2}, {3, 4}};
+                double[][] b = {{5, 6}, {7, 8}};
+                double[][] c = {{19, 22}, {43, 50}};
+                Stream<Arguments> argumentsStream = allNumericDataTypeVariants(a, b, c);
+                return argumentsStream.map(arguments -> {
+                    Object[] objects = arguments.get();
+                    ITensor aMatrix = (ITensor) objects[0];
+                    ITensor bMatrix = (ITensor) objects[1];
+                    ITensor cMatrix = (ITensor) objects[2];
+                    ITensor bMatrixJvm = jvmSciCore.zeros(bMatrix.getDataType(), bMatrix.getShape());
+                    bMatrixJvm.setContents(bMatrix);
+                    return Arguments.of(aMatrix, bMatrixJvm, cMatrix);
+                });
+            }
+
+            @ParameterizedTest
+            @MethodSource("getMatmul_test_withJvmTensorData")
+            void matmul_test_withJvmTensor(final ITensor a, final ITensor b, ITensor c) {
+                ITensor result = a.matmul(b);
+                assertEquals(c, result);
+            }
         }
 
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_2x2by2x2Data")
-        void matmul_test_2x2by2x2(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b);
-            assertEquals(c, result);
-        }
+        @Nested
+        @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+        class Matmul3d {
 
-        Stream<Arguments> getMatmul_test_2x2_by_2x2_transposeAData() {
-            double[][] a = {{1, 2}, {3, 4}};
-            double[][] b = {{5, 6}, {7, 8}};
-            double[][] c = {{26, 30}, {38, 44}};
-            return allNumericDataTypeVariants(a, b, c);
-        }
+            Stream<Arguments> getNumericDataTypes() {
+                return Arrays.stream(DataType.values())
+                        .filter(DataType::isNumeric)
+                        .map(Arguments::of);
+            }
 
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_2x2_by_2x2_transposeAData")
-        void matmul_test_2x2_by_2x2_transposeA(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b, true, false);
-            assertEquals(c, result);
-        }
+            @ParameterizedTest
+            @MethodSource("getNumericDataTypes")
+            void matmul_test_3dby3d(final DataType dataType) {
+                ITensor a = sciCore.arange(0, 24, 1, dataType).view(2, 3, 4);
+                ITensor b = sciCore.arange(0, 32, 1, dataType).view(2, 4, 4);
+                ITensor c = a.matmul(b);
+                ITensor expected = sciCore.ndarray(new float[][][]{{{56, 62, 68, 74}, {152, 174, 196, 218}, {248, 286, 324, 362}},
+                                {{1208, 1262, 1316, 1370}, {1560, 1630, 1700, 1770}, {1912, 1998, 2084, 2170}}})
+                        .cast(dataType);
+                assertEquals(expected, c);
+            }
 
-        Stream<Arguments> getMatmul_test_2x2_by_2x2_transposeBData() {
-            double[][] a = {{1, 2}, {3, 4}};
-            double[][] b = {{5, 6}, {7, 8}};
-            double[][] c = {{17, 23}, {39, 53}};
-            return allNumericDataTypeVariants(a, b, c);
-        }
+            @ParameterizedTest
+            @MethodSource("getNumericDataTypes")
+            void matmul_test_2dby3d(final DataType dataType) {
+                ITensor a = sciCore.arange(0, 12, 1, dataType).view(2, 6);
+                ITensor b = sciCore.arange(0, 24, 1, dataType).view(2, 6, 2);
+                ITensor c = a.matmul(b);
+                ITensor expected = sciCore
+                        .ndarray(new float[][][]{{{110, 125}, {290, 341}}, {{290, 305}, {902, 953}}})
+                        .cast(dataType);
+                assertEquals(expected, c);
+            }
 
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_2x2_by_2x2_transposeBData")
-        void matmul_test_2x2_by_2x2_transposeB(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b, false, true);
-            assertEquals(c, result);
-        }
+            @ParameterizedTest
+            @MethodSource("getNumericDataTypes")
+            void matmul_test_2dby3d_2(final DataType dataType) {
+                ITensor a = sciCore.arange(0, 12, 1, dataType).view(2, 6);
+                ITensor b = sciCore.arange(0, 36, 1, dataType).view(2, 6, 3);
+                ITensor c = a.matmul(b);
+                ITensor expected = sciCore
+                        .ndarray(new float[][][]{{{165, 180, 195}, {435, 486, 537}}, {{435, 450, 465}, {1353, 1404, 1455}}})
+                        .cast(dataType);
+                assertEquals(expected, c);
+            }
 
-        Stream<Arguments> getMatmul_test_2x2_by_2x2_transposeA_and_transposeBData() {
-            double[][] a = {{1, 2}, {3, 4}};
-            double[][] b = {{5, 6}, {7, 8}};
-            double[][] c = {{23, 31}, {34, 46}};
-            return allNumericDataTypeVariants(a, b, c);
-        }
+            @ParameterizedTest
+            @MethodSource("getNumericDataTypes")
+            void matmul_test_3dby2d(final DataType dataType) {
+                ITensor a = sciCore.arange(0, 36, 1, dataType).view(2, 6, 3);
+                ITensor b = sciCore.arange(0, 12, 1, dataType).view(3, 4);
+                ITensor c = a.matmul(b);
+                ITensor expected = sciCore
+                        .ndarray(new float[][][]{
+                                {
+                                        {20, 23, 26, 29}, {56, 68, 80, 92}, {92, 113, 134, 155},
+                                        {128, 158, 188, 218}, {164, 203, 242, 281}, {200, 248, 296, 344}},
+                                {
+                                        {236, 293, 350, 407}, {272, 338, 404, 470}, {308, 383, 458, 533},
+                                        {344, 428, 512, 596}, {380, 473, 566, 659}, {416, 518, 620, 722}
+                                }
+                        })
+                        .cast(dataType);
+                assertEquals(expected, c);
+            }
 
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_2x2_by_2x2_transposeA_and_transposeBData")
-        void matmul_test_2x2_by_2x2_transposeA_and_transposeB(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b, true, true);
-            assertEquals(c, result);
-        }
-
-        Stream<Arguments> getMatmul_test_2x3by2x3__failureData() {
-            double[][] a = {{1, 2, 3}, {4, 5, 6}};
-            double[][] b = {{7, 8, 9}, {10, 11, 12}};
-            return allNumericDataTypeVariants(a, b);
-        }
-
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_2x3by2x3__failureData")
-        void matmul_test_2x3by2x3__failure(final ITensor a, final ITensor b) {
-            assertThrows(IllegalArgumentException.class, () -> a.matmul(b));
-        }
-
-        Stream<Arguments> getMatmul_test_3d_failureData() {
-            double[][][] a = new double[3][4][5];
-            double[][][] b = new double[8][9][10];
-            return allNumericDataTypeVariants(a, b);
-        }
-
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_3d_failureData")
-        void matmul_test_3d__failure(final ITensor a, final ITensor b) {
-            assertThrows(IllegalArgumentException.class, () -> a.matmul(b));
-        }
-
-        Stream<Arguments> getMatmul_test_2x3by3x2Data() {
-            double[][] a = {{1, 2, 3}, {4, 5, 6}};
-            double[][] b = {{7, 8}, {9, 10}, {11, 12}};
-            double[][] c = {{58, 64}, {139, 154}};
-            return allNumericDataTypeVariants(a, b, c);
-        }
-
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_2x3by3x2Data")
-        void matmul_test_2x3by3x2(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b);
-            assertEquals(c, result);
-        }
-
-        Stream<Arguments> getMatmul_test_2x3by3x2_transposeAData() {
-            double[][] a = {{1, 2, 3}, {4, 5, 6}};
-            double[][] b = {{7, 8}, {9, 10}, {11, 12}};
-            return allNumericDataTypeVariants(a, b);
-        }
-
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_2x3by3x2_transposeAData")
-        void matmul_test_2x3by3x2_transposeA_failure(final ITensor a, final ITensor b) {
-            assertThrows(IllegalArgumentException.class, () -> a.matmul(b, true, false));
-        }
-
-        Stream<Arguments> getMatmul_test_2x3by3x2_transposeBData() {
-            double[][] a = {{1, 2, 3}, {4, 5, 6}};
-            double[][] b = {{7, 8}, {9, 10}, {11, 12}};
-            return allNumericDataTypeVariants(a, b);
-        }
-
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_2x3by3x2_transposeBData")
-        void matmul_test_2x3by3x2_transposeB__failure(final ITensor a, final ITensor b) {
-            assertThrows(IllegalArgumentException.class, () -> a.matmul(b, false, true));
-        }
-
-        Stream<Arguments> getMatmul_test_2x3by3x2_transposeA_and_transposeBData() {
-            double[][] a = {{1, 2, 3}, {4, 5, 6}};
-            double[][] b = {{7, 8}, {9, 10}, {11, 12}};
-            double[][] c = {{39, 49, 59}, {54, 68, 82}, {69, 87, 105}};
-            return allNumericDataTypeVariants(a, b, c);
-        }
-
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_2x3by3x2_transposeA_and_transposeBData")
-        void matmul_test_2x3by3x2_transposeA_and_transposeB(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b, true, true);
-            assertEquals(c, result);
-        }
-
-
-        Stream<Arguments> getMatmul_test_2x3by3x4Data() {
-            double[][] a = {{1, 2, 3}, {4, 5, 6}};
-            double[][] b = {{7, 8, 9, 10}, {11, 12, 13, 14}, {15, 16, 17, 18}};
-            double[][] c = {{74, 80, 86, 92}, {173, 188, 203, 218}};
-            return allNumericDataTypeVariants(a, b, c);
-        }
-
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_2x3by3x4Data")
-        void matmul_test_2x3by3x4(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b);
-            assertEquals(c, result);
-        }
-
-        Stream<Arguments> getMatmul_test_withDimViewData() {
-            double[][][] a = {
-                    {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
-                    {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}}
-            };
-            double[][][] b = {
-                    {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}},
-                    {{28, 29, 30}, {31, 32, 33}, {34, 35, 36}}
-            };
-            double[][] result = {{192, 198, 204}, {471, 486, 501}, {750, 774, 798}};
-            return allNumericDataTypeVariants(a, b, result).map(args -> {
-                ITensor aMatrix = (ITensor) args.get()[0];
-                ITensor bMatrix = (ITensor) args.get()[1];
-                ITensor cMatrix = (ITensor) args.get()[2];
-                return Arguments.of(aMatrix.getView(0), bMatrix.getView(1), cMatrix);
-            });
-        }
-
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_withDimViewData")
-        void matmul_test_withDimView(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b);
-            assertEquals(c, result);
-        }
-
-        Stream<Arguments> getMatmul_test_withBTransposedAsExtraOpTensor() {
-            double[][] a = {{1, 2, 3}, {4, 5, 6}};
-            double[][] b = {{7, 11, 15}, {8, 12, 16}, {9, 13, 17}, {10, 14, 18}};
-            double[][] c = {{74, 80, 86, 92}, {173, 188, 203, 218}};
-            return allNumericDataTypeVariants(a, b, c).map(args -> {
-                ITensor aMatrix = (ITensor) args.get()[0];
-                ITensor bMatrix = (ITensor) args.get()[1];
-                ITensor cMatrix = (ITensor) args.get()[2];
-                return Arguments.of(aMatrix, bMatrix.transpose(), cMatrix);
-            });
-        }
-
-        @Disabled // enable when strides are supported in matmul
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_withBTransposedAsExtraOpTensor")
-        void matmul_test_withBTransposedAsExtraOpTensor(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b);
-            assertEquals(c, result);
-        }
-
-        Stream<Arguments> getMatmul_test_withATransposedAsExtraOpTensor() {
-            double[][] a = {{1, 4}, {2, 5}, {3, 6}};
-            double[][] b = {{7, 8, 9, 10}, {11, 12, 13, 14}, {15, 16, 17, 18}};
-            double[][] c = {{74, 80, 86, 92}, {173, 188, 203, 218}};
-            return allNumericDataTypeVariants(a, b, c).map(args -> {
-                ITensor aMatrix = (ITensor) args.get()[0];
-                ITensor bMatrix = (ITensor) args.get()[1];
-                ITensor cMatrix = (ITensor) args.get()[2];
-                return Arguments.of(aMatrix.transpose(), bMatrix, cMatrix);
-            });
-        }
-
-        @Disabled // enable when strides are supported in matmul
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_withATransposedAsExtraOpTensor")
-        void matmul_test_withATransposedAsExtraOpTensor(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b);
-            assertEquals(c, result);
-        }
-
-        Stream<Arguments> getMatmul_test_withATransposedAsExtraOpTensor_and_BTransposedAsExtraOpTensor() {
-            double[][] a = {{1, 4}, {2, 5}, {3, 6}};
-            double[][] b = {{7, 11, 15}, {8, 12, 16}, {9, 13, 17}, {10, 14, 18}};
-            double[][] c = {{74, 80, 86, 92}, {173, 188, 203, 218}};
-            return allNumericDataTypeVariants(a, b, c).map(args -> {
-                ITensor aMatrix = (ITensor) args.get()[0];
-                ITensor bMatrix = (ITensor) args.get()[1];
-                ITensor cMatrix = (ITensor) args.get()[2];
-                return Arguments.of(aMatrix.transpose(), bMatrix.transpose(), cMatrix);
-            });
-        }
-
-        @Disabled // enable when strides are supported in matmul
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_withATransposedAsExtraOpTensor_and_BTransposedAsExtraOpTensor")
-        void matmul_test_withATransposedAsExtraOpTensor_and_BTransposedAsExtraOpTensor(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b);
-            assertEquals(c, result);
-        }
-
-        Stream<Arguments> getMatmul_test_withJvmTensorData() {
-            SciCore jvmSciCore = new SciCore();
-            jvmSciCore.setBackend(ISciCore.BackendType.JVM);
-            double[][] a = {{1, 2}, {3, 4}};
-            double[][] b = {{5, 6}, {7, 8}};
-            double[][] c = {{19, 22}, {43, 50}};
-            Stream<Arguments> argumentsStream = allNumericDataTypeVariants(a, b, c);
-            return argumentsStream.map(arguments -> {
-                Object[] objects = arguments.get();
-                ITensor aMatrix = (ITensor) objects[0];
-                ITensor bMatrix = (ITensor) objects[1];
-                ITensor cMatrix = (ITensor) objects[2];
-                ITensor bMatrixJvm = jvmSciCore.zeros(bMatrix.getDataType(), bMatrix.getShape());
-                bMatrixJvm.setContents(bMatrix);
-                return Arguments.of(aMatrix, bMatrixJvm, cMatrix);
-            });
-        }
-
-        @ParameterizedTest
-        @MethodSource("getMatmul_test_withJvmTensorData")
-        void matmul_test_withJvmTensor(final ITensor a, final ITensor b, ITensor c) {
-            ITensor result = a.matmul(b);
-            assertEquals(c, result);
+            @ParameterizedTest
+            @MethodSource("getNumericDataTypes")
+            void matmul_test_3dby3d_firstBatchSizeIsOne(final DataType dataType) {
+                ITensor a = sciCore.arange(0, 15, 1, dataType).view(1, 3, 5);
+                ITensor b = sciCore.arange(0, 10, 1, dataType).view(2, 5, 1);
+                ITensor c = a.matmul(b);
+                ITensor expected = sciCore
+                        .ndarray(new float[][][]{{{30}, {80}, {130}}, {{80}, {255}, {430}}})
+                        .cast(dataType);
+                assertEquals(expected, c);
+            }
         }
     }
 
@@ -2715,7 +2799,78 @@ abstract class TensorTest {
                     {{7, 8, 9, 19, 20}, {10, 11, 12, 22, 23}}
             }), c);
         }
+    }
 
+    @Nested
+    class Stack {
+
+        @Test
+        void test_stack3dDim0() {
+            ITensor a = sciCore.arange(0, 24, 1, DataType.FLOAT32).view(2, 6, 2);
+            ITensor b = sciCore.arange(24, 48, 1, DataType.FLOAT32).view(2, 6, 2);
+            ITensor c = sciCore.arange(48, 72, 1, DataType.FLOAT32).view(2, 6, 2);
+            ITensor d = sciCore.stack(0, a, b, c);
+            assertEquals(sciCore.ndarray(new float[][][][]{
+                    {
+                            {{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}},
+                            {{12, 13}, {14, 15}, {16, 17}, {18, 19}, {20, 21}, {22, 23}}
+                    },
+                    {
+                            {{24, 25}, {26, 27}, {28, 29}, {30, 31}, {32, 33}, {34, 35}},
+                            {{36, 37}, {38, 39}, {40, 41}, {42, 43}, {44, 45}, {46, 47}}
+                    },
+                    {
+                            {{48, 49}, {50, 51}, {52, 53}, {54, 55}, {56, 57}, {58, 59}},
+                            {{60, 61}, {62, 63}, {64, 65}, {66, 67}, {68, 69}, {70, 71}}
+                    }
+            }), d);
+        }
+
+        @Test
+        void test_stack3dDim1() {
+            ITensor a = sciCore.arange(0, 24, 1, DataType.FLOAT32).view(2, 6, 2);
+            ITensor b = sciCore.arange(24, 48, 1, DataType.FLOAT32).view(2, 6, 2);
+            ITensor c = sciCore.arange(48, 72, 1, DataType.FLOAT32).view(2, 6, 2);
+            ITensor d = sciCore.stack(1, a, b, c);
+            assertEquals(sciCore.ndarray(new float[][][][]{
+                    {
+                            {{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}},
+                            {{24, 25}, {26, 27}, {28, 29}, {30, 31}, {32, 33}, {34, 35}},
+                            {{48, 49}, {50, 51}, {52, 53}, {54, 55}, {56, 57}, {58, 59}}
+                    },
+                    {
+                            {{12, 13}, {14, 15}, {16, 17}, {18, 19}, {20, 21}, {22, 23}},
+                            {{36, 37}, {38, 39}, {40, 41}, {42, 43}, {44, 45}, {46, 47}},
+                            {{60, 61}, {62, 63}, {64, 65}, {66, 67}, {68, 69}, {70, 71}}
+                    }
+            }), d);
+        }
+
+        @Test
+        void test_stack3dDim2() {
+            ITensor a = sciCore.arange(0, 24, 1, DataType.FLOAT32).view(2, 6, 2);
+            ITensor b = sciCore.arange(24, 48, 1, DataType.FLOAT32).view(2, 6, 2);
+            ITensor c = sciCore.arange(48, 72, 1, DataType.FLOAT32).view(2, 6, 2);
+            ITensor d = sciCore.stack(2, a, b, c);
+            assertEquals(sciCore.ndarray(new float[][][][]{
+                    {
+                            {{0, 1}, {24, 25}, {48, 49}},
+                            {{2, 3}, {26, 27}, {50, 51}},
+                            {{4, 5}, {28, 29}, {52, 53}},
+                            {{6, 7}, {30, 31}, {54, 55}},
+                            {{8, 9}, {32, 33}, {56, 57}},
+                            {{10, 11}, {34, 35}, {58, 59}}
+                    },
+                    {
+                            {{12, 13}, {36, 37}, {60, 61}},
+                            {{14, 15}, {38, 39}, {62, 63}},
+                            {{16, 17}, {40, 41}, {64, 65}},
+                            {{18, 19}, {42, 43}, {66, 67}},
+                            {{20, 21}, {44, 45}, {68, 69}},
+                            {{22, 23}, {46, 47}, {70, 71}}
+                    }
+            }), d);
+        }
     }
 
 }

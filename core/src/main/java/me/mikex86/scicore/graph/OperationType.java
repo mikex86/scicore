@@ -5,10 +5,8 @@ public enum OperationType {
     EXP, TANH, LOG, RELU, SIGMOID, // Unary arithmetic ops
     MATMUL, DIVIDE, PLUS, MINUS, POW, MULTIPLY, // Binary arithmetic ops
     REDUCE_SUM, RESHAPE, TRANSPOSE, // Reshape ops
-    COPY, CONCAT, // Copy ops
-    ARGMAX, COMPARE_ELEMENTS,
-    ONE_HOT, GET,
-
+    CONCAT, STACK, // Copy ops
+    ARGMAX, COMPARE_ELEMENTS, ONE_HOT, GET, WHERE, // Indexing ops
     CAST,
     PLUS_INPLACE(true), MINUS_INPLACE(true); // Inplace ops (TODO: FIX)
 

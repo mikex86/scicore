@@ -36,16 +36,14 @@ class NamesLeftShiftDatasetSupplier(
         val xs = mutableListOf<ITensor>()
         val ys = mutableListOf<ITensor>()
         for (w in words) {
-            val x = ByteArray(maxWordLength) { 0 }
-            x[0] = NamesCharacterMapping.charToIndex['.']!!
+            val x = ByteArray(maxWordLength + 2) { 0 }
             for (i in 1..w.length) {
                 x[i] = NamesCharacterMapping.charToIndex[w[i - 1]]!!
             }
-            x[w.length + 1] = NamesCharacterMapping.charToIndex['.']!!
             xs.add(sciCore.array(x))
 
-            var y = x.sliceArray(1 until x.size) + NamesCharacterMapping.charToIndex['.']!!
-            y += ByteArray(maxWordLength - y.size) { -1 } // mask cross entropy loss with -1
+            var y = x.sliceArray(1..w.length + 1)
+            y += ByteArray(maxWordLength + 2 - y.size) { -1 }
             ys.add(sciCore.array(y))
         }
         return Pair(xs, ys)

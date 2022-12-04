@@ -43,10 +43,10 @@ public class Linear implements IModule {
     @Override
     public @NotNull ITensor forward(@NotNull ITensor input) {
         long[] inputShape = input.getShape();
-        if (inputShape.length != 2) {
-            throw new IllegalArgumentException("Input must be 2-dimensional for Linear layer");
+        if (inputShape.length != 2 && inputShape.length != 3) {
+            throw new IllegalArgumentException("Input must be a 2D or 3D tensor");
         }
-        if (inputShape[1] != inputSize) {
+        if (inputShape[inputShape.length - 1] != inputSize) {
             throw new IllegalArgumentException("Input size must match the input size of the layer");
         }
         try (ITensor x = input.matmul(weights, false, true)) {

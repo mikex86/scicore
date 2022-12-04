@@ -14,10 +14,7 @@ import me.mikex86.scicore.tensor.View;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
 
@@ -35,33 +32,33 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
             throw new IllegalArgumentException("Get operation must be supplied at least one index!");
         }
         List<ITensor> indicesList = inputs.subList(1, inputs.size());
+        long[] indexShape = indicesList.get(0).getShape();
         for (ITensor index : indicesList) {
             if (!index.getDataType().isInteger()) {
                 throw new IllegalArgumentException("Index tensor must be an integer type");
             }
-            if (!ShapeUtils.equals(index.getShape(), indicesList.get(0).getShape())) {
-                throw new IllegalArgumentException("Index tensors for get operation must have the same shape");
-            }
+            indexShape = ShapeUtils.broadcastShapes(indexShape, index.getShape());
         }
-        ITensor firstIndex = indicesList.get(0);
         long[] inputShape = input.getShape();
-        long[] firstIndexShape = firstIndex.getShape();
         int nIndices = indicesList.size();
         if (nIndices > inputShape.length) {
             throw new IllegalArgumentException("Too many indices for get operation");
         }
-        long[] resultShape = new long[firstIndexShape.length + inputShape.length - nIndices];
-        System.arraycopy(firstIndexShape, 0, resultShape, 0, firstIndexShape.length);
-        System.arraycopy(inputShape, nIndices, resultShape, firstIndexShape.length, inputShape.length - nIndices);
+        long[] resultShape = new long[indexShape.length + inputShape.length - nIndices];
+        System.arraycopy(indexShape, 0, resultShape, 0, indexShape.length);
+        System.arraycopy(inputShape, nIndices, resultShape, indexShape.length, inputShape.length - nIndices);
         ITensor result = backend.createTensor(input.getDataType(), resultShape);
 
         // TODO: MOVE THIS TO JNI
-        long[] indexIntoFirstIndex = new long[firstIndexShape.length];
+        long[] indexIntoIndexTensor = new long[indexShape.length];
+        long[] indexIntoIndexTensorConstrained = new long[indexShape.length];
         long flatIndex = 0;
         do {
             ITensor currentView = input;
             for (ITensor index : indicesList) {
-                long indexValue = index.getAsLong(indexIntoFirstIndex);
+                System.arraycopy(indexIntoIndexTensor, 0, indexIntoIndexTensorConstrained, 0, indexIntoIndexTensorConstrained.length);
+                ShapeUtils.constrainIndex(indexIntoIndexTensorConstrained, index.getShape());
+                long indexValue = index.getAsLong(indexIntoIndexTensorConstrained);
                 if (indexValue < 0 || indexValue >= currentView.getShape()[0]) {
                     throw new IllegalArgumentException("Index out of bounds");
                 }
@@ -69,32 +66,32 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
             }
             result.setContentsWithOffset(flatIndex, currentView);
             flatIndex += currentView.getNumberOfElements();
-        } while (ShapeUtils.incrementIndex(indexIntoFirstIndex, firstIndexShape));
+        } while (ShapeUtils.incrementIndex(indexIntoIndexTensor, indexShape));
         return result;
     }
 
     @Override
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull List<ITensor> inputs) {
         ITensor input = inputs.get(0);
-        ITensor indices = inputs.get(1);
         long[] inputShape = input.getShape();
-        long[] indicesShape = indices.getShape();
         if (inputs.size() < 2) {
             throw new IllegalArgumentException("Get operation must be supplied at least one index!");
         }
         List<ITensor> indicesList = inputs.subList(1, inputs.size());
+        long[] indexShape = indicesList.get(0).getShape();
         for (ITensor index : indicesList) {
             if (!index.getDataType().isInteger()) {
                 throw new IllegalArgumentException("Index tensor must be an integer type");
             }
+            indexShape = ShapeUtils.broadcastShapes(indexShape, index.getShape());
         }
         int nIndices = indicesList.size();
         if (nIndices > inputShape.length) {
             throw new IllegalArgumentException("Too many indices for get operation");
         }
-        long[] resultShape = new long[indicesShape.length + inputShape.length - nIndices];
-        System.arraycopy(indicesShape, 0, resultShape, 0, indicesShape.length);
-        System.arraycopy(inputShape, nIndices, resultShape, indicesShape.length, inputShape.length - nIndices);
+        long[] resultShape = new long[indexShape.length + inputShape.length - nIndices];
+        System.arraycopy(indexShape, 0, resultShape, 0, indexShape.length);
+        System.arraycopy(inputShape, nIndices, resultShape, indexShape.length, inputShape.length - nIndices);
         return new LazyTensor(backend, resultShape, input.getDataType());
     }
 
@@ -110,13 +107,19 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
                     .toList();
             ITensor input = inputNode.getValue();
 
-            ITensor firstIndex = indicesList.get(0);
-            long[] firstIndexShape = firstIndex.getShape();
+            long[] indexShape = indicesList.get(0).getShape();
+            for (ITensor index : indicesList) {
+                if (!index.getDataType().isInteger()) {
+                    throw new IllegalArgumentException("Index tensor must be an integer type");
+                }
+                indexShape = ShapeUtils.broadcastShapes(indexShape, index.getShape());
+            }
 
             ITensor gradient = backend.createTensor(input.getDataType(), input.getShape());
 
             // TODO: MOVE THIS TO JNI
-            long[] indexIntoFirstIndex = new long[firstIndexShape.length];
+            long[] indexTensorIndex = new long[indexShape.length];
+            long[] indexTensorConstrained = new long[indexShape.length];
             long[] indexIntoGradient = null;
 
             // used to check for duplicate indices
@@ -128,7 +131,9 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
                 long[] index = new long[indicesList.size()];
                 for (int dim = 0; dim < indicesList.size(); dim++) {
                     ITensor indexDimTensor = indicesList.get(dim);
-                    long indexValue = indexDimTensor.getAsLong(indexIntoFirstIndex);
+                    System.arraycopy(indexTensorIndex, 0, indexTensorConstrained, 0, indexTensorConstrained.length);
+                    ShapeUtils.constrainIndex(indexTensorConstrained, indexDimTensor.getShape());
+                    long indexValue = indexDimTensor.getAsLong(indexTensorConstrained);
                     if (indexValue < 0 || indexValue >= gradient.getShape()[dim]) {
                         throw new IllegalArgumentException("Index out of bounds");
                     }
@@ -151,7 +156,7 @@ public class GenCPUGetOp implements IOperation, IDifferentiableOperation {
                     visitedOffsets.add(offset);
                 }
                 ShapeUtils.incrementIndex(indexIntoGradient, upstreamGradient.getShape());
-            } while (ShapeUtils.incrementIndex(indexIntoFirstIndex, firstIndexShape));
+            } while (ShapeUtils.incrementIndex(indexTensorIndex, indexShape));
 
             inputNode.accumulateGradient(gradient);
         }

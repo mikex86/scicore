@@ -40,7 +40,7 @@ public class JvmTanhOp implements IDifferentiableUnaryOperation {
                 result.setByLongFlat(tanh, i);
             }
         }
-        result = result.reshape(shape, strides);
+        result = result.view(shape, strides);
         return result;
     }
 

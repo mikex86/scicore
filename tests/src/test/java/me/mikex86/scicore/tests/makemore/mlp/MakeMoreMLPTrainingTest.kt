@@ -49,16 +49,8 @@ fun main() {
         val x = namesSupplier.x
         val y = namesSupplier.y
         val loss = net(x)
-            // cross entropy loss
-            .use { logits -> logits.exp() }
-            .use { counts -> counts / counts.reduceSum(1, true) }
-            .use { probs ->
-                sciCore.arange(0, y.shape[0], 1, DataType.INT64)
-                    .use { idx -> probs[idx, y] }
-            }
-            .use { probsAssignedToCorrectLabels ->
-                -probsAssignedToCorrectLabels.log().mean().elementAsDouble()
-            }
+            .use { logits -> sciCore.crossEntropy(logits, y) }
+            .use { loss -> loss.elementAsDouble() }
         println("Loss on dataset before training: $loss")
     }
 
@@ -76,26 +68,10 @@ fun main() {
                     val batch = trainIt.next()
                     batch.use { x, y ->
                         lossValue = net(x)
-                            .use { logits -> logits.exp() }
-                            .use { counts ->
-                                counts.reduceSum(1, true)
-                                    .use { totalCounts -> counts / totalCounts }
-                            }
-                            .use { probs ->
-                                probs[0 until BATCH_SIZE, y]
-                            }
-                            .use { probsAssignedToCorrectLabels ->
-                                probsAssignedToCorrectLabels.log()
-                            }
-                            .use { logProbs ->
-                                logProbs.mean()
-                            }
-                            .use { logProbsMean ->
-                                -logProbsMean
-                            }.use { negativeLogLikelyHood ->
-                                val loss = negativeLogLikelyHood.elementAsDouble()
-                                optimizer.step(negativeLogLikelyHood)
-                                loss
+                            .use { logits -> sciCore.crossEntropy(logits, y) }
+                            .use { loss ->
+                                optimizer.step(loss)
+                                loss.elementAsDouble()
                             }
                     }
                 }
@@ -120,13 +96,8 @@ fun main() {
         val x = namesSupplier.x
         val y = namesSupplier.y
         val loss = net(x)
-            // cross entropy loss
-            .use { logits -> logits.exp() }
-            .use { counts -> counts / counts.reduceSum(1, true) }
-            .use { probs -> probs[0 until y.shape[0], y] }
-            .use { probsAssignedToCorrectLabels ->
-                -probsAssignedToCorrectLabels.log().mean().elementAsDouble()
-            }
+            .use { logits -> sciCore.crossEntropy(logits, y) }
+            .use { loss -> loss.elementAsDouble() }
         println("Loss on dataset: $loss")
     }
 
@@ -200,11 +171,9 @@ class MakeMoreMLPNet(sciCore: SciCore) : IModule {
         val logits = embedding[input] // embeddingsForSequence: (batchSize, blockSize, embeddingSize)
             .use { embeddingsForSequence ->
                 // embeddingsForSequenceFlat: (batchSize, blockSize * embeddingSize)
-                embeddingsForSequence.reshape(
-                    longArrayOf(
-                        -1,
-                        (EMBEDDING_SIZE * BLOCK_SIZE).toLong()
-                    )
+                embeddingsForSequence.view(
+                    -1,
+                    (EMBEDDING_SIZE * BLOCK_SIZE).toLong()
                 )
             }
             .use { embeddingsForSequenceFlat ->
