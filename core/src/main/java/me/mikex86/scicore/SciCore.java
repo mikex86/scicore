@@ -651,12 +651,13 @@ public class SciCore implements ISciCore {
                 }
                 ITensor probabilitiesAssignedToCorrectLabelsMasked = probabilitiesAssignedToCorrectLabels;
                 if (mask != null) {
-                    probabilitiesAssignedToCorrectLabelsMasked = probabilitiesAssignedToCorrectLabels.multiply(mask);
+                    ITensor tmp = probabilitiesAssignedToCorrectLabels.multiply(mask);
+                    probabilitiesAssignedToCorrectLabelsMasked = tmp.plus(mask.leftMinus(1));
+                    tmp.close();
+                    mask.close();
                 }
                 try (ITensor logProbabilitiesAssignedToCorrectLabels = probabilitiesAssignedToCorrectLabelsMasked.log()) {
-                    if (mask != null) {
-                        mask.close();
-                    }
+
                     if (probabilitiesAssignedToCorrectLabelsMasked != probabilitiesAssignedToCorrectLabels) {
                         probabilitiesAssignedToCorrectLabelsMasked.close();
                     }

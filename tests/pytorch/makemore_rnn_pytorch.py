@@ -1,3 +1,4 @@
+import time
 from typing import Tuple, Mapping
 
 import torch
@@ -131,6 +132,7 @@ def main():
     model = MakeMoreRNN()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
 
+    start_time = time.time()
     for step in range(N_TRAINING_STEPS):
         idx = torch.randint(0, len(train_dataset), (BATCH_SIZE,))
         X, Y = train_dataset[idx]
@@ -141,8 +143,9 @@ def main():
         loss.backward()
         optimizer.step()
 
-        if step % 100 == 0:
-            print(f'Step {step}: loss = {loss.item()}')
+        if step % 1000 == 0:
+            print(f'Step {step}: loss = {loss.item()}, Steps per second: {1000 / (time.time() - start_time)}')
+            start_time = time.time()
 
         if (step + 1) % 1001 == 0:
             make_predictions(model, train_dataset.itos)

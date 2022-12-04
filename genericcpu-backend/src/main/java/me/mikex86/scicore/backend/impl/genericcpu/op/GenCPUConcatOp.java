@@ -144,6 +144,15 @@ public class GenCPUConcatOp implements IDifferentiableBinaryOperation {
                 long[] aStrides = aValue.getStrides();
                 long[] bStrides = bValue.getStrides();
 
+                ITensor aGradient = null;
+                if (a.requiresGradients()) {
+                    aGradient = backend.createTensor(aValue.getDataType(), aShape);
+                }
+                ITensor bGradient = null;
+                if (b.requiresGradients()) {
+                    bGradient = backend.createTensor(bValue.getDataType(), bShape);
+                }
+
                 int superDimension = dimension - 1;
                 long nElementsUptoSuperDim = ShapeUtils.getNumElementsOfMostSignificantDims(aShape, superDimension);
 
@@ -159,21 +168,33 @@ public class GenCPUConcatOp implements IDifferentiableBinaryOperation {
                     long offsetInB = i * bStrides[superDimension];
                     long offsetInUpstreamGradient = i * superDimStrideInUpstreamGradient;
 
-                    View aView = new View(aValue, new long[]{numElementsInConcatDimensionInA}, offsetInA, Arrays.copyOfRange(aStrides, superDimension + 1, aStrides.length));
-                    View bView = new View(bValue, new long[]{numElementsInConcatDimensionInB}, offsetInB, Arrays.copyOfRange(bStrides, superDimension + 1, bStrides.length));
-                    View upstreamGradientViewForA = new View(
-                            upstreamGradient, new long[]{numElementsInConcatDimensionInA + numElementsInConcatDimensionInB}, offsetInUpstreamGradient,
-                            Arrays.copyOfRange(upstreamGradientStrides, superDimension + 1, upstreamGradientStrides.length)
-                    );
-                    View upstreamGradientViewForB = new View(
-                            upstreamGradient, new long[]{numElementsInConcatDimensionInA + numElementsInConcatDimensionInB}, offsetInUpstreamGradient,
-                            Arrays.copyOfRange(upstreamGradientStrides, superDimension + 1, upstreamGradientStrides.length)
-                    );
-                    upstreamGradientViewForA.setContents(aView);
-                    upstreamGradientViewForB.setContents(bView);
+                    if (aGradient != null) {
+                        View aGradientView = new View(aGradient, new long[]{numElementsInConcatDimensionInA}, offsetInA, Arrays.copyOfRange(aStrides, superDimension + 1, aStrides.length));
+                        View upstreamGradientViewForA = new View(
+                                upstreamGradient, new long[]{numElementsInConcatDimensionInA},
+                                offsetInUpstreamGradient,
+                                Arrays.copyOfRange(upstreamGradientStrides, superDimension + 1, upstreamGradientStrides.length)
+                        );
+                        aGradientView.setContents(upstreamGradientViewForA);
+                    }
+
+                    if (bGradient != null) {
+                        View bGradientView = new View(bGradient, new long[]{numElementsInConcatDimensionInB}, offsetInB, Arrays.copyOfRange(bStrides, superDimension + 1, bStrides.length));
+                        View upstreamGradientViewForB = new View(
+                                upstreamGradient, new long[]{numElementsInConcatDimensionInB},
+                                offsetInUpstreamGradient + numElementsInConcatDimensionInA,
+                                Arrays.copyOfRange(upstreamGradientStrides, superDimension + 1, upstreamGradientStrides.length)
+                        );
+                        bGradientView.setContents(upstreamGradientViewForB);
+                    }
+                }
+                if (aGradient != null) {
+                    a.accumulateGradient(aGradient);
+                }
+                if (bGradient != null) {
+                    b.accumulateGradient(bGradient);
                 }
             }
         }
     }
-
 }

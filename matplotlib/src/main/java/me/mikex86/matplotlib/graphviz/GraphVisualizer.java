@@ -1,10 +1,17 @@
 package me.mikex86.matplotlib.graphviz;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.skija.*;
+import org.jetbrains.skija.Canvas;
+import org.jetbrains.skija.Font;
+import org.jetbrains.skija.Image;
+import org.jetbrains.skija.Paint;
 
 import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
+import java.awt.*;
+import java.awt.color.ColorSpace;
+import java.awt.image.*;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -142,20 +149,20 @@ public class GraphVisualizer {
             }
 
             Image image = surface.makeImageSnapshot();
-            Data data = image.encodeToData(EncodedImageFormat.PNG);
-            Objects.requireNonNull(data);
-            try {
-                return ImageIO.read(new ByteArrayInputStream(data.getBytes()));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            Bitmap storage = Bitmap.makeFromImage(image);
+            byte[] bytes = storage.readPixels();
+            DataBufferByte buffer = new DataBufferByte(bytes, bytes.length);
+            WritableRaster raster = Raster.createInterleavedRaster(buffer, image.getWidth(), image.getHeight(), image.getWidth() * 4, 4, new int[]{2, 1, 0, 3}, null);
+            ColorModel colorModel = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB), true, false, Transparency.TRANSLUCENT, DataBuffer.TYPE_BYTE);
+            return new BufferedImage(colorModel, raster, false, null);
         }
     }
 
     public static void saveGraph(@NotNull GraphRenderPlan renderPlan, @NotNull String filename) {
         BufferedImage image = visualizeGraph(renderPlan);
+        String format = filename.substring(filename.lastIndexOf('.') + 1);
         try {
-            ImageIO.write(image, "png", new File(filename));
+            ImageIO.write(image, format, new File(filename));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

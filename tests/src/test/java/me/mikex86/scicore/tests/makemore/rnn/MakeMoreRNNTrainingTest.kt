@@ -41,6 +41,8 @@ fun main() {
 
     val optimizer = Sgd(sciCore, 0.05f, net.parameters())
 
+    val lastTime = System.currentTimeMillis()
+
     ProgressBarBuilder()
         .setTaskName("Training")
         .setInitialMax(N_TRAINING_STEPS)
@@ -62,8 +64,12 @@ fun main() {
                                 optimizer.step(loss)
                                 loss.elementAsDouble()
                             }
+                        val now = System.currentTimeMillis()
+                        val elapsed = now - lastTime
+                        val stepsPerSecond = step / (elapsed / 1000.0)
                         progressBar.step()
-                        progressBar.extraMessage = String.format(Locale.US, "loss: %.5f", lossValue)
+                        progressBar.extraMessage =
+                            String.format(Locale.US, "loss: %.5f, steps/s: %.2f", lossValue, stepsPerSecond)
                     }
                 }
             }

@@ -116,6 +116,9 @@ public class GenCPUStackOp implements IOperation, IDifferentiableOperation {
 
             for (int i = 0; i < inputs.size(); i++) {
                 IGraph.ITensorNodeWithGradient input = (IGraph.ITensorNodeWithGradient) inputs.get(i);
+                if (!input.requiresGradients()) {
+                    continue;
+                }
                 resultIndex[dimension] = i;
 
                 ITensor inputGradient = backend.createTensor(resultGradient.getDataType(), stackedShape);

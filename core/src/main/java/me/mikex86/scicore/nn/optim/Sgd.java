@@ -1,6 +1,8 @@
 package me.mikex86.scicore.nn.optim;
 
+import me.mikex86.matplotlib.graphviz.GraphVisualizer;
 import me.mikex86.scicore.ISciCore;
+import me.mikex86.scicore.graphviz.DAGGraphRenderPlanFactory;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.tensor.LazyTensor;

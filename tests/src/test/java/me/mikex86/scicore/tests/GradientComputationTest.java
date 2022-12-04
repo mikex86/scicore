@@ -1281,10 +1281,10 @@ abstract class GradientComputationTest {
     }
 
     @Nested
-    class TestCat {
+    class TestConcat {
 
         @Test
-        void testConcatToMatrixAndMatmul() {
+        void testConcatDim0ToMatrixAndMatmul() {
             ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
             ITensor b = sciCore.matrix(new float[][]{{6, 7, 8, 9, 10}});
             ITensor c = a.concat(b, 0); // (2, 5)
@@ -1336,7 +1336,6 @@ abstract class GradientComputationTest {
 
             assertEquals(sciCore.ndarray(new float[][][]{{{1}, {1}, {1}}, {{1}, {1}, {1}}}), dIdH);
             assertEquals(sciCore.ndarray(new float[][][]{{{18}, {21}, {24}, {27}, {30}}, {{18}, {21}, {24}, {27}, {30}}}), dIdG);
-            // TODO: FIX 3d MATMUL BACKWARD
             assertEquals(sciCore.ndarray(new float[][][]{{{7, 9, 11, 13, 15}, {7, 9, 11, 13, 15}, {7, 9, 11, 13, 15}}}), dIdF);
             assertEquals(sciCore.matrix(new float[][]{{18}, {21}, {24}, {27}, {30}}), dIdE);
             assertEquals(sciCore.matrix(new float[][]{{18}, {21}, {24}, {27}, {30}}), dIdD);
