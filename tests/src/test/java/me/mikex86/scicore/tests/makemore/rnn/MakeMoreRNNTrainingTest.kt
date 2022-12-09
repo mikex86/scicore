@@ -12,6 +12,7 @@ import me.mikex86.scicore.ranges.ALL
 import me.mikex86.scicore.tensor.DataType
 import me.mikex86.scicore.tensor.ITensor
 import me.mikex86.scicore.tensor.get
+import me.mikex86.scicore.tests.makemore.NamesCharacterMapping
 import me.mikex86.scicore.tests.makemore.NamesLeftShiftDatasetSupplier
 import me.mikex86.scicore.utils.use
 import me.tongfei.progressbar.ProgressBarBuilder
@@ -28,6 +29,36 @@ private const val PREDICTION_MAX_WORD_LEN = 20L
 
 private const val BATCH_SIZE = 32
 private const val N_TRAINING_STEPS = 200_000L
+
+private fun makePredictions(sciCore: SciCore, model: MakeMoreRnnNet, itos: (Byte) -> Char) = sciCore.backend.operationRecorder.scopedRecording {
+        println("Predictions: ")
+        var x = sciCore.zeros(DataType.INT64, N_PREDICTIONS, 1)
+        var y = sciCore.zeros(DataType.INT64, N_PREDICTIONS, 1)
+        for (i in 0 until PREDICTION_MAX_WORD_LEN) {
+            val logits = model(x)
+            val probs = sciCore.softmax(logits, logits.shape.size - 1).view(-1, VOCAB_SIZE)
+            val yPred = sciCore.multinomial(probs, 1)
+            y = y.concat(yPred, 1)
+            x = yPred
+        }
+        val words = mutableListOf<String>()
+        for (i in 0 until N_PREDICTIONS) {
+            var word = ""
+            for (j in 0 until PREDICTION_MAX_WORD_LEN - 1) {
+                val predictedChar = itos(y[i, j + 1].elementAsByte())
+                if (predictedChar == '.') {
+                    break
+                }
+                word += predictedChar
+            }
+            words.add(word)
+        }
+
+        for (word in words) {
+            println("\t$word ")
+        }
+        println()
+    }
 
 fun main() {
     val sciCore = SciCore()
@@ -71,6 +102,9 @@ fun main() {
                         progressBar.extraMessage =
                             String.format(Locale.US, "loss: %.5f, steps/s: %.2f", lossValue, stepsPerSecond)
                     }
+                }
+                if (step % 1000 == 0L) {
+                    makePredictions(sciCore, net) { i -> NamesCharacterMapping.indexToChar[i]!! }
                 }
             }
         }

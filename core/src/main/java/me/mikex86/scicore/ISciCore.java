@@ -10,9 +10,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import java.util.Optional;
-import java.util.OptionalLong;
-import java.util.concurrent.Callable;
 
 public interface ISciCore {
     @NotNull ITensor zeros(@NotNull DataType dataType, long @NotNull ... shape);
@@ -148,6 +145,9 @@ public interface ISciCore {
 
     @NotNull
     ITensor stack(int dimension, @NotNull ITensor @NotNull ... tensors);
+
+    @NotNull
+    ITensor multinomial(@NotNull ITensor input, long numSamples);
 
     /**
      * Disables fallback to lower priority backends, when an implementation for a given operation is not available

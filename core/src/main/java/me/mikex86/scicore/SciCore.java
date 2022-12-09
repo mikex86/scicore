@@ -669,6 +669,36 @@ public class SciCore implements ISciCore {
         }
     }
 
+    @NotNull
+    @Override
+    public ITensor multinomial(@NotNull ITensor probabilities, long numSamples) {
+        long[] resultShape = new long[probabilities.getShape().length];
+        System.arraycopy(probabilities.getShape(), 0, resultShape, 0, probabilities.getShape().length);
+        resultShape[resultShape.length - 1] = numSamples;
+        ITensor result = zeros(DataType.INT64, resultShape);
+        long[] probabilitiesShape = probabilities.getShape();
+        long numProbabilitiesPerDistribution = probabilitiesShape[probabilitiesShape.length - 1];
+        ITensor probabilitiesForEachDistribution = probabilities.view(-1, numProbabilitiesPerDistribution);
+        long[] shape = probabilitiesForEachDistribution.getShape();
+        long numProbabilityDistributions = shape[0];
+        for (long i = 0; i < numProbabilityDistributions; i++) {
+            ITensor probabilitiesForOneDistribution = probabilitiesForEachDistribution.getView(i);
+            ITensor resultForOneDistribution = result.getView(i);
+            for (int j = 0; j < numSamples; j++) {
+                double cumulativeProbability = 0;
+                double randomValue = random.nextDouble();
+                for (long k = 0; k < numProbabilitiesPerDistribution; k++) {
+                    cumulativeProbability += probabilitiesForOneDistribution.getAsDouble(k);
+                    if (cumulativeProbability >= randomValue) {
+                        resultForOneDistribution.setLong(k, j);
+                        break;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
     @Override
     public void disableBackendFallback() {
         operationRegistry.disableFallthrough();
