@@ -43,98 +43,34 @@ public class Graph implements IGraph {
 
     @Override
     public void requestGradientsFor(@NotNull List<ITensor> parameters) {
+        List<ITensorNodeWithGradient> parameterNodes = new ArrayList<>(parameters.size());
         for (ITensor parameter : parameters) {
-            Optional<IGraphNode> nodeOpt = Optional.empty();
-            // Stack of all possible paths to the parameter
-            // Top of the stack is always the "unfinished" path, which is the one we're currently exploring
-            Stack<Stack<IGraphNode>> pathsToNode = new Stack<>();
-            pathsToNode.push(new Stack<>());
-            {
-                Deque<IGraphNode> nodesToVisit = new LinkedList<>();
-                nodesToVisit.add(outputNode);
-
-                while (!nodesToVisit.isEmpty()) {
-                    IGraphNode node = nodesToVisit.poll();
-                    {
-                        Stack<IGraphNode> currentPath = pathsToNode.peek();
-                        currentPath.push(node);
-                    }
-                    if (node instanceof OperationGraphNode operationNode) {
-                        if (operationNode.getValue() == parameter) {
-                            if (nodeOpt.isEmpty()) {
-                                nodeOpt = Optional.of(node);
-                            }
-                            {
-                                // Found one possible path, keep that path in the stack and create a new path
-                                // that points to where we currently are in the graph, and continue searching for more.
-                                Stack<IGraphNode> currentPath = pathsToNode.peek();
-                                Stack<IGraphNode> newPath = new Stack<>();
-                                newPath.addAll(currentPath);
-                                pathsToNode.push(newPath);
-                            }
-                        }
-                        // traverse up the topology, if the graph extends upwards
-                        List<IGraphNode> inputs = operationNode.getInputs();
-
-                        // insert inputs at the beginning the nodesToVisit queue
-                        // This ensures that we visit depth first
-                        for (int i = inputs.size() - 1; i >= 0; i--) {
-                            IGraphNode input = inputs.get(i);
-                            nodesToVisit.addFirst(input);
-                        }
-                    } else if (node instanceof TensorDeclarationGraphNode tensorDeclarationNode && tensorDeclarationNode.getValue() == parameter) {
-                        if (nodeOpt.isEmpty()) {
-                            nodeOpt = Optional.of(node);
-                        }
-                        {
-                            // See above
-                            Stack<IGraphNode> currentPath = pathsToNode.peek();
-                            Stack<IGraphNode> newPath = new Stack<>();
-                            newPath.addAll(currentPath);
-                            newPath.pop(); // pop off this node from the new path
-                            pathsToNode.push(newPath);
-                        }
-                    } else {
-                        Stack<IGraphNode> currentPath = pathsToNode.peek();
-                        while (true) {
-                            IGraphNode removed = currentPath.pop();
-                            if (currentPath.isEmpty()) {
-                                pathsToNode.pop();
-                                break; // we've reached the end of the graph
-                            }
-                            IGraphNode prev = currentPath.peek();
-                            if (!(prev instanceof OperationGraphNode prevOp)) {
-                                throw new IllegalStateException("Unexpected node type: " + prev.getClass().getName());
-                            }
-                            List<IGraphNode> prevOpInputs = prevOp.getInputs();
-                            int index = prevOpInputs.indexOf(removed);
-                            if (index != prevOpInputs.size() - 1) {
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+            Optional<IGraphNode> nodeOpt = getNodeForTensor(parameter);
             if (nodeOpt.isEmpty()) {
-                throw new IllegalArgumentException("Tensor is not part of the graph");
+                throw new IllegalArgumentException("Parameter not found in graph");
             }
-            IGraphNode node = nodeOpt.get();
-
-            ITensorNodeWithGradient nodeWithGradient = (ITensorNodeWithGradient) node;
-            nodeWithGradient.requestGradients();
-
-            for (Stack<IGraphNode> path : pathsToNode) {
-                for (IGraphNode pathNode : path) {
-                    if (!(pathNode instanceof ITensorNodeWithGradient downStreamNodeWithGradient)) {
-                        throw new IllegalArgumentException("Requested gradient for tensor that cannot hold a gradient: " + pathNode);
-                    }
-                    if (pathNode instanceof OperationGraphNode operationGraphNode) {
-                        if (operationGraphNode.getOperationType().isInplace() && !operationGraphNode.requestsGradients()) {
-                            throw new IllegalStateException("One of the variables needed for gradient computation has been modified by an inplace operation");
-                        }
-                    }
-                    downStreamNodeWithGradient.setRequireGradients(); // all nodes that depend on this node will have their gradients computed for them
+            IGraphNode parameterNode = nodeOpt.get();
+            if (!(parameterNode instanceof ITensorNodeWithGradient parameterNodeWithGradient)) {
+                throw new IllegalArgumentException("Parameter is not a differentiable tensor");
+            }
+            parameterNodes.add(parameterNodeWithGradient);
+        }
+        for (ITensorNodeWithGradient parameterNode : parameterNodes) {
+            parameterNode.requestGradients();
+            parameterNode.setRequireGradients();
+            Set<IGraphNode> downstreamNodes = parameterNode.getDownstreamNodes();
+            Set<IGraphNode> visitedNodes = new HashSet<>();
+            Queue<IGraphNode> queue = new ArrayDeque<>(downstreamNodes);
+            while (!queue.isEmpty()) {
+                IGraphNode node = queue.poll();
+                if (visitedNodes.contains(node)) {
+                    continue;
                 }
+                visitedNodes.add(node);
+                if (node instanceof ITensorNodeWithGradient tensorNodeWithGradient) {
+                    tensorNodeWithGradient.setRequireGradients();
+                }
+                queue.addAll(node.getDownstreamNodes());
             }
         }
     }
@@ -265,7 +201,7 @@ public class Graph implements IGraph {
             }
             if (node instanceof ITensorNodeWithGradient nodeWithGradient) {
                 if (!nodeWithGradient.requestsGradients()
-                        && !gradients.contains(nodeWithGradient.getGradient())) { // we can't delete the gradient, if another node shares the same tensor instance as a gradient, eg. due to a plus operation
+                    && !gradients.contains(nodeWithGradient.getGradient())) { // we can't delete the gradient, if another node shares the same tensor instance as a gradient, eg. due to a plus operation
                     nodeWithGradient.deleteGradient();
                 }
                 if (node instanceof OperationGraphNode operationNode) {
@@ -474,6 +410,9 @@ public class Graph implements IGraph {
         private boolean gradEnabled;
 
         public OperationGraphNode(@NotNull OperationType operationType, @NotNull List<@NotNull IGraphNode> inputs, @NotNull IOperationContext operationContext, @NotNull OperationRegistry operationRegistry) {
+            for (IGraphNode input : inputs) {
+                input.addDownstreamNode(this);
+            }
             this.operationType = operationType;
             this.inputs = inputs;
             this.operationContext = operationContext;

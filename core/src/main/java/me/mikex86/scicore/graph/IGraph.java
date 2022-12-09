@@ -36,9 +36,29 @@ public interface IGraph extends IDisposable, AutoCloseable {
             return String.format("%c%c", c1, c2);
         }
 
+        void addDownstreamNode(@NotNull IGraphNode node);
+
+        @NotNull Set<IGraphNode> getDownstreamNodes();
+
     }
 
     abstract class AbstractGraphNode implements IGraphNode {
+
+        /**
+         * Set of graph nodes that use this node as an input
+         */
+        private final Set<IGraphNode> downstreamNodes = new HashSet<>();
+
+        @Override
+        public void addDownstreamNode(@NotNull IGraphNode node) {
+            downstreamNodes.add(node);
+        }
+
+        @NotNull
+        @Override
+        public Set<IGraphNode> getDownstreamNodes() {
+            return downstreamNodes;
+        }
     }
 
     interface ITensorNode extends IGraphNode {
