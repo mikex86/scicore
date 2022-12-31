@@ -141,7 +141,7 @@ class MakeMoreRnnNet(private val sciCore: SciCore) : IModule {
         for (i in 0 until seqLen) {
             val embeddingForItem =
                 embeddingsForSequence[LongRange.ALL, i] // (batch_size, embedding_size)
-            val xh = hprev.concat(embeddingForItem, 1)
+            val xh = embeddingForItem.concat(hprev, 1)
             hprev = act(rnnCell(xh)) // (batch_size, hidden_size)
             hiddenStatesList.add(hprev)
         }

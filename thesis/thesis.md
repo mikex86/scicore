@@ -987,7 +987,62 @@ Note that this is a very simple example, as scalar-based autograd does not scale
 ## Tensor-level Autograd
 Now we will take a look at the concept of an autograd engine where the atomic unit of differentiation are not individual scalars, but rather tensor-level, higher level operations such as eg. matrix multiplication.
 
-Given a well defined operator $f(T_1, T_2, ..., T_n)$ which computes an output $Z$, where all $T_n$ are tensor parameters of the operator, each $T_n$ will receive a local gradient tensor $G_n$ of the same shape, where each element $G_{ijk...n}$ is the partial derivative $\frac{\partial z}{\partial T_{ijk...n}}$. Said local gradient is multiplied upstream gradient is multiplied with the upstream gradient of downstream operations to apply the chain rule. Note that $upstreamGradient * localGradient$ must result in a shape equal to the shape of $T_n$. This can occur when some dimension $n$ is broadcast in the operation $f$ such that $|T_n| = 1$ and $|Z_n|$ > 1. Because a broadcast is the virtual repetition of a scalar value in the dimension $n$ to match the dimension size of another operation $T_j$ at the respective dimension, all $n > 1$ gradient values that would be associated with the individual repition of the same scalar value must be sumed up to collect all gradient contributions. Inversely, when a tensor $T$ is summed up along a dimension $n$, such that $|T_n| = 1$ (or the dimension not kept) and $|Z_n|$ > 1, the gradient of the single resulting scalar must be repeated in the dimension $n$.
+Given a well defined operator $f(P_1, P_2, ..., P_n)$ which computes an output $Z$, each parameter $P_n$ will receive a local gradient tensor $G_n$ of the same shape, where each element $G_{ijk...n}$ is the partial derivative $\frac{\partial L}{\partial P_{ijk...n}}$.
+This is a special case of a Jacobian matrix, where the final value $L$ that we are differentiating with respect to is a scalar.
+In the general case, the Jacobian matrix is a matrix of partial derivatives of the output $Z$ with respect to each parameter $P$.
+The Jacobian matrix is usually defined as the cartesian product of the partial derivatives of a vector valued function $f(p_1, p_2, ... p_n)$ with respect to each scalar valued parameter $p$.
+$$
+J=
+\begin{bmatrix}
+\frac{\partial Z_1}{\partial p_1} & \frac{\partial Z_1}{\partial p_2} & \cdots & \frac{\partial Z_1}{\partial p_n} \\
+\frac{\partial Z_2}{\partial p_1} & \frac{\partial Z_2}{\partial p_2} & \cdots & \frac{\partial Z_2}{\partial p_n} \\
+\cdots & \cdots & \ddots & \cdots \\
+\frac{\partial Z_m}{\partial p_1} & \frac{\partial Z_m}{\partial p_2} & \cdots & \frac{\partial Z_m}{\partial p_n}
+\end{bmatrix}
+$$
+Now, this is slightly too specialized and generalized for our purposes at the same time.
+We would like a matrix of partial derivatives of a scalar valued function $f(P_1, P_2, ..., P_n)$ with respect to each tensor-valued parameter $P$.
+But, when each tensor-valued parameter $P$ is decomposed into its individual elements $P_{ijk...n}$, we can utilize the concept of the Jacobian matrix for our purposes.
+When $Z$ is a scalar ($L$), the Jacobian matrix is a vector of partial derivatives of the scalar valued function $f(p_1, p_2, ... p_n)$ with respect to each scalar valued parameter $p$.
+$$
+J=
+\begin{bmatrix}
+\frac{\partial L}{\partial p_1}
+\frac{\partial L}{\partial p_2}
+\cdots
+\frac{\partial L}{\partial p_n}
+\end{bmatrix}
+$$
+When we re-compose the elements corresponding to the individual parameters $P$, we arrive at a vector of un-equal sized vectors of partial derivatives, where each element is the flattened version of the derivative of the respective parameter $P$.
+
+$$
+J=
+\begin{bmatrix}
+\begin{bmatrix}
+\frac{\partial L}{\partial p^{(1)}_{1}}
+\frac{\partial L}{\partial p^{(1)}_{2}}
+\cdots
+\frac{\partial L}{\partial p^{(1)}_{n}}
+\end{bmatrix}
+\begin{bmatrix}
+\frac{\partial L}{\partial p^{(2)}_{1}}
+\frac{\partial L}{\partial p^{(2)}_{2}}
+\frac{\partial L}{\partial p^{(2)}_{3}}
+\cdots
+\frac{\partial L}{\partial p^{(2)}_{n}}
+\end{bmatrix}
+\cdots
+\begin{bmatrix}
+\frac{\partial L}{\partial p^{(m)}_{1}}
+\frac{\partial L}{\partial p^{(m)}_{2}}
+\cdots
+\frac{\partial L}{\partial p^{(m)}_{n}}
+\end{bmatrix}
+\end{bmatrix}
+$$
+The elements $J_i$ are the global gradients of the respective parameter $P_i$, which we can interpret as tensors of the same shape as the respective parameter $P$.
+As the chain rule also applies to Jacobians, we multiply the local gradient with the upstream gradient to compute the global gradient.
+Note that $upstreamGradient * localGradient$ must result in a shape equal to the shape of $P_i$. This will not happen when some dimension $d$ is broadcast in the operation $f$ such that $|P_d| = 1$ and $|Z_d|$ > 1. Because a broadcast is the virtual repetition of a scalar value of a parameter $P_i$ in the dimension $d$ to match the dimension size of another operation $P_j$ at the respective dimension, all $d > 1$ gradient values that would be associated with the individual repition of the same scalar value must be sumed up to collect all gradient contributions. Inversely, when a parameter $P$ is summed up along a dimension $n$, such that $|P_d| = 1$ (or the dimension not kept) and $|Z_d|$ > 1, the gradient of the single resulting scalar must be repeated in the dimension $d$. We can therefore conclude that summation and broadcast operations are their own inverse operations during backpropagation.
 
 Similar to the scalar-based autograd, the tensor-based autograd engine in Sci-Core builds a graph according to the method calls performed on the tensor objects using a `GraphRecorder` object.
 
@@ -1095,9 +1150,412 @@ As the individual operations operate on a tensor-basis, their backward passes ar
 
 The following snippet shows the backward pass of the multiplication operation in Sci-Core:
 
+```java
+public class GenCPUMultiplyOp implements IDifferentiableBinaryOperation {
+    ...
+    @Override
+    public void computeGradients(Graph.IOperationContext ctx, ITensor upstreamGradient,
+         IGraph.ITensorNodeWithGradient a, IGraph.ITensorNodeWithGradient b) {
+        if (a.requiresGradients()) {
+            try (ITensor gradients = upstreamGradient.multiply(b.getValue())) {
+                ITensor finalGradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, a.getValue().getShape());
+                a.accumulateGradient(finalGradients);
+            }
+        }
+        if (b.requiresGradients()) {
+            try (ITensor gradients = upstreamGradient.multiply(a.getValue())) {
+                ITensor finalGradients = GradientUtil.sumGradientsOnBroadcastDims(gradients, b.getValue().getShape());
+                b.accumulateGradient(finalGradients);
+            }
+        }
+    } 
+}
+```
+
+When compared with the scalar counterpart, the expression $globalGradient = upstreamGradient * localGradient$ is still intact. However, we need to handle broadcasting in addition to that. The `GradientUtil.sumGradientsOnBroadcastDims` method takes care of that. It sums the gradients along the dimensions where the parameter tensor was broadcasted in the forward pass. We deduce these dimensions based on the shape of the parameter tensor and the shape of the temporary gradient tensor.
+
+```java
+public class GradientUtil {
+
+    public static ITensor sumGradientsOnBroadcastDims(ITensor tmpGradients, long[] shapeOfParameter) {
+        long[] gradientShape = tmpGradients.getShape();
+        for (int i = 0; i < gradientShape.length; i++) {
+            if (shapeOfParameter.length - i - 1 >= 0) {
+                if (gradientShape[gradientShape.length - i - 1] != shapeOfParameter[shapeOfParameter.length - i - 1]) {
+                    tmpGradients = tmpGradients.reduceSum(gradientShape.length - i - 1, true);
+                }
+            } else {
+                tmpGradients = tmpGradients.reduceSum(0, false);
+            }
+        }
+        return tmpGradients;
+    }
+}
+```
+
+The method is used in the backward pass to account for broadcasting in the forward pass.
+The function takes in `tmpGradients` $\frac{\partial L}{\partial Z}$ and the shape of the parameter $P$ that $Z=f(P, ...)$ depends on and returns $\frac{\partial L}{\partial P}$.
+
+Not all operations are tensor-level backward passes are simple ports of their scalar counterparts. The backward pass of the `matmul` operation is a good example of this.
 
 
-When compared with the scalar counterpart, the expression $globalGradient = upstreamGradient * localGradient$ is still intact. However, we need to handle broadcasting in addition to that.
+### Tensor level matrix multiplication differentiation
+
+As a backward pass generally needs to be performant, it is very fortunate that a the backwards pass of a matrix multiplication can itself be expressed as a matrix multiplication.
+
+To prove this, we will resort to interpreting gradient computation as computing the Jacobian for an operation $f$.
+
+Note our specialization of the Jacobian matrix:
+$$
+J=
+\begin{bmatrix}
+\begin{bmatrix}
+\frac{\partial L}{\partial p^{(1)}_{1}}
+\frac{\partial L}{\partial p^{(1)}_{2}}
+\cdots
+\frac{\partial L}{\partial p^{(1)}_{n}}
+\end{bmatrix}
+\begin{bmatrix}
+\frac{\partial L}{\partial p^{(2)}_{1}}
+\frac{\partial L}{\partial p^{(2)}_{2}}
+\frac{\partial L}{\partial p^{(2)}_{3}}
+\cdots
+\frac{\partial L}{\partial p^{(2)}_{n}}
+\end{bmatrix}
+\cdots
+\begin{bmatrix}
+\frac{\partial L}{\partial p^{(3)}_{1}}
+\frac{\partial L}{\partial p^{(3)}_{2}}
+\cdots
+\frac{\partial L}{\partial p^{(3)}_{n}}
+\end{bmatrix}
+\end{bmatrix}
+$$
+
+When we are differentiating with respect to only one parameter, we can simplify the Jacobian matrix to a vector:
+
+$$
+J=
+\begin{bmatrix}
+\begin{bmatrix}
+\frac{\partial L}{\partial p^{(1)}_{1}}
+\frac{\partial L}{\partial p^{(1)}_{2}}
+\cdots
+\frac{\partial L}{\partial p^{(1)}_{n}}
+\end{bmatrix}
+\end{bmatrix}
+=
+\begin{bmatrix}
+\frac{\partial L}{\partial p^{(1)}_{1}}
+\frac{\partial L}{\partial p^{(1)}_{2}}
+\cdots
+\frac{\partial L}{\partial p^{(1)}_{n}}
+\end{bmatrix}
+$$
+
+When we remember that we defined $J_i$ as the flat version of the gradient tensor $G_i$, and that $G_i$ is the gradient tensor for the parameter $P_i$, and that $P_i$ and $G_i$ have the same shape due to $L$ being a scalar, and that all $P_i$ of $matmul(P_1, P_2)$ are matrices, we can re-arange our gradient tensor $G$ to be a matrix for asthetic reasons.
+
+Given $Z = W \cdot X$ where $W$ is a matrix sized $a \times b$ and $X$ is a matrix sized $b \times c$,
+and $L = f(Z)$, we can compute the derivative of the scalar $L$ with respect to $W$ or $X$.
+
+We must now chose which parameter we are differentiating with respect to. Let's first choose $W$.
+
+We can now define the gradient tensor $G_w$ as follows:
+
+$$
+G_w=\frac{\partial L}{\partial W}
+=\left[
+\begin{array}{ccc}
+   \frac{\partial L}{\partial W_{11}} & \cdots & \frac{\partial L}{\partial W_{1b}} \\
+   \vdots & \ddots & \vdots \\
+   \frac{\partial L}{\partial W_{a1}} & \cdots & \frac{\partial L}{\partial W_{ab}}
+\end{array}
+\right]
+$$
+
+Let's first define the scalar case what $Z_{ij}$ is: 
+$$
+Z_{ij} = \sum_{k=1}^{b} W_{ik} \cdot X_{kj}
+$$
+
+Note that $Z$ is a matrix of size $a \times c$.
+As we want to compute the derivative of $L$ with respect to $W$ and therefore all of its element simultaneously, we must account for all gradient contributions of all elements of $Z$ with respect to all elements of $W$.
+
+To properly define what this means, we could first approach this problem with simple single-variable calculus.
+When given $Z = W \cdot X$, we can create all possible derivatives for all $Z_{kl}$ with respect to all $W_{ij}$.
+Given that $i \in [1, a]$ and $j \in [1, b]$ and $k \in [1, a]$ and $l \in [1, c]$, we would arive at $a \times b \times a \times c$ derivatives, which obviously differs from the $a \times b$ elements of $W$, which we expect given our specialization of the Jacobian matrix, where $L$ is a scalar. We thus sum over the remaining dimensions contributing to a respective entry $W_{ij}$.
+We thus arrive at the following equation:
+
+$$
+\frac{\partial L}{\partial W_{ij}} = \sum_{k=1}^{a}\sum_{l=1}^{c} \frac{\partial L}{\partial Z_{kl}} \cdot \frac{\partial Z_{kl}}{\partial W_{ij}}
+$$
+
+When $k \neq i$, then $\frac{\partial Z_{kl}}{\partial W_{ij}} = 0$. This means that we can simplify the above equation to:
+
+$$
+\frac{\partial L}{\partial W_{ij}} = \sum_{l=1}^{c} \frac{\partial L}{\partial Z_{il}} \cdot \frac{\partial Z_{il}}{\partial W_{ij}}
+$$
+
+We exapand $\frac{\partial Z_{il}}{\partial W_{ij}}$:
+
+$$
+\frac{\partial Z_{il}}{\partial W_{ij}} = \frac{\partial}{\partial W_{ij}} \left( \sum_{q=1}^{b} W_{iq} \cdot X_{  ql} \right)
+$$
+
+We now see that $\frac{\partial Z_{il}}{\partial W_{ij}} = 0$ as well, if $q \neq j$.
+
+
+These conditions are quite intuitive, as the derivative will only be $\neq 0$ if the weight we are differentiating with respect to is used in the multiplication term.
+
+
+We can now simplify the above equation to:
+
+$$
+\frac{\partial Z_{il}}{\partial W_{ij}} = \frac{\partial}{\partial W_{ij}} \left( W_{ij} \cdot X_{jl} \right)
+=
+X_{jl}
+$$
+
+We can now substitute this into the above equation:
+
+$$
+\frac{\partial L}{\partial W_{ij}} = \sum_{l=1}^{c} \frac{\partial L}{\partial Z_{il}} \cdot X_{jl}
+$$
+
+Given that each entry of the resulting matrix computes as the sum of element-whise multiplication of scalars that stem from other matrices via indexing, we can rewrite this operation as the matrix multiplication of said matrices. Note however, that $X$ is of size $b \times c$ and that we index into via $X_{jl}$, where $j \in [1, b]$ and $l \in [1, c]$.
+Now however that the sum in the above equation $l$ does not index into the leading dimension of the second matrix, but into the trailing dimension. We must thus transpose $X$ to be of size $c \times b$:
+
+$$
+\frac{\partial L}{\partial W} = \frac{\partial L}{\partial Z} \cdot X^T
+$$
+
+We will now repeat the same process for the derivative of $L$ with respect to $X$. Explanation will be omitted for similar steps as above.
+
+$$
+G_x=\frac{\partial L}{\partial X}
+=\left[
+\begin{array}{ccc}
+   \frac{\partial L}{\partial X_{11}} & \cdots & \frac{\partial L}{\partial X_{1c}} \\
+   \vdots & \ddots & \vdots \\
+   \frac{\partial L}{\partial X_{b1}} & \cdots & \frac{\partial L}{\partial X_{bc}}
+\end{array}
+\right]
+$$
+
+$$
+\frac{\partial L}{\partial X_{ij}} = \sum_{k=1}^{a}\sum_{l=1}^{c} \frac{\partial L}{\partial Z_{kl}} \cdot \frac{\partial Z_{kl}}{\partial X_{ij}}
+$$
+
+If $l \neq j$, then $\frac{\partial Z_{kl}}{\partial X_{ij}} = 0$. This means that we can simplify the above equation to:
+
+$$
+\frac{\partial L}{\partial X_{ij}} = \sum_{k=1}^{a} \frac{\partial L}{\partial Z_{ki}} \cdot \frac{\partial Z_{ki}}{\partial X_{ij}}
+$$
+
+$$
+\frac{\partial Z_{ki}}{\partial X_{ij}} = \frac{\partial}{\partial X_{ij}} \left( \sum_{q=1}^{b} W_{kq} \cdot X_{qj} \right)
+$$
+
+If $q \neq i$, then $\frac{\partial Z_{ki}}{\partial X_{ij}} = 0$. This means that we can simplify the above equation to:
+
+$$
+\frac{\partial Z_{ki}}{\partial X_{ij}} = \frac{\partial}{\partial X_{ij}} \left( W_{ki} \cdot X_{ij} \right)
+=
+W_{ki}
+$$
+
+$$
+\frac{\partial L}{\partial X_{ij}} = \sum_{k=1}^{a} \frac{\partial L}{\partial Z_{ki}} \cdot W_{ki}
+$$
+
+
+$$
+\frac{\partial L}{\partial X} = \left(\frac{\partial L}{\partial Z}\right)^T \cdot W
+$$
+
+To summarize, we derived that
+$$
+\frac{\partial L}{\partial W} = \frac{\partial L}{\partial Z} \cdot X^T
+$$
+and
+$$
+\frac{\partial L}{\partial X} = \left(\frac{\partial L}{\partial Z}\right)^T \cdot W
+$$
+
+We will now use this insight to implement an efficient backward pass for the matrix multiplication operation.
+
+```java
+public class GenCPUMatmulOp implements IDifferentiableOperation {
+    ...
+    @Override
+    public void computeGradients(Graph.IOperationContext ctx,
+        ITensor upstreamGradient,
+        IGraph.ITensorNodeWithGradient a, IGraph ITensorNodeWithGradient b) {
+        OptionBundle options = ctx.getOptionBundle();
+        boolean transposeA = options.getOrDefault("transposeA", false);
+        boolean transposeB = options.getOrDefault("transposeB", false);
+        
+        ITensor aValue = a.getValue();
+        ITensor bValue = b.getValue();
+
+```
+Note that we want to support virtual transpose operations, that do not actually transpose the underlying tensor, but rather cleverly express the backward pass of virtually transposed matrix multiplication as virtually transpose matrix multplications themselves.
+Getting this right envolves additional derivations.
+We will now refer to the upstream gradient $\frac{\partial L}{\partial Z}$ as $G$, where $Z = W \cdot X$.
+
+First we start with the base case:
+$$
+\frac{\partial L}{\partial W} = G \cdot X^T
+$$
+
+$
+if \space \text{transposeA} = False: \newline
+\qquad if \space \text{transposeB} = True: \newline
+$
+The base case only applies when the transpose was actually applied to the op input before the matrix multiplication.
+During the forward pass a "virtual transpose" occurred, but this is not reflected in the graph. Thus, we need to transpose $X$ again.
+
+$
+\qquad \qquad \frac{\partial L}{\partial W} = G \cdot (X^T)^T = G \cdot X \newline
+\qquad else: \newline
+$
+No virtual transpose occurrs here, because $X$ here is what was actually used in the forward pass.
+
+$
+\qquad \qquad \frac{\partial L}{\partial W} = G \cdot X^T
+\newline
+else \space if \space \text{transposeA} = True: \newline
+$
+Normally, if $X$ were a transpose operation node, this would compute the upstream gradients, which would transpose it again as part of its gradient computation.
+However, since we are merging a defacto transpose operation into the matmul operation, we would need to transpose
+these gradients after $\frac{\partial L}{\partial W}$ is computed. We also exploit following identity:
+$
+B^T \cdot A^T = (A \cdot B)^T
+$.
+This allows us to represent $(A \cdot B)^T$ in terms of things we can cheaply compute, namely $A^T$ and $B^T$ as part of a virtually transposed matrix multiplication operation.
+
+$
+\qquad if \space \text{transposeB} = True: \newline
+$
+Here a virtual transpose occurred, so we need to transpose $X$ again.
+Note that in addition to that we also need to transpose again because of the would-be transpose operation node, which in this configuration does not exist in the graph.
+
+$
+\qquad \qquad \frac{\partial L}{\partial W} = (G \cdot (X^T)^T)^T =
+(G \cdot X)^T
+= X^T \cdot G^T \newline
+\qquad else: \newline
+$
+Here no virtual transpose occured, but we still need to account for the would-be transpose operation node and transpose the result an expression.
+
+$
+\qquad \qquad \frac{\partial L}{\partial W} = (G \cdot X^T)^T = X \cdot G^T 
+$
+
+These deriviations can be summarized as follows:
+
+$
+\frac{\partial L}{\partial W} = \begin{cases}
+G \cdot X & \text{if } \text{transposeA} = False \text{ and } \text{transposeB} = True \newline
+G \cdot X^T & \text{if } \text{transposeA} = False \text{ and } \text{transposeB} = False \newline
+X^T \cdot G^T & \text{if } \text{transposeA} = True \text{ and } \text{transposeB} = True \newline
+X \cdot G^T & \text{if } \text{transposeA} = True \text{ and } \text{transposeB} = False \newline
+\end{cases}
+$
+
+We note that when we group the cases by the value of $\text{transposeA}$, we can see that computation of the gradients involve the same operand matrices,
+but with different transpositions. This serves our purpose well, as we can now derive the following:
+
+Given a matrix multiplication $C = A \cdot B$, where a tuple $(X, Y)$ of boolean states represents the transposition of $A$ and $B$ respectively, 
+and $\frac{\partial L}{\partial W}$ can be computed as some $A \cdot B$ with transposition states $(X, Y)$, we can derive the following:
+
+$
+\begin{cases}
+G \cdot X \quad with \quad (False, \neg transposeB) \space & if \space \text{transposeA} = False \newline
+X \cdot G \quad with \quad (transposeB, \space True) \space &if \space \text{transposeA} = True \newline
+\end{cases}
+$
+
+We can now turn this into code:
+
+```java
+        if (a.requiresGradients()) {
+            ITensor dLdW;
+            if (!transposeA) {
+                dLdW = upstreamGradient.matmul(bValue, false, !transposeB);
+            } else {
+                dLdW = bValue.matmul(upstreamGradient, transposeB, true);
+            }
+```
+
+In the following lines, we handle the case where at least one of the operands is a 3D tensor, where the first dimension is interpreted as a batch dimension,
+which allows for efficient computation of multiple matrix multiplication operations of the same shape in parallel. Note that this produces an output tensor, where the first dimension is the batch dimension. We need to sum over this dimension to accumulate gradient contributions from all batch elements such that the gradient tensor has the same shape as the operand tensor.
+
+```java
+            if (aValue.getShape().length == 3 || bValue.getShape().length == 3) {
+                if (aValue.getShape().length == 3 && aValue.getShape()[0] == 1) {
+                    dLdW = dLdW.reduceSum(0, true);
+                } else if (aValue.getShape().length == 2) {
+                    dLdW = dLdW.reduceSum(0, false);
+                }
+            }
+            a.accumulateGradient(dLdW);
+        }
+```
+
+When differentiating with respect to the second operand, we can use the same logic as for the first operand, but starting from a different base case,
+which is $\frac{\partial L}{\partial X} = W^T \cdot G$.
+Explanation of the derivation is omitted here, as it is similar to the derivation for the first operand.
+
+$
+if \space \text{transposeB} = False: \newline
+\qquad if \space \text{transposeA} = True: \newline
+\qquad \qquad \frac{\partial L}{\partial X} = (W^T)^T \cdot G = W \cdot G \newline
+\qquad else: \newline
+\qquad \qquad \frac{\partial L}{\partial X} = W^T \cdot G \newline
+else: \newline
+\qquad if \space \text{transposeA} = True: \newline
+\qquad \qquad \frac{\partial L}{\partial X} = ((W^T)^T \cdot G)^T = (W \cdot G)^T = G^T \cdot W^T \newline
+\qquad else: \newline
+\qquad \qquad \frac{\partial L}{\partial X} = (W^T \cdot G)^T = (W^T \cdot G)^T = G^T \cdot W \newline
+$
+
+$
+\frac{\partial L}{\partial X} = \begin{cases}
+W \cdot G & \text{if } \text{transposeA} = True \text{ and } \text{transposeB} = False \newline
+W^T \cdot G & \text{if } \text{transposeA} = False \text{ and } \text{transposeB} = False \newline
+G^T \cdot W^T & \text{if } \text{transposeA} = True \text{ and } \text{transposeB} = True \newline
+G^T \cdot W & \text{if } \text{transposeA} = False \text{ and } \text{transposeB} = True \newline
+\end{cases}
+$
+
+$
+\begin{cases}
+W \cdot G \quad with \quad (\neg transposeA, \space False) \space & if \space \text{transposeB} = False \newline
+G \cdot W \quad with \quad (True, \space transposeB) \space & if \space \text{transposeB} = True \newline
+\end{cases}
+$
+
+```java
+        if (b.requiresGradients()) {
+            ITensor dLdX;
+            if (!transposeB) {
+                dLdX = aValue.matmul(upstreamGradient, !transposeA, false);
+            } else {
+                dLdX = upstreamGradient.matmul(aValue, true, transposeA);
+            }
+            if (aValue.getShape().length == 3 || bValue.getShape().length == 3) {
+                if (bValue.getShape().length == 3 && bValue.getShape()[0] == 1) {
+                    dLdX = dLdX.reduceSum(0, true);
+                } else if (bValue.getShape().length == 2) {
+                    dLdX = dLdX.reduceSum(0, false);
+                }
+            }
+            b.accumulateGradient(dLdX);
+        }
+    }
+}
+```
 
 
 ### Mnist Training Example

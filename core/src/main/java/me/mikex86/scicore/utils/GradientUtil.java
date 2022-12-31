@@ -10,7 +10,7 @@ public class GradientUtil {
      * This method is used to sum over dimension, which were broadcast in the forward pass.
      * We need to sum over these dimensions, because all these gradients stem from the same scalar in the original parameter, which was virtually expanded.
      * @param tmpGradients dL/dZ where Z is the output of the forward pass
-     * @param shapeOfParameter The shape of the parameter, which was broadcast.
+     * @param shapeOfParameter The shape of the parameter P, which was broadcast.
      * @return dL/dP where P is the parameter, which was broadcast.
      */
     @NotNull

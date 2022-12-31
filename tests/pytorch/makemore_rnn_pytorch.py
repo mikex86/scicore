@@ -2,10 +2,13 @@ import time
 from typing import Tuple, Mapping
 
 import torch
+from cmath import sqrt
 from torch.nn import Linear, Embedding
 from torch.nn import Module, Parameter
 from torch.utils.data import Dataset
 from torch.nn import functional as F
+
+from javarandom import Random
 
 EMBEDDING_SIZE = 32
 HIDDEN_SIZE = 64
@@ -28,7 +31,7 @@ class NamesDataset(Dataset):
         for w in self.words:
             x = [0] * (len(w) + 2)  # +2 for start and end tokens
             x[0] = self.stoi['.']
-            x[1:] = [self.stoi[ch] for ch in w]
+            x[1:-1] = [self.stoi[ch] for ch in w]
             x[-1] = self.stoi['.']
             x_tensor = torch.tensor(x + [0] * (self.max_word_len + 2 - len(x)))
             X.append(x_tensor)
@@ -46,6 +49,24 @@ class NamesDataset(Dataset):
         return self.X[idx], self.Y[idx]
 
 
+random = Random(123)
+
+
+def _init_linear_layer_like_java(param_tensor, output_size):
+    k = 1 / sqrt(output_size)
+    flat_cpy = param_tensor.detach().view(-1)
+    for flat_idx in range(param_tensor.numel()):
+        flat_cpy[flat_idx] = random.next_float() * 2 * k - k
+    param_tensor.data = flat_cpy.reshape(param_tensor.shape)
+
+
+def _init_gaussian_like_java(param_tensor):
+    flat_cpy = param_tensor.detach().view(-1)
+    for flat_idx in range(param_tensor.numel()):
+        flat_cpy[flat_idx] = random.next_gaussian()
+    param_tensor.data = flat_cpy.reshape(param_tensor.shape)
+
+
 class MakeMoreRNN(Module):
 
     def __init__(self):
@@ -55,6 +76,13 @@ class MakeMoreRNN(Module):
         self.start = Parameter(torch.zeros(1, HIDDEN_SIZE, requires_grad=True))
         self.rnn_cell = Linear(in_features=EMBEDDING_SIZE + HIDDEN_SIZE, out_features=HIDDEN_SIZE)
         self.lm_head = Linear(in_features=HIDDEN_SIZE, out_features=VOCAB_SIZE)
+
+        _init_gaussian_like_java(self.embedding.weight.data)
+        _init_gaussian_like_java(self.start.data)
+        _init_linear_layer_like_java(self.rnn_cell.weight.data, EMBEDDING_SIZE + HIDDEN_SIZE)
+        _init_linear_layer_like_java(self.rnn_cell.bias.data, EMBEDDING_SIZE + HIDDEN_SIZE)
+        _init_linear_layer_like_java(self.lm_head.weight.data, HIDDEN_SIZE)
+        _init_linear_layer_like_java(self.lm_head.bias.data, HIDDEN_SIZE)
 
     def forward(self, X: torch.Tensor) -> torch.tensor:
         emb = self.embedding(X)  # (batch_size, seq_len, embedding_size)
@@ -125,6 +153,8 @@ def create_datasets() -> Tuple[NamesDataset, NamesDataset]:
 BATCH_SIZE = 32
 N_TRAINING_STEPS = 200_000
 
+dataset_random = Random(123)
+
 
 def main():
     train_dataset, test_dataset = create_datasets()
@@ -134,7 +164,9 @@ def main():
 
     start_time = time.time()
     for step in range(N_TRAINING_STEPS):
-        idx = torch.randint(0, len(train_dataset), (BATCH_SIZE,))
+        idx = torch.zeros(BATCH_SIZE, dtype=torch.long)
+        for i in range(BATCH_SIZE):
+            idx[i] = dataset_random.next_int(len(train_dataset))
         X, Y = train_dataset[idx]
 
         logits = model(X)
