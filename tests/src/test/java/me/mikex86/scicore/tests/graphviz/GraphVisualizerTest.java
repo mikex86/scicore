@@ -41,7 +41,6 @@ class GraphVisualizerTest {
         IGraph graph = sciCore.getExecutionGraphUpTo(e);
 
         BufferedImage image = DAGGraphRenderPlanFactory.visualizeGraph(graph);
-
         try {
             ImageIO.write(image, "PNG", new File("graph.png"));
         } catch (IOException ex) {

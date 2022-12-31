@@ -730,30 +730,46 @@ Value c = a.multiply(b);
 
 We will now implement the `backward` method in the `Graph` class. This method will perform the backward pass of the graph, computing the gradients of all the `Value` objects in the graph. Note that normally one would only want to compute the gradients of a subset of the `Value` objects in the graph, where it is explicitly required, which is a feature that we will not implement here for the sake of simplicity.
 
-In the following code snippet, we recursively apply the chain rule by first computing the downstream gradients of the input nodes of the currently traversed operation and recursively ascending the graph to all nodes the operation depends on. Computed downstream gradients will become the upstream gradients of the next operation in the recursion. Gradients are always accumulated, so that when multiple operation nodes depend on the same value, all contributions are taken into account.
+In the following code snippet, we apply the chain rule by first computing the downstream gradients of the input nodes of the currently traversed operation and ascending the graph to all nodes the operation depends on.
+Computed downstream gradients will become the upstream gradients of the next operation during traversal.
+Gradients are always accumulated, so that when multiple operation nodes depend on the same value, all contributions are taken into account.
+Note that we traverse in such an order we only move on to the next operation in the graph when all operations that could influence the gradient of a particular operation have been traversed. This ensures we do not move on to the next operation with pre-maturely computed upstream gradients of downstream operations. This for example happens in a softmax operation, where a particular result is used at different depths of the graph, resulting in two possible paths to all upstream operations.
 
 ```java
 public class Graph {
     ...
-    public void backward() {
-        Value rootNodeValue = rootNode.getValue();
-        rootNodeValue.accumulateGrad(1); // dL/dL = 1
-        backward(rootNode);
+    private void backward(Node node) {
+        Deque<Node> topology = new LinkedList<>();
+        Set<Node> visited = new HashSet<>();
+        // build topology
+        {
+            buildTopo(node, topology, visited);
+        }
+        // backward
+        for (Node n : topology) {
+            if (n instanceof OperationNode opNode) {
+                Value v = opNode.getValue();
+                Operation op = opNode.getOperation();
+                List<Value> inputs = opNode.getInputNodes()
+                        .stream()
+                        .map(Node::getValue)
+                        .toList();
+                op.backward(v, inputs);
+            }
+        }
     }
 
-    private void backward(Node node) {
+    private void buildTopo(Node node, Deque<Node> topology, Set<Node> visited) {
+        if (visited.contains(node)) {
+            return;
+        }
+        visited.add(node);
+        // This ordering guarantees that we don't use premature upstream gradients to compute subsequent gradients
         if (node instanceof OperationNode operationNode) {
-            Operation operation = operationNode.getOperation();
-            List<Value> inputValues = new ArrayList<>();
-            for (Node inputNode : operationNode.getInputNodes()) {
-                inputValues.add(inputNode.getValue());
+            for (Node input : operationNode.getInputNodes()) {
+                buildTopo(input, topology, visited);
             }
-            Value operationOutput = operationNode.getValue();
-            operation.backward(operationOutput, inputValues);
-
-            for (Node inputNode : operationNode.getInputNodes()) {
-                backward(inputNode);
-            }
+            topology.addFirst(node); // add node AFTER all its inputs have been added
         }
     }
     ...
@@ -1065,15 +1081,25 @@ be computed by the autograd engine.
 After starting the backpropagation, the gradients can be retrieved for all tensors which gradients were requested for.
 
 ```java
-ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4, 5}});
-ITensor b = sciCore.matrix(new float[][]{{6}, {7}, {8}, {9}, {10}});
-ITensor result = a.matmul(b);
+ITensor a = sciCore.matrix(new float[][]{{1, 2, 3, 4}});
+ITensor b = sciCore.matrix(new float[][]{{5, 6}, {8, 9}, {11, 13}, {15, 17}});
+ITensor c = a.matmul(b);
 
-IGraph graph = sciCore.getGraphUpTo(result);
+ITensor d = sciCore.matrix(new float[][]{{1}, {3}});
+ITensor e = c.matmul(d);
+
+IGraph graph = sciCore.getExecutionGraphUpTo(e);
 graph.requestGradientsFor(a, b);
 graph.backward();
-
 ```
+
+The graph can be visualized using the `GraphVisualizer` class:
+
+```java
+GraphVisualizer.saveGraph(DAGGraphRenderPlanFactory.makeRenderPlan(graph), "graph.png");
+```
+
+![opgraph_1](./figures/opgraph_1.png)
 
 Only branches of the graph that lead to explictly requested gradients will be computed to avoid unnecessary computation.
 Only the gradients of the requested tensors persist after the backward pass completes.
@@ -1082,34 +1108,35 @@ Only the gradients of the requested tensors persist after the backward pass comp
 public class Graph {
     ...
     @Override
-    public void requestGradientsFor(@NotNull ITensor... tensors) {
-        for (ITensor tensor : tensors) {
-            Optional<IGraphNode> nodeOpt = getNodeForTensor(tensor);
+    public void requestGradientsFor(@NotNull List<ITensor> parameters) {
+        List<ITensorNodeWithGradient> parameterNodes = new ArrayList<>(parameters.size());
+        for (ITensor parameter : parameters) {
+            Optional<IGraphNode> nodeOpt = getNodeForTensor(parameter);
             if (nodeOpt.isEmpty()) {
-                throw new IllegalArgumentException("Tensor is not part of the graph");
+                throw new IllegalArgumentException("Parameter not found in graph");
             }
-            IGraphNode node = nodeOpt.get();
-
-            if (!(node instanceof ITensorNodeWithGradient nodeWithGradient)) {
-                throw new IllegalStateException(
-                    "Requested gradients to be computed " +
-                     "for node that can't hold a gradient: " + node
-                );
+            IGraphNode parameterNode = nodeOpt.get();
+            if (!(parameterNode instanceof ITensorNodeWithGradient parameterNodeWithGradient)) {
+                throw new IllegalArgumentException("Parameter is not a differentiable tensor");
             }
-            nodeWithGradient.requestGradients();
-
-            List<IGraphNode> downstreamNodes = getDependentNodes(node);
-
-            for (IGraphNode downstreamNode : downstreamNodes) {
-                if (!(downstreamNode instanceof ITensorNodeWithGradient downStreamNodeWithGradient)) {
-                    throw new IllegalArgumentException(
-                        "Requested gradient for " +
-                        "tensor that cannot hold a gradient: " + downstreamNode
-                    );
+            parameterNodes.add(parameterNodeWithGradient);
+        }
+        for (ITensorNodeWithGradient parameterNode : parameterNodes) {
+            parameterNode.requestGradients();
+            parameterNode.setRequireGradients();
+            Set<IGraphNode> downstreamNodes = parameterNode.getDownstreamNodes();
+            Set<IGraphNode> visitedNodes = new HashSet<>();
+            Queue<IGraphNode> queue = new ArrayDeque<>(downstreamNodes);
+            while (!queue.isEmpty()) {
+                IGraphNode node = queue.poll();
+                if (visitedNodes.contains(node)) {
+                    continue;
                 }
-                // all nodes that depend on this node
-                // will have their gradients computed for them
-                downStreamNodeWithGradient.setRequireGradients();
+                visitedNodes.add(node);
+                if (node instanceof ITensorNodeWithGradient tensorNodeWithGradient) {
+                    tensorNodeWithGradient.setRequireGradients();
+                }
+                queue.addAll(node.getDownstreamNodes());
             }
         }
     }
@@ -1119,27 +1146,67 @@ public class Graph {
 Nodes can either request gradients, or require gradients. A node that requests gradients will have its gradients computed and not discarded. A node that requires gradients will have its gradients computed and discarded, as these gradients are only needed to compute the gradients of upstream nodes, one of which will request gradients.
 
 These flags are respected in the backpropagate method to only traverse branches of the graph where nodes depend on nodes that request gradients.
-This also handles the case of deleting gradients, when the branch that could need the gradients goes out of scope of the recursion.
+This also handles the case of deleting gradients in `clearUnusedGradients()`.
 ```java
 public class Graph {
     ...
-    private void backPropagate(@NotNull ITensorNodeWithGradient node) {
-        // only compute gradient for nodes for which it is required
-        if (node instanceof IDifferentiableNode differentiableNode) {
-            differentiableNode.computeGradients();
+    @Override
+    public void backward() {
+        // initialize gradient to 1 because derivative of x in respect to itself is one. Duh.
+        if (outputNode instanceof ITensorNodeWithGradient nodeWithGradient) {
+            ITensor tensor = nodeWithGradient.getValue();
+            if (!tensor.isScalar()) {
+                throw new IllegalStateException("Cannot compute gradient of non-scalar tensor");
+            }
+
+            ITensor gradient = backend.createTensor(tensor.getDataType(), tensor.getShape());
+            gradient.fill(1);
+            nodeWithGradient.accumulateGradient(gradient); // dL/dL = 1
+
+            // apply chain rule
+            backPropagate(nodeWithGradient);
+
+            // collect results
+            Set<ITensor> gradients = collectGradientResults();
+
+            // clear gradients
+            clearUnusedGradients(gradients);
+        } else {
+            throw new IllegalStateException("Output node of graph must be differentiable!");
         }
-        // traverse up the topology, if the graph extends upwards
-        if (node instanceof OperationGraphNode operationNode) {
-            for (IGraphNode inputNode : operationNode.getInputs()) {
-                if (inputNode instanceof ITensorNodeWithGradient inputNodeWithGradient) {
-                    if (inputNodeWithGradient.requiresGradients()) {
-                        backPropagate(inputNodeWithGradient);
+    }
+    ...
+    private void backPropagate(@NotNull ITensorNodeWithGradient node) {
+        Deque<IGraphNode> topology = new LinkedList<>();
+        Set<IGraphNode> visited = new HashSet<>();
+        // build topology
+        {
+            buildTopo(node, topology, visited);
+        }
+        // back propagate
+        for (IGraphNode currentNode : topology) {
+            if (currentNode instanceof ITensorNodeWithGradient currentNodeWithGradient) {
+                // only compute gradient for nodes for which it is required
+                if (currentNodeWithGradient.requiresGradients()) {
+                    if (currentNode instanceof IDifferentiableNode differentiableNode) {
+                        differentiableNode.computeGradients();
                     }
                 }
             }
         }
-        if (!node.requestsGradients()) {
-            node.deleteGradient();
+    }
+    ...
+    private void buildTopo(IGraphNode node, Deque<IGraphNode> topology, Set<IGraphNode> visited) {
+        if (visited.contains(node)) {
+            return;
+        }
+        visited.add(node);
+        // This ordering guarantees that we don't use premature upstream gradients to compute subsequent gradients
+        if (node instanceof OperationGraphNode operationNode) {
+            for (IGraphNode input : operationNode.getInputs()) {
+                buildTopo(input, topology, visited);
+            }
+            topology.addFirst(node); // add node AFTER all its inputs have been added
         }
     }
     ...
@@ -1253,7 +1320,7 @@ J=
 \end{bmatrix}
 $$
 
-When we remember that we defined $J_i$ as the flat version of the gradient tensor $G_i$, and that $G_i$ is the gradient tensor for the parameter $P_i$, and that $P_i$ and $G_i$ have the same shape due to $L$ being a scalar, and that all $P_i$ of $matmul(P_1, P_2)$ are matrices, we can re-arange our gradient tensor $G$ to be a matrix for asthetic reasons.
+When we remember that we defined $J_i$ as the flat version of the gradient tensor $G_i$, and that $G_i$ is the gradient tensor for the parameter $P_i$, and that $P_i$ and $G_i$ have the same shape due to $L$ being a scalar, and that all $P_i$ of $matmul(P_1, P_2)$ are matrices, we can re-arange our gradient tensor $G$ to be a matrix for aesthetic reasons.
 
 Given $Z = W \cdot X$ where $W$ is a matrix sized $a \times b$ and $X$ is a matrix sized $b \times c$,
 and $L = f(Z)$, we can compute the derivative of the scalar $L$ with respect to $W$ or $X$.
@@ -1358,11 +1425,7 @@ $$
 
 If $q \neq i$, then $\frac{\partial Z_{ki}}{\partial X_{ij}} = 0$. This means that we can simplify the above equation to:
 
-$$
-\frac{\partial Z_{ki}}{\partial X_{ij}} = \frac{\partial}{\partial X_{ij}} \left( W_{ki} \cdot X_{ij} \right)
-=
-W_{ki}
-$$
+$$\frac{\partial Z_{ki}}{\partial X_{ij}} = \frac{\partial}{\partial X_{ij}} \left( W_{ki} \cdot X_{ij} \right)=W_{ki}$$
 
 $$
 \frac{\partial L}{\partial X_{ij}} = \sum_{k=1}^{a} \frac{\partial L}{\partial Z_{ki}} \cdot W_{ki}
