@@ -1619,11 +1619,373 @@ $
     }
 }
 ```
+### Optimization
+After computing gradients, we can implement first-order optimization algorithms, such as stochastic gradient descent to update the parameters of the model in direction of the negative gradient.
+We can implement a simple `SGD´ optimizer as follows:
 
+```java
+public class Sgd implements IOptimizer {
+
+    ...
+
+    @Override
+    public void step(@NotNull ITensor loss) {
+        try (IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, parameters)) {
+            sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
+                graph.backward();
+                for (ITensor parameter : parameters) {
+                    try (ITensor gradient = graph.getGradient(parameter)
+                            .orElseThrow(() -> new IllegalStateException("No gradient for parameter"))) {
+                        float learningRate;
+                        if (adaptiveLearningRate) {
+                            learningRate = (float) (initialLearningRate * Math.pow(learningRateDecayFactor, nSteps));
+                        } else {
+                            learningRate = this.initialLearningRate;
+                        }
+                        try (ITensor scaledGradient = gradient.multiply(learningRate)) {
+                            parameter.subtract(scaledGradient);
+                        }
+                    }
+                }
+                return null;
+            });
+            nSteps++;
+        }
+    }
+}
+```
 
 ### Mnist Training Example
+We can now take these building blocks to create a simple multi-layer neural network, which we can train to recognize handwritten digits from the MNIST dataset.
 
-### Optimization
+```kotlin
+class MnistNet(sciCore: ISciCore) : IModule {
+
+    private val act = ReLU()
+    private val fc1 = Linear(sciCore, DataType.FLOAT32, (28 * 28).toLong(), 128, true)
+    private val fc2 = Linear(sciCore, DataType.FLOAT32, 128, 10, true)
+    private val softmax = Softmax(sciCore, 1)
+
+    override fun forward(input: ITensor): ITensor {
+        return fc1(input)
+            .use { h -> act(h) }
+            .use { h -> fc2(h) }
+            .use { h -> softmax(h) }
+    }
+
+    override fun subModules(): List<IModule> {
+        return listOf(fc1, fc2)
+    }
+}
+
+...
+
+val trainIt = DatasetIterator(BATCH_SIZE, MnistDataSupplier(sciCore, train = true, shuffle = false))
+val testIt = DatasetIterator(BATCH_SIZE, MnistDataSupplier(sciCore, train = false, shuffle = false))
+
+
+val net = MnistNet(sciCore)
+
+val optimizer = Sgd(sciCore, LEARNING_RATE, net.parameters())
+
+for (step in 0 until N_TRAINING_STEPS) {
+    sciCore.backend.operationRecorder.scopedRecording {
+        val batch = trainIt.next()
+        batch.use { x, y ->
+            lossValue = net(x)
+                .use { yPred -> yPred.minus(y) }
+                .use { diff -> diff.pow(2f) }
+                .use { diffSquared -> diffSquared.reduceSum(-1) }
+                .use { sum -> sum.divide(BATCH_SIZE.toFloat()) }
+                .use { loss ->
+                    optimizer.step(loss)
+                    loss.elementAsDouble()
+                }
+        }
+    }
+}
+```
+Training the model for 60,000 steps, we can achieve an accuracy of 95.5% on the test set.
+
+```
+MNIST already downloaded
+[16:10:35] [main/DEBUG]: Operation MULTIPLY found in backend GenCPUBackend
+[16:10:35] [main/DEBUG]: Operation MINUS found in backend GenCPUBackend
+Start training...
+[16:10:35] [main/DEBUG]: Operation MATMUL found in backend GenCPUBackend
+[16:10:35] [main/DEBUG]: Operation PLUS found in backend GenCPUBackend
+[16:10:35] [main/DEBUG]: Operation RELU found in backend GenCPUBackend
+[16:10:35] [main/DEBUG]: Operation EXP found in backend GenCPUBackend
+[16:10:35] [main/DEBUG]: Operation REDUCE_SUM found in backend GenCPUBackend
+[16:10:35] [main/DEBUG]: Operation DIVIDE found in backend GenCPUBackend
+[16:10:35] [main/DEBUG]: Operation POW found in backend GenCPUBackend
+[16:10:35] [main/DEBUG]: Operation PLUS_INPLACE found in backend GenCPUBackend
+[16:10:35] [main/DEBUG]: Operation MINUS_INPLACE found in backend GenCPUBackend
+Training 100% |█████████████████| 60000/60000 (0:00:21 / 0:00:00) loss: 0.00947
+Training time: 21.992s
+Final loss value: 0.009466836228966713
+Examples per second: 87304.47435431066
+Start testing...
+(0:00:00 / ?) [16:10:57] [main/DEBUG]: Operation ARGMAX found in backend GenCPUBackend
+[16:10:57] [main/DEBUG]: Operation COMPARE_ELEMENTS found in backend JvmBackend
+[16:10:57] [main/DEBUG]: Operation CAST found in backend GenCPUBackend
+[16:10:57] [main/DEBUG]: Operation RESHAPE found in backend GenCPUBackend
+Testing 100% |██████████████| 20000/20000 (0:00:02 / 0:00:00) accuracy: 0.95475
+Final Accuracy: 0.9547
+```
+
+![mnist_inference_screenshot](figures/mnist_inference_screenshot.png)
+
+### Performance considersations
+
+Note that the training only takes 21 seconds on my M1 MacBook Pro using the CPU backend with ARM Neon SIMD and Apple Accelerate optimizations and
+only 17 seconds on my AMD Ryzen 5800X desktop using the CPU backend with AVX2 SIMD and Intel MKL optimizations.
+If no platform specific matrix multiplication optimizations are available, we fall back on my simple BLAS implementation called "TinyBLAS"
+Note that TinyBLAS implements matrix multiplication in a rather naive way, with only low hanging fruit optimizations, which we will discuss later.
+TinyBLAS also handles SIMD optimizations for less complicated operators, like multiplication and addition etc. while respecting the strides of a tensor
+data structure as well as handling broadcasting in an efficient manner.
+
+
+The following snippet shows how matrix multiplication is delegated to Apple Accelerate/Intel MKL, which both implement a common BLAS interface:
+```cpp
+#if defined(__APPLE__)
+// if macOS, use Accelerate framework
+#include <Accelerate/Accelerate.h>
+#elif defined(USE_MKL)
+// if MKL is available, use it
+#include <mkl_cblas.h>
+#else
+// Fall back on TinyBLAS
+#define USE_TINYBLAS
+#endif
+
+JNIEXPORT void JNICALL
+Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(
+    JNIEnv *jniEnv, jclass, jint transa, jint transb,
+    jint m, jint n, jint k,
+    jlong alphaPtr,
+    jlong aPtr,
+    jint aType,
+    jint lda,
+    jlong betaPtr, jlong bPtr,
+    jint bType,
+    jint ldb,
+    jlong cPtr,
+    jint cType,
+    jint ldc) {
+    ...
+#ifdef USE_TINYBLAS
+        tblas_sgemm(TblasRowMajor,
+                    transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
+                    transb == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
+                    m, n, k,
+                    *(float *) alphaPtr, (float *) aPtr, lda,
+                    (float *) bPtr, ldb, *(float *) betaPtr,
+                    (float *) cPtr, ldc);
+#else
+        cblas_sgemm(CblasRowMajor,
+                    transa == OP_TRANSPOSE ? CblasTrans : CblasNoTrans,
+                    transb == OP_TRANSPOSE ? CblasTrans : CblasNoTrans,
+                    m, n, k,
+                    *(float *) alphaPtr, (float *) aPtr, lda,
+                    (float *) bPtr, ldb, *(float *) betaPtr,
+                    (float *) cPtr, ldc);
+#endif
+    ...
+}
+```
+
+#### Optimizing Matrix Multiplication for modern CPUs
+TinyBLAS strikes a compromise between performance and portability when implementing matrix multiplication as to not use architecture-specific instructions, implementing the algorithm in common C++ and hoping for
+compiler optimization hits. This is because the matrix multiplication algorithm of TinyBLAS is designed to be a fallback when no platform specific matrix multiplication optimizations are available.
+However, we can make basic assumtions that hold true for most modern CPUs and use them to optimize the matrix multiplication algorithm.
+
+TinyBLAS' matrix multiplication algorithm is in part based on the techniques presented in https://siboehm.com/articles/22/Fast-MMM-on-CPU
+
+```cpp
+template<typename A, typename B, typename C>
+FORCE_INLINE void tblas_gemm(TblasOrder order, TblasTranspose transa, TblasTranspose transb,
+                             int m, int n, int k,
+                             A alpha, const A *a, int lda,
+                             const B *b, int ldb, B beta,
+                             C *c, int ldc) {
+    if (beta != 1.0f) {
+        if (beta == 0.0f) {
+            memset(c, 0, m * n * sizeof(float));
+        } else {
+            for (int i = 0; i < m * n; i++) {
+                c[i] *= beta;
+            }
+        }
+    }
+    switch (order) {
+        case TblasRowMajor: {
+            for (int row = 0; row < m; row++) {
+                for (int inner = 0; inner < k; inner++) {
+                    for (int col = 0; col < n; col++) {
+                        int aIdx = transa == TblasNoTrans ? row * lda + inner : inner * lda + row;
+                        int bIdx = transb == TblasNoTrans ? inner * ldb + col : col * ldb + inner;
+                        c[row * ldc + col] += alpha * a[aIdx] * beta * b[bIdx];
+                    }
+                }
+            }
+            break;
+        }
+        // Column major order ommitted for brevity
+    }
+}
+```
+
+The above algorithm differs from naive matrix multiplication in subtle, but important ways.
+For example, a naive matrix multiplication algorithm that closely represents peoples intuitions about how
+to perform matrix multiplication by hand could look like this:
+```cpp
+for (int row = 0; row < rows; row++) {
+    for (int col = 0; col < columns; col++) {
+      float acc = 0.0;
+      for (int inner = 0; inner < inners; inner++) {
+        acc += left[row * columns + inner] * right[inner * columns + col];
+      }
+      result[row * columns + col] = acc;
+    }
+}
+```
+The fatal flaw of the above algorithm is that it is not cache friendly at all.
+On modern CPUs, every memory access loads at least 64 bytes of data into the cache, which is called a cache line.
+If only a small set of those 64 bytes is actually used before the cache line is evicted, we have to take an expensive trip to system memory.
+Note that in modern CPUs the speed of accessing system memory is orders of magnitude slower than accessing any cache tier.
+As CPU speeds increase, memory speeds have not kept up, requiring CPU manufacturers to resort to ever larger cache sizes.
+Most of the execution time of modern application comes from "pointer chasing",
+a specific pattern of incredibly random memory access through a fragmented heap that is impossible be speculatively predicted by the CPU to a degree where it would remove system memory as the bottleneck -
+something that most modern languages like Java, Python, JavaScript, etc. are heavily prone to.
+It is thus important to keep memory access patterns as regular as possible, ideally completely sequential.
+
+When looking at the inner loop of the above algorithm, we can see that while the inner loop strides over `left` sequentially,
+it strides over `right` in constant offsets of `columns * sizeof(float)` bytes.
+This wastes fetched cache lines to a catastrophic degree.
+
+To show how catastrophic in fact this is, we will look at the following benchmark:
+```java
+public class FloatMatmulPerformanceTest {
+
+    static {
+        LibraryLoader.loadLibrary("scicore_genericcpu");
+    }
+
+    public static void main(String[] args) {
+        long alphaPtr = JEmalloc.nje_malloc(4);
+        MemoryUtil.memPutFloat(alphaPtr, 1.0f);
+        int size = 1024;
+        for (int i = 0; i < 1000; i++) {
+            FloatBuffer a = JEmalloc.je_malloc(size * size * 4).asFloatBuffer();
+            FloatBuffer b = JEmalloc.je_malloc(size * size * 4).asFloatBuffer();
+            FloatBuffer c = JEmalloc.je_malloc(size * size * 4).asFloatBuffer();
+            // fill random
+            for (int j = 0; j < a.remaining(); j++) {
+                a.put(j, (float) Math.random());
+                b.put(j, (float) Math.random());
+            }
+            long start = System.nanoTime();
+            matmul(OP_NONE, OP_NONE, size, size, size,
+                    alphaPtr, MemoryUtil.memAddress(a), MATMUL_DATA_TYPE_FLOAT32, size,
+                    alphaPtr, MemoryUtil.memAddress(b), MATMUL_DATA_TYPE_FLOAT32, size,
+                    MemoryUtil.memAddress(c), MATMUL_DATA_TYPE_FLOAT32, size);
+            long end = System.nanoTime();
+            long nFlops = 2L * size * size * size;
+            double tflops = (nFlops / ((end - start) / 1e9)) / 1e12;
+            System.out.println("matmul took " + (end - start) / 1e6 + " ms, " + tflops + " TFLOPS");
+            JEmalloc.je_free(a);
+            JEmalloc.je_free(b);
+            JEmalloc.je_free(c);
+        }
+        JEmalloc.nje_free(alphaPtr);
+    }
+}
+```
+
+When running this benchmark with the optimized TinyBLAS matrix multiplication implementation on my M1 MacBook Pro (which has on chip memory,
+where the impact of this would be less severe than on any other computer currently on the market),
+we get the following results:
+
+```
+matmul took 85.514667 ms, 0.02511245992456475 TFLOPS
+matmul took 85.637084 ms, 0.025076562018389138 TFLOPS
+matmul took 83.41375 ms, 0.025744959889706435 TFLOPS
+matmul took 84.584334 ms, 0.02538866887572822 TFLOPS
+```
+
+When switching to the naive matrix multiplication implementation, we get the following results:
+
+```
+matmul took 1554.149083 ms, 0.0013817745488448742 TFLOPS
+matmul took 1556.108334 ms, 0.001380034796471953 TFLOPS
+matmul took 1551.034667 ms, 0.0013845490972510934 TFLOPS
+matmul took 1555.592959 ms, 0.0013804920082567693 TFLOPS
+```
+
+We note that this was a simple loop-reordering of the inner loop that leads
+to a 20x speedup in the matrix multiplication benchmark.
+
+We could further optimize the algorithm by using a technique called tiling, where we split the matrix into smaller blocks, preventing values from being prematurely evicted from the cache, but this is beyond the scope of a rather general matrix multiplication algorithm,
+which only serves as a fallback for more specialized vendor-specific implementations.
+Vendor-specific implementations such as in the case of the Intel MKL library will not shy away from implementing many different algorithms for different matrix sizes and shapes and processor generations and choose between them dynamically at runtime based on cpuid checks etc.
+
+# Language Modelling
+What we have implemented so far is a tensor processing library that allows us to optimize scalar-valued functions with tensor-valued parameters, such as the loss function of a neural network. We can now use this approach to optimize a model with predictive power over a sequence of tokens or characters. Such a model is called a neural language model.
+But before we dive into what a neural language model is, we will first define language modelling as a statistical problem.
+In general, language modelling is the task of predicting the next token in a sequence of tokens.
+
+## Tokenization
+We can define a token as the fundamental unit of a linguistic sequence, such as a word, a character, a syllable or any other meaningful unit. When converting a string of ASCII text to a sequence of tokens, we will use a tokenizer to split the string into tokens of our chosen granularity. The set of all possible tokens is called the vocabulary.
+A simple character-level tokenizer might look like this:
+
+```python
+char_to_int = {'A': 1, 'a': 2, 'B': 3, 'b': 4, ...}
+int_to_char = dict((v, k) for k, v in char_to_int.items()) # reverse mapping
+
+def tokenize(text: str): List[int]:
+    chars = []
+    for c in text:
+        chars.append(char_to_int[c])
+    return chars
+```
+
+A word-level tokenizer might look like this:
+
+```python
+word_dict = {'apple': 1, ...}
+int_to_word = dict((v, k) for k, v in word_dict.items()) # reverse mapping
+
+def tokenize(text: str): List[int]:
+    words = []
+    for word in text.split(" "):
+        words.append(word_dict[word])
+    return words
+```
+
+In practice, we will use a tokenizer that has word-level, character-level and subword-level tokenization capabilities, choosing the granularity as course-grained as possible, as to "compress" the ASCII string into as few tokens as possible, while still retaining a lossless bidirectional mapping between the tokens and the original string.
+The exact way in which we tokenize can have large implications on the performance of large language models on certain tasks.
+Given that a token is the fundamental perceptive unit of a language model, sub-token perception is severely limited.
+For example, GPT-3 will fail to understand the concept of syllable-counts and will thus fail at tasks such as counting the number of syllables in a word and or characters. Note however that eg. misspellings will force the tokenizer to choose a sub-token granularity that is more fine-grained than the word-level granularity, as to preserve the misspelling. Over a large corpus of text, a large language model will learn to equate the sub-token "misspelling" with the word-level token "misspelled", which can lead to an understanding of how certain common words are spelled, however, GPT-3 can be frequently observed to fail at spelling tasks and or syllable-dependent poetry generation tasks in English, while excelling at arguably more difficult tasks such as summarization, question answering and code generation.
+
+The following figure shows ChatGPT, a variation of GPT-3.5 failing at generating a 5/7/5 haiku in English:
+![chatgpt_haiku_fail](./figures/chatgpt_haiku_fail.png)
+
+With a concrete definition of the unit of token, we can move on to modelling sequences of tokens.
+
+## Language modelling as a statistical problem
+Given a sequence of tokens $x_1, x_2, ..., x_n$, we want to predict the next token $x_{n+1}$.
+Our language model will a discrete multinomial probability distribution over all tokens of the vocabulary, given the sequence of previous tokens. Iteratively sampling from this distribution will generate a sequence of tokens that is likely to occur language-wise.
+This is a form of conditional probability, where the probability of the next token depends on the previous tokens.
+One such approach is called a Markov chain. While Markov chains are a more general concept, that models the probability of an event occuring given a state of a system attained through previous events, we can specialize this approach to language modelling by assuming that the state of the system is formed through sequence of previous tokens.
+When utilizing language models, we do not distinguish between a state attained through external (user) input and the state of the state attained to sampling from the language model.
+
+# Bigram language modelling
+The simplest form of language modelling is called unigram language modelling, where we assume that the probability of the next token depends only on the previous token.
+This is a very naive assumption, as it does not take into account any context, but it is a good starting point for understanding the concept of language modelling.
+
+We can define a bi-gram language model as a matrix $P$ of size $V \times V$, where $V$ is the size of the vocabulary.
+
 
 # Language Modelling using NNs
 

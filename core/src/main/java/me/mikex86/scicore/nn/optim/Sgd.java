@@ -1,15 +1,11 @@
 package me.mikex86.scicore.nn.optim;
 
-import me.mikex86.matplotlib.graphviz.GraphVisualizer;
 import me.mikex86.scicore.ISciCore;
-import me.mikex86.scicore.graphviz.DAGGraphRenderPlanFactory;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.graph.IGraph;
-import me.mikex86.scicore.tensor.LazyTensor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.concurrent.Callable;
 
 public class Sgd implements IOptimizer {
 
@@ -17,7 +13,6 @@ public class Sgd implements IOptimizer {
     private final ISciCore sciCore;
 
     private final float initialLearningRate;
-
 
     @NotNull
     private final List<ITensor> parameters;
