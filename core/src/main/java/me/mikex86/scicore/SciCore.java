@@ -664,7 +664,7 @@ public class SciCore implements ISciCore {
                     if (probabilitiesAssignedToCorrectLabelsMasked != probabilitiesAssignedToCorrectLabels) {
                         probabilitiesAssignedToCorrectLabelsMasked.close();
                     }
-                    try (ITensor meanLogProbabilitiesAssignedToCorrectLabels = logProbabilitiesAssignedToCorrectLabels.mean()) {
+                    try (ITensor meanLogProbabilitiesAssignedToCorrectLabels = logProbabilitiesAssignedToCorrectLabels.mean(-1)) {
                         return meanLogProbabilitiesAssignedToCorrectLabels.multiply(-1f);
                     }
                 }

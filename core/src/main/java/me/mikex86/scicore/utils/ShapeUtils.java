@@ -142,6 +142,9 @@ public class ShapeUtils {
      * @throws IndexOutOfBoundsException if the index is out of bounds
      */
     public static long getFlatIndex(long @NotNull [] index, long @NotNull [] shape, long @NotNull [] strides) {
+        if (index.length == 1 && index[0] == 0 && shape.length == 0) {
+            return 0;
+        }
         if (index.length > strides.length) {
             throw new IndexOutOfBoundsException("Indices length must be less than or equal to strides length");
         }

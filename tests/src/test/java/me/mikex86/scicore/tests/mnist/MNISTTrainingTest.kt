@@ -1,5 +1,6 @@
 package me.mikex86.scicore.tests.mnist
 
+import me.mikex86.matplotlib.jplot.JPlot
 import me.mikex86.scicore.ISciCore
 import me.mikex86.scicore.SciCore
 import me.mikex86.scicore.data.DatasetIterator
@@ -9,6 +10,7 @@ import me.mikex86.scicore.tensor.DataType
 import me.mikex86.scicore.utils.use
 import me.tongfei.progressbar.ProgressBarBuilder
 import me.tongfei.progressbar.ProgressBarStyle
+import java.awt.Color
 import java.nio.file.Path
 import java.util.*
 
@@ -39,6 +41,8 @@ fun main() {
     val start = System.currentTimeMillis()
     var lossValue = -1.0
 
+    val losses = sciCore.zeros(DataType.FLOAT32, N_TRAINING_STEPS)
+
     ProgressBarBuilder()
         .setTaskName("Training")
         .setInitialMax(N_TRAINING_STEPS)
@@ -62,12 +66,22 @@ fun main() {
                 }
                 progressBar.step()
                 progressBar.extraMessage = String.format(Locale.US, "loss: %.5f", lossValue)
+                losses.setFloat(lossValue.toFloat(), step)
             }
         }
     val end = System.currentTimeMillis()
     println("Training time: " + (end - start) / 1000.0 + "s")
     println("Final loss value: $lossValue")
     println("Examples per second: " + N_TRAINING_STEPS * BATCH_SIZE / ((end - start) / 1000.0))
+
+    val jplot = JPlot()
+    jplot.setName("MNIST training")
+    jplot.setXLabel("Step")
+    jplot.setYLabel("Loss")
+    val avgLosses = losses.view(-1, 100).mean(1)
+    val lossesArray = FloatArray(avgLosses.numberOfElements.toInt()) { avgLosses.getFloat(it.toLong()) }
+    jplot.plot(lossesArray, Color(46, 204, 113), true)
+    jplot.save(Path.of("mnist_loss.png"))
 
     System.out.flush()
 

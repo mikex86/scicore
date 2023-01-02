@@ -880,8 +880,8 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
     @NotNull ITensor get(@NotNull ITensor... indicesTensors);
 
     @NotNull
-    default ITensor mean() {
-        try (ITensor sum = reduceSum(-1, false)) {
+    default ITensor mean(int dimension) {
+        try (ITensor sum = reduceSum(dimension, false)) {
             return sum.divide(getNumberOfElements());
         }
     }

@@ -56,7 +56,7 @@ fun main() {
 
     println("Start training...")
     val start = System.currentTimeMillis()
-    val losses = FloatArray(N_TRAINING_STEPS.toInt())
+    val losses = sciCore.zeros(DataType.FLOAT32, N_TRAINING_STEPS)
     ProgressBarBuilder()
         .setTaskName("Training")
         .setInitialMax(N_TRAINING_STEPS)
@@ -77,19 +77,22 @@ fun main() {
                 }
                 progressBar.step()
                 progressBar.extraMessage = String.format(Locale.US, "loss: %.5f", lossValue)
-                losses[step.toInt()] = lossValue.toFloat()
+                losses.setFloat(lossValue.toFloat(), step)
             }
         }
     val end = System.currentTimeMillis()
     println("Training time: " + (end - start) / 1000.0 + "s")
     net.save(Path.of("makemore.scm"))
 
-    // plot losses
-    val plot = JPlot()
-    plot.plot(losses, Color(26, 188, 156), false)
-    plot.setXLabel("Step")
-    plot.setYLabel("Loss (log)")
-    plot.save(Path.of("makemore_loss.png"))
+    val jplot = JPlot()
+    jplot.setName("MLP Language Model Training")
+    jplot.setXLabel("Step")
+    jplot.setYLabel("Loss")
+    val avgLosses = losses.view(-1, 100).mean(1)
+    val lossesArray = FloatArray(avgLosses.numberOfElements.toInt()) { avgLosses.getFloat(it.toLong()) }
+    jplot.plot(lossesArray, Color(46, 204, 113), true)
+    jplot.save(Path.of("mlplm_loss.png"))
+
 
     // loss on dataset
     sciCore.backend.operationRecorder.scopedRecording {

@@ -1705,6 +1705,11 @@ for (step in 0 until N_TRAINING_STEPS) {
     }
 }
 ```
+Execution of this code results in the creation of the following graph:
+![mnist_net](./figures/mnist_net.png)
+
+This graph is backpropagated through to compute the gradients of the loss with respect to the parameters of the model via the automatic differentiation mechanism of SciCore, which has already been outlined in previous sections.
+
 Training the model for 60,000 steps, we can achieve an accuracy of 95.5% on the test set.
 
 ```
@@ -1732,7 +1737,12 @@ Start testing...
 [16:10:57] [main/DEBUG]: Operation RESHAPE found in backend GenCPUBackend
 Testing 100% |██████████████| 20000/20000 (0:00:02 / 0:00:00) accuracy: 0.95475
 Final Accuracy: 0.9547
+Examples per second: 103755.74169143476
 ```
+
+The following figure shows the training loss per step for the duration of the 20k step training loop. The data is averaged over 100 steps to reduce noise in the plot.
+
+![mnist_loss](./figures/mnist_loss.png)
 
 ![mnist_inference_screenshot](figures/mnist_inference_screenshot.png)
 
@@ -1930,6 +1940,140 @@ We could further optimize the algorithm by using a technique called tiling, wher
 which only serves as a fallback for more specialized vendor-specific implementations.
 Vendor-specific implementations such as in the case of the Intel MKL library will not shy away from implementing many different algorithms for different matrix sizes and shapes and processor generations and choose between them dynamically at runtime based on cpuid checks etc.
 
+#### Optimizing common operators
+
+More interesting are the implementations of simpler operators of SciCore in TinyBLAS, of which there are no common BLAS functions, such as element-wise addition, subtraction, multiplication, division, etc.
+
+The following code snippet shows the implementation of the element-wise addition operator:
+
+```cpp
+// Arm Neon specific implementation
+#ifdef __ARM_NEON__
+
+#include "vectorize_armneon.h"
+binary_op_nd_by_scalar(plus, float, vaddq_f32, +);
+binary_op_nd_by_nd(plus, float, vaddq_f32, +);
+...
+#endif
+// AVX specific implementation
+#ifdef __AVX__
+#include "vectorize_avx.h"
+binary_op_nd_by_scalar(plus, float, _mm256_add_ps, +);
+binary_op_nd_by_nd(plus, float, _mm256_add_ps, +);
+...
+#endif
+
+BINARY_OPERATION_FOR_ALL_DATA_TYPES_IMPL(tblas_plus)
+```
+
+This preprocessor macro expands allows us to share core code between different operators such as handling broadcasting and vectorization.
+For brevity, we will only show the expansion of the `binary_op_nd_by_nd(plus, float, _mm256_add_ps, +)`, which is more generic than `binary_op_nd_by_nd(plus, float, _mm256_add_ps, +)`, which is a special case of the former. There  is not much difference between the core structure of AVX and Arm Neon vectorized code besides the specific instructions used and the vector size.
+The macro generates a function `tblas_plus_nd_by_nd`, which returns a boolean indicating whether the optimization is able to hit for a particular set of tensor inputs. Note that `tblas_plus_nd_by_nd` will also hit for the specialization of `binary_op_nd_by_scalar`. Therefore there is an optimization hierarchy, where the most specialized implementations are checked first, and if they do not hit, we fall back to more generic implementations. If neither of the implementations hit, we fall back to a naive implementation.
+
+```cpp
+bool tblas_plus_nd_by_nd(const float *a, const float *b, float *c, const size_t *shapeA, const size_t *stridesA,
+                         size_t nDimsA, const size_t *shapeB, const size_t *stridesB, size_t nDimsB,
+                         const size_t *shapeC, const size_t *stridesC, size_t nDimsC) {
+    size_t vecSize = 32 / sizeof(float);
+    auto *outputIndex = new size_t[nDimsC];
+    memset(outputIndex, 0, sizeof(size_t) * nDimsC);
+    if (nDimsA < 1 || nDimsB < 1) { return false; }
+    if (!unalteredStrides(stridesC, shapeC, nDimsC)) { return false; }
+    size_t nElementsInLastDimA = shapeA[nDimsA - 1];
+    size_t nElementsInLastDimB = shapeB[nDimsB - 1];
+    if (stridesA[nDimsA - 1] != 1) { return false; }
+    if (stridesB[nDimsB - 1] != 1) { return false; }
+    if (!(nElementsInLastDimA == nElementsInLastDimB || nElementsInLastDimB == 1 ||
+          nElementsInLastDimA == 1)) { return false; }
+    size_t nElementsInLastDim = std::max(nElementsInLastDimA, nElementsInLastDimB);
+    if (nElementsInLastDim < vecSize) { return false; }
+    bool aIsScalarInLastDim = nElementsInLastDimA == 1;
+    bool bIsScalarInLastDim = nElementsInLastDimB == 1;
+    size_t nElementsC = 1;
+    for (int i = 0; i < nDimsC; i++) { nElementsC *= shapeC[i]; }
+    size_t cFlatIndex = 0;
+    size_t nChunks = nElementsInLastDim / vecSize;
+    size_t nRemainder = nElementsInLastDim % vecSize;
+    if (!aIsScalarInLastDim && !bIsScalarInLastDim) {
+        do {
+            size_t aIndexFlat = getFlatIndexConstrained(outputIndex, shapeA, stridesA, nDimsA, nDimsC);
+            size_t bIndexFlat = getFlatIndexConstrained(outputIndex, shapeB, stridesB, nDimsB, nDimsC);
+            for (int i = 0; i < nChunks; i++) {
+                __m256 aChunk = _mm256_load_ps(&a[aIndexFlat + i * vecSize]);
+                __m256 bChunk = _mm256_load_ps(&b[bIndexFlat + i * vecSize]);
+                __m256 cChunk = _mm256_add_ps(aChunk, bChunk);
+                _mm256_store_ps(&c[cFlatIndex + i * vecSize], cChunk);
+            }
+            for (int i = 0; i < nRemainder; i++) {
+                c[cFlatIndex + nChunks * vecSize + i] = a[aIndexFlat + nChunks * vecSize + i] +
+                                                        b[bIndexFlat + nChunks * vecSize + i];
+            }
+            cFlatIndex += nElementsInLastDim;
+            outputIndex[nDimsC - 1] = nElementsInLastDim - 1;
+            incrementIndex(outputIndex, shapeC, nDimsC);
+        }
+        while (cFlatIndex < nElementsC);
+    }
+    else if (!aIsScalarInLastDim) {
+        do {
+            size_t aIndexFlat = getFlatIndexConstrained(outputIndex, shapeA, stridesA, nDimsA, nDimsC);
+            size_t bIndexFlat = getFlatIndexConstrained(outputIndex, shapeB, stridesB, nDimsB, nDimsC);
+            for (int i = 0; i < nChunks; i++) {
+                __m256 aChunk = _mm256_load_ps(&a[aIndexFlat + i * vecSize]);
+                __m256 bScalar = _mm256_set1_ps(b[bIndexFlat]);
+                __m256 cChunk = _mm256_add_ps(aChunk, bScalar);
+                _mm256_store_ps(&c[cFlatIndex + i * vecSize], cChunk);
+            }
+            for (int i = 0; i < nRemainder; i++) {
+                c[cFlatIndex + nChunks * vecSize + i] = a[aIndexFlat + nChunks * vecSize + i] + b[bIndexFlat];
+            }
+            cFlatIndex += nElementsInLastDim;
+            outputIndex[nDimsC - 1] = nElementsInLastDim - 1;
+            incrementIndex(outputIndex, shapeC, nDimsC);
+        }
+        while (cFlatIndex < nElementsC);
+    }
+    else if (!bIsScalarInLastDim) {
+        do {
+            size_t aIndexFlat = getFlatIndexConstrained(outputIndex, shapeA, stridesA, nDimsA, nDimsC);
+            size_t bIndexFlat = getFlatIndexConstrained(outputIndex, shapeB, stridesB, nDimsB, nDimsC);
+            for (int i = 0; i < nChunks; i++) {
+                __m256 aScalar = _mm256_set1_ps(a[aIndexFlat]);
+                __m256 bChunk = _mm256_load_ps(&b[bIndexFlat + i * vecSize]);
+                __m256 cChunk = _mm256_add_ps(aScalar, bChunk);
+                _mm256_store_ps(&c[cFlatIndex + i * vecSize], cChunk);
+            }
+            for (int i = 0; i < nRemainder; i++) {
+                c[cFlatIndex + nChunks * vecSize + i] = a[aIndexFlat] + b[bIndexFlat + nChunks * vecSize + i];
+            }
+            cFlatIndex += nElementsInLastDim;
+            outputIndex[nDimsC - 1] = nElementsInLastDim - 1;
+            incrementIndex(outputIndex, shapeC, nDimsC);
+        }
+        while (cFlatIndex < nElementsC);
+    }
+    else { return false; }
+    return true;
+}
+```
+
+#### Difficulties implementing a tensor processing library in the JVM
+
+While performance critical code is implemented in highly optimized native code, the main training loop still has to run in the JVM.
+The idea here is to use a high level language like Java to handle high level actions, while still spending 95% of CPU time in native code.
+While Java is significantly faster than for example Python, we run into other difficulties that are deeply rooted in the architecture of the JVM:
+The JVM is a garbage collected runtime environment, which means that it has to keep track of all objects that are created and destroyed.
+Note however, that tensors reference memory handles, which hold the native memory needed to store the underlying tensor data. Therefore most of the memory is allocated outside of the JVM. The native memory will only be freed, when the JVM-managed MemoryHandle object is garbage collected.
+This results in a situation where the JVM has to keep track of a lot of tiny objects, where the gain of garbage collection is minimal in the eyes of the garbage collector.
+Python can avoid this problem because objects have an exact reference count at all times, which allows for instant resource freeing when the reference count reaches zero.
+Actual JVM heap size stays at around ~125MB for the average training loop,
+while the memory allocated outside the JVM will quickly grow to the entirety of your system memory, as large tensors are created, but never freed.
+While forcing the Garbage collector to work with insanely low heap sizes will keep native memory footprint bearable, but requires a tedious process of finding out the ideal heap size where the garbage collector is motivated enough to clean tiny objects entangled in the complicated reference structure that is the operation graph used for backpropagation. Another solution are perioding full GC calls via `System.gc()`, but this will slow down the training loop significantly.
+Thus, the only way to keep a bearable memory footprint in Java is unfortunately via explicit memory management. We can make this bearable by using
+the `try-with-resources` statement and the `.use { }` extension function in kotlin, which introduces a form of scoped memory management.
+This will also help us maintain a clean operation graph with short lookup times.
+
+
 # Language Modelling
 What we have implemented so far is a tensor processing library that allows us to optimize scalar-valued functions with tensor-valued parameters, such as the loss function of a neural network. We can now use this approach to optimize a model with predictive power over a sequence of tokens or characters. Such a model is called a neural language model.
 But before we dive into what a neural language model is, we will first define language modelling as a statistical problem.
@@ -1939,37 +2083,33 @@ In general, language modelling is the task of predicting the next token in a seq
 We can define a token as the fundamental unit of a linguistic sequence, such as a word, a character, a syllable or any other meaningful unit. When converting a string of ASCII text to a sequence of tokens, we will use a tokenizer to split the string into tokens of our chosen granularity. The set of all possible tokens is called the vocabulary.
 A simple character-level tokenizer might look like this:
 
-```python
-char_to_int = {'A': 1, 'a': 2, 'B': 3, 'b': 4, ...}
-int_to_char = dict((v, k) for k, v in char_to_int.items()) # reverse mapping
+```kotlin
+charToIndex = mapOf('a' to 0, 'b' to 1, ...)
 
-def tokenize(text: str): List[int]:
-    chars = []
-    for c in text:
-        chars.append(char_to_int[c])
-    return chars
+fun tokenize(text: String): List<Int> {
+    return text.toCharArray().map { charToIndex[it]!!.toInt() }.toList()
+}
 ```
 
 A word-level tokenizer might look like this:
 
-```python
-word_dict = {'apple': 1, ...}
-int_to_word = dict((v, k) for k, v in word_dict.items()) # reverse mapping
+```kotlin
+word_dict = mapOf("apple" to 0, "banana" to 1, ...)
 
-def tokenize(text: str): List[int]:
-    words = []
-    for word in text.split(" "):
-        words.append(word_dict[word])
-    return words
+fun tokenize(text: String): List<Int> {
+    return text.split(" ").map { word_dict[it]!!.toInt() }.toList()
+}
 ```
 
 In practice, we will use a tokenizer that has word-level, character-level and subword-level tokenization capabilities, choosing the granularity as course-grained as possible, as to "compress" the ASCII string into as few tokens as possible, while still retaining a lossless bidirectional mapping between the tokens and the original string.
 The exact way in which we tokenize can have large implications on the performance of large language models on certain tasks.
 Given that a token is the fundamental perceptive unit of a language model, sub-token perception is severely limited.
-For example, GPT-3 will fail to understand the concept of syllable-counts and will thus fail at tasks such as counting the number of syllables in a word and or characters. Note however that eg. misspellings will force the tokenizer to choose a sub-token granularity that is more fine-grained than the word-level granularity, as to preserve the misspelling. Over a large corpus of text, a large language model will learn to equate the sub-token "misspelling" with the word-level token "misspelled", which can lead to an understanding of how certain common words are spelled, however, GPT-3 can be frequently observed to fail at spelling tasks and or syllable-dependent poetry generation tasks in English, while excelling at arguably more difficult tasks such as summarization, question answering and code generation.
+For example, GPT-3 will often fail to understand the concept of syllable-counts and will thus fail at tasks such as counting the number of syllables in a word and or characters. Note however that eg. misspellings will force the tokenizer to choose a sub-token granularity that is more fine-grained than the word-level granularity, as to preserve the misspelling. Over a large corpus of text, a large language model will learn to equate the sub-token "misspelling" with the word-level token "misspelled", which can lead to an understanding of how certain common words are spelled - even down to the character level, which also exist as tokens, however, GPT-3 can be frequently observed to fail at spelling tasks and or syllable-dependent poetry generation tasks in English, while excelling at arguably more difficult tasks such as summarization, question answering and code generation.
 
-The following figure shows ChatGPT, a variation of GPT-3.5 failing at generating a 5/7/5 haiku in English:
+The following figure shows ChatGPT, a variation of GPT-3.5 failing to generate a 5/7/5 haiku in English:
 ![chatgpt_haiku_fail](./figures/chatgpt_haiku_fail.png)
+
+A rather new approach are token-free language models such as ByT5 (Xue et al. 2021). These models do not use a hardcoded tokenizer, but instead directly consume characters or even unicode codepoints. These are not traditional character level language models, as character level language models need to be sampled from more often to get a text of equal length, requiring disproportionally more computing power. ByT5 instead relies on an encoder-decoder architecture that learns to compress a sequence of bytes into an internal representation. This removes the need for a word-embedding lookup and concatination after tokenization, something we will discuss in further detail in the section on neural language models.
 
 With a concrete definition of the unit of token, we can move on to modelling sequences of tokens.
 
@@ -1980,13 +2120,310 @@ This is a form of conditional probability, where the probability of the next tok
 One such approach is called a Markov chain. While Markov chains are a more general concept, that models the probability of an event occuring given a state of a system attained through previous events, we can specialize this approach to language modelling by assuming that the state of the system is formed through sequence of previous tokens.
 When utilizing language models, we do not distinguish between a state attained through external (user) input and the state of the state attained to sampling from the language model.
 
-# Bigram language modelling
+# Bi-gram language modelling
 The simplest form of language modelling is called unigram language modelling, where we assume that the probability of the next token depends only on the previous token.
 This is a very naive assumption, as it does not take into account any context, but it is a good starting point for understanding the concept of language modelling.
 
-We can define a bi-gram language model as a matrix $P$ of size $V \times V$, where $V$ is the size of the vocabulary.
+We can define a bi-gram language model as predicting $P(s_{n+1} | s_n)$, where $s = (s_1, s_2, ..., s_n) \space where \space s_i \in V$ is a sequence of tokens and $V$ is the vocabulary.
+
+We will represent the model as a matrix $P$ of size $|V| \times |V|$.
+The matrix $P$ is a probability distribution over all possible tokens, given the previous token.
+A given entry $P_{i,j}$ corresponds to $P(s_j | s_i)$, where $s_i$ is the previous token and $s_j$ is the next token.
+
+We could populate such a matrix given a corpus of text by counting the number of times a token $s_j$ occurs after $s_i$ and deviding it by the number of tokens we have encountered after $s_i$ such that each row $P_k$ sums to 1.
+
+For the following example, we will implement a character-level bigram language model trained on names.
+
+```kotlin
+fun tokenize(text: String): List<Int> {
+    return text.toCharArray().map { NamesCharacterMapping.charToIndex[it]!!.toInt() }.toList()
+}
+
+fun bigramLanguageModel(text: String): ITensor {
+    val tokens = tokenize(text)
+    val P = sciCore.zeros(
+        DataType.FLOAT32,
+        NamesCharacterMapping.charToIndex.size.toLong(),
+        NamesCharacterMapping.charToIndex.size.toLong()
+    )
+    for (i in 0 until tokens.size - 1) {
+        val token = tokens[i]
+        val newToken = tokens[i + 1]
+        val row = P.getView(token.toLong())
+        row.setFloat(row.getFloat(newToken.toLong()) + 1, newToken.toLong()) // += 1
+    }
+    return P / P.reduceSum(1, true)
+}
+```
+
+To sample from this model, we can simply sample from the multinomial distribution $P_{i,j}$, where $i$ is the previous token and $j$ is the next token.
+
+```kotlin
+fun sampleFromBigram(prevToken: Int, P: ITensor): Int {
+    return sciCore.multinomial(P.getView(prevToken.toLong()), 1).getAsInt(0)
+}
+```
+
+We do need a first token to start the sequence. We can do this by transforming a bigram model into a unigram model and sampling from it.
+A unigram model is simply a multinomial distribution over all tokens.
+It can thus be represented as a vector $p$ of size $|V|$. The entry $p_i$ corresponds to $P(s_i)$, where $s_i$ is the token.
+We could either populate this vector by counting the number of times a token $s_i$ occurs in the corpus and dividing it by the total number of tokens in the corpus, or we could transform the bigram model into a unigram model by summing the rows of the bigram model and normalizing the resulting vector by deviding by the number of rows of $P$. However, the most common approach is to simply introduce a special token that denotes the start and or end of a sequence. That also allows us to model sequence lengths statistically.
+
+```kotlin
+fun generateText(): String {
+    val name = StringBuilder()
+    var prevToken = 0 // start token
+    while (true) {
+        val token = sampleFromBigram(prevToken, P)
+        if (token == 0) { // end token
+            break
+        }
+        name.append(NamesCharacterMapping.indexToChar[token.toByte()])
+        prevToken = token
+    }
+    return name.toString()
+}
+
+fun main() {
+    sciCore.seed(12345)
+    repeat(10) {
+        println(generateText())
+    }
+}
+```
+
+Running this code will give us names such as:
+```
+htseceliary
+ridiukamay
+di
+con
+ba
+lelita
+kyelon
+line
+are
+icin
+```
+
+## Limitations n-gram language modelling
+While we can generalize the bi-gram language model to an n-gram language model that predicts $P(s_{n+1} | s_n, ..., s_{n-m})$ given an arbitrary number of previous tokens, we will run into scalability issues.
+The number of parameters of the model grows exponentially with the number of previous tokens we want to take into account.
+Our probability tensor $P$ will have size $|V|^n$ entries, where $|V|$ is the size of the vocabulary and $n$ is the number of previous tokens we want to take into account. Therefore we want some way of taking $n$ previous tokens into account without $V^{n+1}$ parameters.
+This is where neural networks come in.
+
+# Language Modelling using Neural Networks
+
+In this section we will implement a language model based on a multi-layer perceptron in accordante with Bengio et al. 2003.
+We will use the same dataset as in the previous section.
+
+To allow for context longer than one token, we will use a sliding window of size `BLOCK_SIZE` to move over the sequence of tokens of the input text.
+Each ofset of the sliding window will serve as a feature vector for an example of the training set. The label will be the token that follows the sliding window.
+We again use a special token `.` to denote the start and end of a sequence.
+The following code shows a possible implementaton of such a sliding window:
+
+```kotlin
+private fun buildDataset(words: List<String>): Pair<ITensor, ITensor> {
+    val x = mutableListOf<ByteArray>()
+    val y = mutableListOf<Byte>()
+    for (line in words) {
+        var context =
+            ByteArray(blockSize) { NamesCharacterMapping.charToIndex['.']!! } // init with padding special char
+        for (ch in "$line.") {
+            val ix = NamesCharacterMapping.charToIndex[ch]!!
+            x.add(context)
+            y.add(ix)
+            context = context.sliceArray(1 until blockSize) + ix
+        }
+    }
+    val xTensor = sciCore.matrix(x.toTypedArray())
+    val yTensor = sciCore.array(y.toTypedArray().toByteArray())
+    return Pair(xTensor, yTensor)
+}
+```
+
+The output of such a sliding window looks like this:
 
 
-# Language Modelling using NNs
+| x   | y |
+| --- | - |
+| ... | l |
+| ..l | y |
+| .ly | r |
+| lyr | a |
+| yra | h |
+| rah | . |
+
+
+The following code snippet shows a simple implementation of an MLP language model:
+```kotlin
+class MakeMoreMLPNet(sciCore: SciCore) : IModule {
+
+    private val embedding = sciCore.gaussian(
+        DataType.FLOAT32,
+        VOCAB_SIZE.toLong(),
+        EMBEDDING_SIZE.toLong()
+    )
+
+    private val fc1 = Linear(sciCore, DataType.FLOAT32, (EMBEDDING_SIZE * BLOCK_SIZE).toLong(), N_HIDDEN.toLong(), true)
+    private val fc2 = Linear(sciCore, DataType.FLOAT32, N_HIDDEN.toLong(), VOCAB_SIZE.toLong(), true)
+    private val act = Tanh()
+
+    override fun forward(input: ITensor): ITensor {
+        // input: (batchSize, blockSize)
+        val logits = embedding[input] // embeddingsForSequence: (batchSize, blockSize, embeddingSize)
+            .use { embeddingsForSequence ->
+                // embeddingsForSequenceFlat: (batchSize, blockSize * embeddingSize)
+                embeddingsForSequence.view(
+                    -1,
+                    (EMBEDDING_SIZE * BLOCK_SIZE).toLong()
+                )
+            }
+            .use { embeddingsForSequenceFlat ->
+                fc1(embeddingsForSequenceFlat) // fc1Output: (batchSize, nHidden)
+            }
+            .use { fc1Output ->
+                act(fc1Output) // fc1WithAct: (batchSize, nHidden)
+            }
+            .use { fc1WithAct ->
+                fc2(fc1WithAct) // logits: (batchSize, vocabSize)
+            }
+        return logits
+    }
+
+    override fun subModules(): List<IModule> {
+        return listOf(fc1, fc2)
+    }
+
+    override fun parameters(): List<ITensor> {
+        return listOf(fc1.parameters(), fc2.parameters())
+            .flatten()
+            .toMutableList()
+            .apply { add(embedding) }
+    }
+}
+```
+
+The architecture consists of an embedding layer, a fully connected layer with a tanh activation function and an output layer that produces logits.
+The logits are intentionally left unnormalized to not tie the model architecture to a specific loss function in favor of nicer inference code.
+In the forward pass we first embed the input sequence by looking up the respective entry for an incoming token in the embedding matrix.
+We then concatinate / flatten the resulting sequence of embeddings, which are then fed into the first fully connected layer.
+The output of the first fully connected layer is then passed through a tanh activation function and then fed into the second fully connected layer, which will learn to produce logits for the next token in the sequence.
+
+The following code snippet shows the training loop for the MLP language model:
+```kotlin
+val namesSupplier = NamesSlidingWindowDatasetSupplier(sciCore, BLOCK_SIZE, training = true, shuffle = true)
+val trainIt = DatasetIterator(BATCH_SIZE, namesSupplier)
+
+val net = MakeMoreMLPNet(sciCore)
+
+val optimizer = Sgd(sciCore, INITIAL_LEARNING_RATE, END_LEARNING_RATE, N_TRAINING_STEPS, net.parameters())
+
+for (step in 0 until N_TRAINING_STEPS) {
+    sciCore.backend.operationRecorder.scopedRecording {
+        val batch = trainIt.next()
+        batch.use { x, y ->
+            lossValue = net(x)
+                .use { logits -> sciCore.crossEntropy(logits, y) }
+                .use { loss ->
+                    optimizer.step(loss)
+                    loss.elementAsDouble()
+                }
+        }
+    }
+    ...
+}
+```
+
+Training the model for 200,000 steps with an initial learning rate of 0.1 and an end learning rate of 0.05 results in the following loss curve:
+![mlplm_loss](./figures/mlplm_loss.png)
+
+
+After training we can sample from the model to generate new names:
+```kotlin
+// Inference
+run {
+    val slidingWindowEncoder = SlidingWindowEncoder(blockSize = BLOCK_SIZE)
+    val random = Random(123)
+    for (i in 0 until 20) {
+        var windowString = ""
+        var totalString = ""
+
+        while (!windowString.endsWith(".")) {
+            val window = slidingWindowEncoder.getWindow(windowString)
+            val windowTensor = sciCore.array(window)
+            val nextChar = net(windowTensor)
+                .use { logits ->
+                    sciCore.softmax(logits, 1)
+                }
+                .use { probs ->
+                    // multinomial distribution sampling
+                    val probValues = FloatArray(probs.shape[1].toInt())
+                    val probIndices = mutableListOf<Byte>()
+                    for (idx in 0 until probs.shape[1]) {
+                        probValues[idx.toInt()] = probs.getAsFloat(0, idx)
+                        probIndices.add(idx.toByte())
+                    }
+                    probIndices.shuffle(random)
+                    var cumulativeProb = 0f
+                    var chosenIndex = 0
+                    val u = random.nextFloat()
+                    for (idx in probIndices) {
+                        val prob = probValues[idx.toInt()]
+                        cumulativeProb += prob
+                        if (cumulativeProb >= u) {
+                            chosenIndex = idx.toInt()
+                            break
+                        }
+                    }
+                    chosenIndex
+                }.let { idx ->
+                    NamesCharacterMapping.indexToChar[idx.toByte()]!!
+                }
+            totalString += nextChar
+            windowString += nextChar
+            if (windowString.length > BLOCK_SIZE) {
+                windowString = windowString.substring(1)
+            }
+        }
+        println(totalString)
+    }
+}
+```
+
+While there is the `sciCore.multinomial` function, the implementation is spelled out in the code snippet above to provide a better understanding of the sampling process.
+The result of the model is - like for the n-gram model - a multinomial distribution over the vocabulary.
+We could now either choose the most likely token from this probability via `sciCore.argmax`, or sample from the distribution with randomness,
+but proportional to the probability of the respective token. We do so by first generating a uniform random variable $u \in [0, 1]$ and then iterating over probability distribution in a shuffled order. When the cumulative probability exceeds $u$ we choose the respective token.
+This assumes that the probability distribution is normalized, which is why we first apply a softmax function to the logits.
+
+This results in the following names:
+```
+khara.
+kin.
+kahlia.
+haidyne.
+shahlee.
+zaydena.
+melia.
+kyrian.
+sraidranciaviah.
+banay.
+vight.
+aleona.
+zanis.
+evora.
+whitha.
+haryarancalen.
+meryckarransley.
+tyi.
+zorabellik.
+caelyn.
+```
+
+These names, while not perfect, far better than the n-gram model. This largely because of the larger context of 3 tokens, which the model can use to make better predictions.
+Note that our model has substantially less parameters than a scaled up version of the n-gram model would require.
+With a context length of 3, the n-gram model would consist of $27^{3+1}=531441$ parameters, while our MLP model only 
+has $10643$ parameters. This is a huge difference in terms of model complexity and training time.
 
 # Language modeling using Transformers
