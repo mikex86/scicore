@@ -1,9 +1,7 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
-import me.mikex86.scicore.backend.impl.genericcpu.GenCPUTensor;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.memory.MemoryHandleGuard;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
@@ -46,6 +44,19 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
 
+        // TODO: Support more complex strides
+        if (stridesA[stridesA.length - 1] != 1 &&
+            stridesA[stridesA.length - 1] == shapeA[shapeA.length - 1]
+            && stridesA[stridesA.length - 2] == 1) {
+            transposeA = !transposeA;
+        }
+
+        if (stridesB[stridesB.length - 1] != 1 &&
+            stridesB[stridesB.length - 1] == shapeB[shapeB.length - 1]
+            && stridesB[stridesB.length - 2] == 1) {
+            transposeB = !transposeB;
+        }
+
         if (transposeA) {
             if (shapeA.length == 2) {
                 shapeA = new long[]{shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
@@ -60,6 +71,7 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                 shapeB = new long[]{shapeB[0], shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
             }
         }
+
         Validator.assertTrue(shapeA[shapeA.length - 1] == shapeB[shapeB.length - 2], "Matrix multiplication shape mismatch: " + ShapeUtils.toString(shapeA) + " x " + ShapeUtils.toString(shapeB));
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
@@ -98,8 +110,9 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
 
         // TODO: MAKE THIS RESPECT STRIDES
         if (batchSize == 1) {
-            matmul(transposeA ? OP_TRANSPOSE : OP_NONE,
-                    transposeB ? OP_TRANSPOSE : OP_NONE,
+            matmul(MATMUL_LAYOUT_ROW_MAJOR,
+                    transposeA ? MATMUL_OP_TRANSPOSE : MATMUL_OP_NONE,
+                    transposeB ? MATMUL_OP_TRANSPOSE : MATMUL_OP_NONE,
                     m, n, k,
                     aPtr.getNativePtr(),
                     getMatmulDataType(aDataType),
@@ -115,9 +128,12 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
             CountDownLatch latch = new CountDownLatch(Math.toIntExact(batchSize));
             for (long i = 0; i < batchSize; i++) {
                 final long batchIndex = i;
+                boolean finalTransposeA = transposeA;
+                boolean finalTransposeB = transposeB;
                 batchExecutor.execute(() -> {
-                    matmul(transposeA ? OP_TRANSPOSE : OP_NONE,
-                            transposeB ? OP_TRANSPOSE : OP_NONE,
+                    matmul(MATMUL_LAYOUT_ROW_MAJOR,
+                            finalTransposeA ? MATMUL_OP_TRANSPOSE : MATMUL_OP_NONE,
+                            finalTransposeB ? MATMUL_OP_TRANSPOSE : MATMUL_OP_NONE,
                             m, n, k,
                             aPtr.offset(aDataType.getSizeOf((batchIndex % aBatchSize) * aBatchStride)).getNativePtr(),
                             getMatmulDataType(aDataType),

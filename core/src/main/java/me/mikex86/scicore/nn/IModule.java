@@ -33,7 +33,9 @@ public interface IModule {
     }
 
     @NotNull
-    List<IModule> subModules();
+    default List<IModule> subModules() {
+        return Collections.emptyList();
+    }
 
     /**
      * Saves the module to a file in SciCore's save-format.

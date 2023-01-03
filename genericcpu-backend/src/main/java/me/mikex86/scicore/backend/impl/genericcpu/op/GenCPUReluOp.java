@@ -31,6 +31,7 @@ public class GenCPUReluOp implements IDifferentiableUnaryOperation {
         DirectMemoryHandle inputHandle = input.getContentsAsDirectMemory();
         DirectMemoryHandle resultHandle = result.getContentsAsDirectMemory();
         ReluJNI.relu(inputHandle.getNativePtr(), resultHandle.getNativePtr(), nElements, dataType);
+        result = result.view(shape, strides);
         return result;
     }
 

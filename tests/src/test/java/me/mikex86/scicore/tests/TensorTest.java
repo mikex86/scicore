@@ -1,5 +1,7 @@
 package me.mikex86.scicore.tests;
 
+import me.mikex86.scicore.graph.IGraphRecorder;
+import me.mikex86.scicore.graph.OperationType;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.tensor.ITensor;
@@ -959,6 +961,90 @@ abstract class TensorTest {
         ITensor matrix = sciCore.matrix(new float[][]{{3.8f, 4.3f}, {2.7f, 1.9f}, {3.7f, 1.7f}});
         ITensor exp = matrix.exp();
         assertEquals(sciCore.matrix(new float[][]{{(float) Math.exp(3.8), (float) Math.exp(4.3)}, {(float) Math.exp(2.7), (float) Math.exp(1.9)}, {(float) Math.exp(3.7), (float) Math.exp(1.7)}}), exp);
+    }
+
+    @Nested
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    class UnaryOpOpsRespectStrides {
+
+        Stream<OperationType> allArithmeticUnaryOps() {
+            return Stream.of(OperationType.values())
+                    .filter(op -> op.getArity() == OperationType.Arity.UNARY &&
+                                  op.getCategory() == OperationType.Category.ARITHMETIC);
+        }
+
+        @ParameterizedTest
+        @MethodSource("allArithmeticUnaryOps")
+        void arithmeticUnaryOps_test_respectsStrides(OperationType operationType) {
+            ITensor tensor = sciCore.ndarray(new float[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}});
+            ITensor viewed = tensor.view(new long[]{3, 3}, new long[]{1, 3});
+            ITensor equalToView = sciCore.ndarray(new float[][]{{1, 4, 7}, {2, 5, 8}, {3, 6, 9}});
+            assertEquals(equalToView, viewed);
+            IGraphRecorder operationRecorder = sciCore.getBackend().getOperationRecorder();
+            ITensor resultOfView = operationRecorder.recordOperation(operationType, sciCore.getBackend(), viewed);
+            ITensor resultOfEqualToView = operationRecorder.recordOperation(operationType, sciCore.getBackend(), equalToView);
+            assertEquals(resultOfEqualToView, resultOfView);
+        }
+
+        Stream<Arguments> matrixMultiplicationRespectsStridesData() {
+            ITensor a = sciCore.matrix(new float[][]{{54, 33, 28}, {96, 23, 18}, {63, 9, 72}}); // (3, 3)
+            ITensor b = sciCore.matrix(new float[][]{{42, 1, 9}, {59, 31, 29}, {12, 3, 7}}); // (3, 3)
+
+            ITensor aTransposedManually = sciCore.matrix(new float[][]{{54, 96, 63}, {33, 23, 9}, {28, 18, 72}}); // (3, 3)
+            ITensor bTransposedManually = sciCore.matrix(new float[][]{{42, 59, 12}, {1, 31, 3}, {9, 29, 7}}); // (3, 3)
+
+            List<Arguments> arguments = new ArrayList<>();
+            for (DataType dataTypeA : DataType.values()) {
+                if (!dataTypeA.isNumeric()){
+                    continue;
+                }
+                for (DataType dataTypeB : DataType.values()) {
+                    if (!dataTypeB.isNumeric()){
+                        continue;
+                    }
+
+                    ITensor aTransposedManuallyCast = aTransposedManually.cast(dataTypeA);
+                    ITensor bTransposedManuallyCast = bTransposedManually.cast(dataTypeB);
+                    for (boolean transposeAViaViews : new boolean[]{false, true}) {
+                        for (boolean transposeBViaViews : new boolean[]{false, true}) {
+                            for (boolean transposeAinMatmul : new boolean[]{false, true}) {
+                                for (boolean transposeBinMatmul : new boolean[]{false, true}) {
+                                    ITensor aCast = a.cast(dataTypeA);
+                                    ITensor bCast = b.cast(dataTypeB);
+                                    ITensor aTransposedViaViews = transposeAViaViews ? aCast.view(new long[]{3, 3}, new long[]{1, 3}) : aCast;
+                                    assertEquals(transposeAViaViews ? aTransposedManuallyCast : aCast, aTransposedViaViews);
+
+                                    ITensor bTransposedViaViews = transposeBViaViews ? bCast.view(new long[]{3, 3}, new long[]{1, 3}) : bCast;
+                                    assertEquals(transposeBViaViews ? bTransposedManuallyCast : bCast, bTransposedViaViews);
+
+                                    boolean netTransposeForExpectedA = transposeAViaViews ^ transposeAinMatmul;
+                                    boolean netTransposeForExpectedB = transposeBViaViews ^ transposeBinMatmul;
+
+                                    ITensor netATransposeWithManualTranspose = netTransposeForExpectedA ? aTransposedManuallyCast : aCast;
+                                    ITensor netBTransposeWithManualTranspose = netTransposeForExpectedB ? bTransposedManuallyCast : bCast;
+
+                                    ITensor expected = sciCore.matmul(netATransposeWithManualTranspose, netBTransposeWithManualTranspose);
+                                    ITensor expected2 = sciCore.matmul(aCast, bCast, netTransposeForExpectedA, netTransposeForExpectedB);
+
+                                    assertEquals(expected, expected2);
+
+                                    arguments.add(Arguments.of(aTransposedViaViews, bTransposedViaViews, transposeAinMatmul, transposeBinMatmul, expected));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return arguments.stream();
+        }
+
+        @ParameterizedTest
+        @MethodSource("matrixMultiplicationRespectsStridesData")
+        void matrixMultiplicationRespectsStrides(ITensor a, ITensor b, boolean transposeAInMatmul, boolean transposeBInMatmul, ITensor expected) {
+            ITensor result = sciCore.matmul(a, b, transposeAInMatmul, transposeBInMatmul);
+            assertEquals(expected, result);
+        }
+
     }
 
 

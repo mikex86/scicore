@@ -9,8 +9,11 @@ import static java.lang.Math.max;
 
 public class MatmulJNI {
 
-    public static final int OP_NONE = 0;
-    public static final int OP_TRANSPOSE = 1;
+    public static final int MATMUL_LAYOUT_ROW_MAJOR = 0;
+    public static final int MATMUL_LAYOUT_COLUMN_MAJOR = 1;
+
+    public static final int MATMUL_OP_NONE = 0;
+    public static final int MATMUL_OP_TRANSPOSE = 1;
 
     public static final int MATMUL_DATA_TYPE_INT8 = 1;
     public static final int MATMUL_DATA_TYPE_INT16 = 2;
@@ -69,33 +72,37 @@ public class MatmulJNI {
         MemoryUtil.memPutDouble(DOUBLE_ALPHA_IDENTITY, 1.0);
     }
 
-    private static native void nmatmul(int transa, int transb,
-                                       int m, int n, int k,
-                                       long alphaPtr,
-                                       long aPtr,
-                                       int aType,
-                                       int lda,
-                                       long betaPtr, long bPtr,
-                                       int bType,
-                                       int ldb,
-                                       long cPtr,
-                                       int cType,
-                                       int ldc);
+    private static native void nmatmul(
+            int layout,
+            int transa, int transb,
+            int m, int n, int k,
+            long alphaPtr,
+            long aPtr,
+            int aType,
+            int lda,
+            long betaPtr, long bPtr,
+            int bType,
+            int ldb,
+            long cPtr,
+            int cType,
+            int ldc);
 
-    public static void matmul(int transa, int transb,
-                              int m, int n, int k,
-                              long alphaPtr,
-                              long aPtr,
-                              int aType,
-                              int lda,
-                              long betaPtr, long bPtr,
-                              int bType,
-                              int ldb,
-                              long cPtr,
-                              int cType,
-                              int ldc) {
-        Validator.assertTrue(transa == OP_NONE || transa == OP_TRANSPOSE, "transa must be OP_NONE or OP_TRANSPOSE");
-        Validator.assertTrue(transb == OP_NONE || transb == OP_TRANSPOSE, "transb must be OP_NONE or OP_TRANSPOSE");
+    public static void matmul(
+            int layout,
+            int transa, int transb,
+            int m, int n, int k,
+            long alphaPtr,
+            long aPtr,
+            int aType,
+            int lda,
+            long betaPtr, long bPtr,
+            int bType,
+            int ldb,
+            long cPtr,
+            int cType,
+            int ldc) {
+        Validator.assertTrue(transa == MATMUL_OP_NONE || transa == MATMUL_OP_TRANSPOSE, "transa must be OP_NONE or OP_TRANSPOSE");
+        Validator.assertTrue(transb == MATMUL_OP_NONE || transb == MATMUL_OP_TRANSPOSE, "transb must be OP_NONE or OP_TRANSPOSE");
         Validator.assertTrue(aType == MATMUL_DATA_TYPE_INT8 || aType == MATMUL_DATA_TYPE_INT16 || aType == MATMUL_DATA_TYPE_INT32 || aType == MATMUL_DATA_TYPE_INT64 || aType == MATMUL_DATA_TYPE_FLOAT32 || aType == MATMUL_DATA_TYPE_FLOAT64, "aType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
         Validator.assertTrue(bType == MATMUL_DATA_TYPE_INT8 || bType == MATMUL_DATA_TYPE_INT16 || bType == MATMUL_DATA_TYPE_INT32 || bType == MATMUL_DATA_TYPE_INT64 || bType == MATMUL_DATA_TYPE_FLOAT32 || bType == MATMUL_DATA_TYPE_FLOAT64, "bType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
         Validator.assertTrue(cType == MATMUL_DATA_TYPE_INT8 || cType == MATMUL_DATA_TYPE_INT16 || cType == MATMUL_DATA_TYPE_INT32 || cType == MATMUL_DATA_TYPE_INT64 || cType == MATMUL_DATA_TYPE_FLOAT32 || cType == MATMUL_DATA_TYPE_FLOAT64, "cType must be DATA_TYPE_INT8, DATA_TYPE_INT16, DATA_TYPE_INT32, DATA_TYPE_INT64, DATA_TYPE_FLOAT32 or DATA_TYPE_FLOAT64");
@@ -106,22 +113,24 @@ public class MatmulJNI {
         Validator.assertTrue(ldb > 0, "ldc must be greater than 0");
         Validator.assertTrue(ldc > 0, "ldc must be greater than 0");
 
-        nmatmul(transa, transb, m, n, k, alphaPtr, aPtr, aType, lda, betaPtr, bPtr, bType, ldb, cPtr, cType, ldc);
+        nmatmul(layout, transa, transb, m, n, k, alphaPtr, aPtr, aType, lda, betaPtr, bPtr, bType, ldb, cPtr, cType, ldc);
     }
 
-    public static void matmul(int transa, int transb,
-                              int m, int n, int k,
-                              long aPtr,
-                              int aType,
-                              int lda,
-                              long bPtr,
-                              int bType,
-                              int ldb,
-                              long cPtr,
-                              int cType,
-                              int ldc) {
+    public static void matmul(
+            int layout,
+            int transa, int transb,
+            int m, int n, int k,
+            long aPtr,
+            int aType,
+            int lda,
+            long bPtr,
+            int bType,
+            int ldb,
+            long cPtr,
+            int cType,
+            int ldc) {
         long alphaIdentity = getIdentity(aType), betaIdentity = getIdentity(bType);
-        matmul(transa, transb, m, n, k, alphaIdentity, aPtr, aType, lda, betaIdentity, bPtr, bType, ldb, cPtr, cType, ldc);
+        matmul(layout, transa, transb, m, n, k, alphaIdentity, aPtr, aType, lda, betaIdentity, bPtr, bType, ldb, cPtr, cType, ldc);
     }
 
     private static long getIdentity(int type) {

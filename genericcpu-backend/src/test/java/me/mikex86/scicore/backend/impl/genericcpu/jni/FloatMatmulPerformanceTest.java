@@ -28,7 +28,7 @@ public class FloatMatmulPerformanceTest {
                 b.put(j, (float) Math.random());
             }
             long start = System.nanoTime();
-            matmul(OP_NONE, OP_NONE, size, size, size,
+            matmul(MATMUL_OP_NONE, MATMUL_OP_NONE, size, size, size,
                     alphaPtr, MemoryUtil.memAddress(a), MATMUL_DATA_TYPE_FLOAT32, size,
                     alphaPtr, MemoryUtil.memAddress(b), MATMUL_DATA_TYPE_FLOAT32, size,
                     MemoryUtil.memAddress(c), MATMUL_DATA_TYPE_FLOAT32, size);

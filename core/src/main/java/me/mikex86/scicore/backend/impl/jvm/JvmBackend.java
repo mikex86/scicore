@@ -24,6 +24,7 @@ public class JvmBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.MINUS, new JvmMinusOp(this));
         operationTable.put(OperationType.REDUCE_SUM, new JvmReduceSumOp(this));
         operationTable.put(OperationType.EXP, new JvmExpOp(this));
+        operationTable.put(OperationType.LOG, new JvmLogOp(this));
         operationTable.put(OperationType.TRANSPOSE, new JvmTransposeOp(this));
         operationTable.put(OperationType.RESHAPE, new JvmReshapeOp(this));
         operationTable.put(OperationType.POW, new JvmPowOp(this));
@@ -38,6 +39,7 @@ public class JvmBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.PLUS_INPLACE, new JvmPlusInplaceOp(this));
         operationTable.put(OperationType.MINUS_INPLACE, new JvmMinusInplaceOp(this));
         operationTable.put(OperationType.COMPARE_ELEMENTS, new JvmCompareElementsOp(this));
+        operationTable.put(OperationType.LESS_THAN, new JvmLessThanOp(this));
         operationTable.put(OperationType.CONCAT, new JvmConcatOp(this));
         operationTable.put(OperationType.STACK, new JvmStackOp(this));
     }

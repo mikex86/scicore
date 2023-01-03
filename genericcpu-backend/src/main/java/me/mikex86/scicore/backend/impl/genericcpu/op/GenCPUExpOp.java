@@ -33,6 +33,7 @@ public class GenCPUExpOp implements IDifferentiableUnaryOperation {
         DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
         DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
         ExpJNI.exp(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
+        result = result.view(shape, strides);
         return result;
     }
 

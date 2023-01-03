@@ -37,6 +37,7 @@ public class JvmReluOp implements IDifferentiableUnaryOperation {
                 result.setByLongFlat(Math.max(value, 0), i);
             }
         }
+        result = result.view(shape, strides);
         return result;
     }
 

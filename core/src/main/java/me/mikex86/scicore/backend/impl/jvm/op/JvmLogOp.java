@@ -29,6 +29,7 @@ public class JvmLogOp implements IDifferentiableUnaryOperation {
             double value = input.getAsDoubleFlat(i);
             result.setByDoubleFlat(Math.log(value), i);
         }
+        result = result.view(shape, strides);
         return result;
     }
 

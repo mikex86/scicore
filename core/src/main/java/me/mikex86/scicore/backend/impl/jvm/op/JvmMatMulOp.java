@@ -35,6 +35,20 @@ public class JvmMatMulOp implements IDifferentiableBinaryOperation {
         OptionBundle options = ctx.getOptionBundle();
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
+
+        // TODO: Support more complex strides
+        if (stridesA[stridesA.length - 1] != 1 &&
+            stridesA[stridesA.length - 1] == shapeA[shapeA.length - 1]
+            && stridesA[stridesA.length - 2] == 1) {
+            transposeA = !transposeA;
+        }
+
+        if (stridesB[stridesB.length - 1] != 1 &&
+            stridesB[stridesB.length - 1] == shapeB[shapeB.length - 1]
+            && stridesB[stridesB.length - 2] == 1) {
+            transposeB = !transposeB;
+        }
+
         if (transposeA) {
             if (shapeA.length == 2) {
                 shapeA = new long[]{shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};

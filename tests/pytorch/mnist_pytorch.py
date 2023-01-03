@@ -76,9 +76,12 @@ if __name__ == '__main__':
 
     n_steps = 60000
     lr = 0.01
+    momentum = 0.9
 
     train_it = iter(train_loader)
     step_range = trange(n_steps, desc='Training')
+
+    optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=momentum)
 
     start_time = time.time()
     loss = None
@@ -98,13 +101,17 @@ if __name__ == '__main__':
 
         step_range.set_description(f'Training loss: {loss.item():.5f}')
 
-        with torch.no_grad():
-            for param in net.parameters():
-                param -= lr * param.grad
-                param.grad.zero_()
+        optimizer.step()
+        optimizer.zero_grad()
 
-    print(f'Final loss: {loss.item()}')
     print(f'Train time: {time.time() - start_time:.2f}s')
+    # calculate loss on train set
+    train_loss = 0
+    for X, Y in train_loader:
+        Y_pred = net(X.view(-1, 28 * 28))
+        Y_one_hot = torch.nn.functional.one_hot(Y, num_classes=10).float()
+        train_loss += (Y_pred - Y_one_hot).pow(2).sum().item()
+    print(f'Train loss: {train_loss:.5f}')
     print(f'Examples/Second: {n_steps * batch_size / (time.time() - start_time):.2f}')
 
     # Test the network

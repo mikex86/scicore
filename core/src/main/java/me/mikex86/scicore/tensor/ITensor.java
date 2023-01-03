@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.nio.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -857,6 +858,20 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor argmax(int dimension);
 
+    @NotNull ITensor lessThan(byte value);
+
+    @NotNull ITensor lessThan(short value);
+
+    @NotNull ITensor lessThan(int value);
+
+    @NotNull ITensor lessThan(long value);
+
+    @NotNull ITensor lessThan(float value);
+
+    @NotNull ITensor lessThan(double value);
+
+    @NotNull ITensor lessThan(@NotNull ITensor other);
+
     /**
      * Compares the elements of this tensor with the elements of the other tensor.
      * The tensors must have the same shape.
@@ -884,6 +899,58 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
         try (ITensor sum = reduceSum(dimension, false)) {
             return sum.divide(getNumberOfElements());
         }
+    }
+
+    @NotNull
+    default ITensor variance(int dim, boolean unbiased) {
+        long[] shape = getShape();
+        if (dim < 0 || dim >= shape.length) {
+            throw new IllegalArgumentException("Invalid dimension: " + dim);
+        }
+        try (ITensor mean = mean(dim)) {
+            try (ITensor diff = minus(mean)) {
+                try (ITensor squaredDiff = diff.pow(2)) {
+                    try (ITensor sum = squaredDiff.reduceSum(dim, false)) {
+                        long nElements = shape[dim];
+                        if (unbiased && nElements > 1) {
+                            nElements--;
+                        }
+                        return sum.divide(nElements);
+                    }
+                }
+            }
+        }
+    }
+
+    @NotNull
+    default List<ITensor> split(int size, int dim) {
+        long[] shape = getShape();
+        if (dim < 0 || dim >= shape.length) {
+            throw new IllegalArgumentException("Invalid dimension: " + dim);
+        }
+        long nElementsInDim = shape[dim];
+        long nSplits = nElementsInDim / size;
+        long nElementsInLastSplit = nElementsInDim % size;
+        if (nElementsInLastSplit != 0) {
+            nSplits++;
+        }
+        List<ITensor> result = new ArrayList<>();
+        long start = 0;
+        long offset = 0;
+        long[] strides = getStrides();
+        for (int i = 0; i < nSplits; i++) {
+            long end = start + size;
+            if (i == nSplits - 1 && nElementsInLastSplit != 0) {
+                end = start + nElementsInLastSplit;
+            }
+            long[] splitShape = Arrays.copyOf(shape, shape.length);
+            splitShape[dim] = end - start;
+            long[] splitStrides = ShapeUtils.makeStrides(splitShape);
+            result.add(new View(this, splitShape, offset, splitStrides));
+            offset += (end - start) * strides[dim];
+            start = end;
+        }
+        return result;
     }
 
     @NotNull ITensor to(@NotNull ISciCoreBackend backend);
@@ -937,7 +1004,6 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
      * @return true if the tensor was closed
      */
     boolean isDeReferenced();
-
 
     /**
      * Makes the tensor reference its associated graph node to prevent it from being garbage collected before this tensor is.

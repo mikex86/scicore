@@ -31,7 +31,7 @@ public class GenCPULogOp implements IDifferentiableUnaryOperation {
         DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
         DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
         LogJNI.log(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
-        // TODO: getReshapedView for all unary operations of this kind (not as an operation [that would break stuff], but as a directly operating method)
+        result = result.view(shape, strides);
         return result;
     }
 

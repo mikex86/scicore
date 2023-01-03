@@ -34,6 +34,7 @@ public class GenCPUSigmoidOp implements IDifferentiableUnaryOperation {
         DirectMemoryHandle inputMemoryHandle = x.getContentsAsDirectMemory();
         DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
         SigmoidJNI.sigmoid(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
+        result = result.view(shape, strides);
         return result;
     }
 

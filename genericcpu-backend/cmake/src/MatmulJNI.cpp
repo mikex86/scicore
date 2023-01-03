@@ -4,7 +4,9 @@
 // if macOS, use Accelerate framework
 #include <Accelerate/Accelerate.h>
 #elif defined(USE_MKL)
+
 #include <mkl_cblas.h>
+
 #else
 #define USE_TINYBLAS
 #endif
@@ -21,21 +23,24 @@
 #define MATMUL_DATA_TYPE_FLOAT32 5
 #define MATMUL_DATA_TYPE_FLOAT64 6
 
-JNIEXPORT void JNICALL
-Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *jniEnv, jclass, jint transa, jint transb,
-                                                                     jint m, jint n, jint k,
-                                                                     jlong alphaPtr,
-                                                                     jlong aPtr,
-                                                                     jint aType,
-                                                                     jint lda,
-                                                                     jlong betaPtr, jlong bPtr,
-                                                                     jint bType,
-                                                                     jint ldb,
-                                                                     jlong cPtr,
-                                                                     jint cType,
-                                                                     jint ldc) {
+#define MATMUL_LAYOUT_ROW_MAJOR 0
+#define MATMUL_LAYOUT_COLUMN_MAJOR 1
 
-    // TODO: MAKE matmul RESPECT STRIDES
+JNIEXPORT void JNICALL
+Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *jniEnv, jclass,
+                                                                      jint layout,
+                                                                      jint transa, jint transb,
+                                                                      jint m, jint n, jint k,
+                                                                      jlong alphaPtr,
+                                                                      jlong aPtr,
+                                                                      jint aType,
+                                                                      jint lda,
+                                                                      jlong betaPtr, jlong bPtr,
+                                                                      jint bType,
+                                                                      jint ldb,
+                                                                      jlong cPtr,
+                                                                      jint cType,
+                                                                      jint ldc) {
     if (aType == MATMUL_DATA_TYPE_FLOAT32 && bType == MATMUL_DATA_TYPE_FLOAT32 && cType == MATMUL_DATA_TYPE_FLOAT32) {
 #ifdef USE_TINYBLAS
         tblas_sgemm(TblasRowMajor,
@@ -54,7 +59,8 @@ Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *jn
                     (float *) bPtr, ldb, *(float *) betaPtr,
                     (float *) cPtr, ldc);
 #endif
-    } else if (aType == MATMUL_DATA_TYPE_FLOAT64 && bType == MATMUL_DATA_TYPE_FLOAT64 && cType == MATMUL_DATA_TYPE_FLOAT64) {
+    } else if (aType == MATMUL_DATA_TYPE_FLOAT64 && bType == MATMUL_DATA_TYPE_FLOAT64 &&
+               cType == MATMUL_DATA_TYPE_FLOAT64) {
 #ifdef USE_TINYBLAS
         tblas_dgemm(TblasRowMajor,
                     transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
@@ -122,8 +128,7 @@ Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *jn
                      *(int8_t *) alphaPtr, (int8_t *) aPtr, lda,
                      (double *) bPtr, ldb, *(double *) betaPtr,
                      (double *) cPtr, ldc);
-    }
-    else if (aType == MATMUL_DATA_TYPE_INT16 && bType == MATMUL_DATA_TYPE_INT8) {
+    } else if (aType == MATMUL_DATA_TYPE_INT16 && bType == MATMUL_DATA_TYPE_INT8) {
         tblas_sbgemm(TblasRowMajor,
                      transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
                      transb == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
@@ -171,8 +176,7 @@ Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *jn
                      *(int16_t *) alphaPtr, (int16_t *) aPtr, lda,
                      (double *) bPtr, ldb, *(double *) betaPtr,
                      (double *) cPtr, ldc);
-    }
-    else if (aType == MATMUL_DATA_TYPE_INT32 && bType == MATMUL_DATA_TYPE_INT8) {
+    } else if (aType == MATMUL_DATA_TYPE_INT32 && bType == MATMUL_DATA_TYPE_INT8) {
         tblas_ibgemm(TblasRowMajor,
                      transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
                      transb == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
@@ -287,11 +291,11 @@ Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *jn
     } else if (aType == MATMUL_DATA_TYPE_FLOAT32 && bType == MATMUL_DATA_TYPE_INT32) {
         tblas_figemm(TblasRowMajor,
                      transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
-                        transb == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
-                        m, n, k,
-                        *(float *) alphaPtr, (float *) aPtr, lda,
-                        (int32_t *) bPtr, ldb, *(int32_t *) betaPtr,
-                        (float *) cPtr, ldc);
+                     transb == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
+                     m, n, k,
+                     *(float *) alphaPtr, (float *) aPtr, lda,
+                     (int32_t *) bPtr, ldb, *(int32_t *) betaPtr,
+                     (float *) cPtr, ldc);
     } else if (aType == MATMUL_DATA_TYPE_FLOAT32 && bType == MATMUL_DATA_TYPE_INT64) {
         tblas_flgemm(TblasRowMajor,
                      transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
@@ -310,12 +314,12 @@ Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *jn
                     (float *) cPtr, ldc);
     } else if (aType == MATMUL_DATA_TYPE_FLOAT32 && bType == MATMUL_DATA_TYPE_FLOAT64) {
         tblas_fdgemm(TblasRowMajor,
-                    transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
-                    transb == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
-                    m, n, k,
-                    *(float *) alphaPtr, (float *) aPtr, lda,
-                    (double *) bPtr, ldb, *(double *) betaPtr,
-                    (double *) cPtr, ldc);
+                     transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
+                     transb == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
+                     m, n, k,
+                     *(float *) alphaPtr, (float *) aPtr, lda,
+                     (double *) bPtr, ldb, *(double *) betaPtr,
+                     (double *) cPtr, ldc);
     } else if (aType == MATMUL_DATA_TYPE_FLOAT64 && bType == MATMUL_DATA_TYPE_INT8) {
         tblas_dbgemm(TblasRowMajor,
                      transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
@@ -328,10 +332,10 @@ Java_me_mikex86_scicore_backend_impl_genericcpu_jni_MatmulJNI_nmatmul(JNIEnv *jn
         tblas_dsgemm(TblasRowMajor,
                      transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
                      transb == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,
-                        m, n, k,
-                        *(double *) alphaPtr, (double *) aPtr, lda,
-                        (int16_t *) bPtr, ldb, *(int16_t *) betaPtr,
-                        (double *) cPtr, ldc);
+                     m, n, k,
+                     *(double *) alphaPtr, (double *) aPtr, lda,
+                     (int16_t *) bPtr, ldb, *(int16_t *) betaPtr,
+                     (double *) cPtr, ldc);
     } else if (aType == MATMUL_DATA_TYPE_FLOAT64 && bType == MATMUL_DATA_TYPE_INT32) {
         tblas_digemm(TblasRowMajor,
                      transa == OP_TRANSPOSE ? TblasTrans : TblasNoTrans,

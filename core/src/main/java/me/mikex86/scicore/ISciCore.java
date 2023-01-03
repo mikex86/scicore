@@ -42,6 +42,8 @@ public interface ISciCore {
 
     @NotNull ITensor matmul(@NotNull ITensor a, @NotNull ITensor b);
 
+    @NotNull ITensor matmul(@NotNull ITensor a, @NotNull ITensor b, boolean transposeA, boolean transposeB);
+
     @NotNull ITensor exp(@NotNull ITensor a);
 
     @NotNull ITensor softmax(@NotNull ITensor input, int dimension);

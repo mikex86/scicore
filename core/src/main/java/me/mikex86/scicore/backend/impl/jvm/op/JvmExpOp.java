@@ -31,6 +31,7 @@ public class JvmExpOp implements IDifferentiableUnaryOperation {
             double value = input.getAsDoubleFlat(i);
             result.setByDoubleFlat(Math.exp(value), i);
         }
+        result = result.view(shape, strides);
         return result;
     }
 

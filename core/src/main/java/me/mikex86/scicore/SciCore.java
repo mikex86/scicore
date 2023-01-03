@@ -200,6 +200,11 @@ public class SciCore implements ISciCore {
     }
 
     @Override
+    public @NotNull ITensor matmul(@NotNull ITensor a, @NotNull ITensor b, boolean transposeA, boolean transposeB) {
+        return a.matmul(b, transposeA, transposeB);
+    }
+
+    @Override
     @NotNull
     public ITensor exp(@NotNull ITensor a) {
         return a.exp();
