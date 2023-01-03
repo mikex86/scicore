@@ -28,7 +28,8 @@ public class DoubleMatmulPerformanceTest {
                 b.put(j, Math.random());
             }
             long start = System.nanoTime();
-            matmul(MATMUL_OP_NONE, MATMUL_OP_NONE, size, size, size,
+            matmul(MATMUL_LAYOUT_ROW_MAJOR,
+                    MATMUL_OP_NONE, MATMUL_OP_NONE, size, size, size,
                     alphaPtr, MemoryUtil.memAddress(a), MATMUL_DATA_TYPE_FLOAT64, size,
                     alphaPtr, MemoryUtil.memAddress(b), MATMUL_DATA_TYPE_FLOAT64, size,
                     MemoryUtil.memAddress(c), MATMUL_DATA_TYPE_FLOAT64, size);
