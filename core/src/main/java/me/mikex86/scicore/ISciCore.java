@@ -78,6 +78,8 @@ public interface ISciCore {
 
     @NotNull ITensor ndarray(Object array);
 
+    @NotNull ITensor zerosLike(@NotNull ITensor reference);
+
     @NotNull ITensor onesLike(@NotNull ITensor reference);
 
     @NotNull IGraph getExecutionGraphUpTo(@NotNull ITensor root);

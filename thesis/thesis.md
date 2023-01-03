@@ -1621,7 +1621,7 @@ $
 ```
 ### Optimization
 After computing gradients, we can implement first-order optimization algorithms, such as stochastic gradient descent to update the parameters of the model in direction of the negative gradient.
-We can implement a simple `SGD´ optimizer as follows:
+We can implement a simple `SGD` optimizer as follows:
 
 ```java
 public class Sgd implements IOptimizer {
@@ -1680,13 +1680,18 @@ class MnistNet(sciCore: ISciCore) : IModule {
 
 ...
 
-val trainIt = DatasetIterator(BATCH_SIZE, MnistDataSupplier(sciCore, train = true, shuffle = false))
-val testIt = DatasetIterator(BATCH_SIZE, MnistDataSupplier(sciCore, train = false, shuffle = false))
+val trainSupplier = MnistDataSupplier(sciCore, train = true, shuffle = false)
+val testSupplier = MnistDataSupplier(sciCore, train = false, shuffle = false)
 
+...
+
+sciCore.seed(123)
 
 val net = MnistNet(sciCore)
 
 val optimizer = Sgd(sciCore, LEARNING_RATE, net.parameters())
+
+... 
 
 for (step in 0 until N_TRAINING_STEPS) {
     sciCore.backend.operationRecorder.scopedRecording {
@@ -1704,56 +1709,360 @@ for (step in 0 until N_TRAINING_STEPS) {
         }
     }
 }
+
+...
+
+// loss on dataset
+sciCore.backend.operationRecorder.scopedRecording {
+    val loss = net(trainSupplier.x)
+        .use { yPred -> yPred.minus(trainSupplier.y) }
+        .use { diff -> diff.pow(2f) }
+        .use { diffSquared -> diffSquared.reduceSum(-1) }
+        .use { loss ->
+            loss.elementAsFloat()
+        }
+    ...
+}
 ```
 Execution of this code results in the creation of the following graph:
 ![mnist_net](./figures/mnist_net.png)
 
 This graph is backpropagated through to compute the gradients of the loss with respect to the parameters of the model via the automatic differentiation mechanism of SciCore, which has already been outlined in previous sections.
 
-Training the model for 60,000 steps, we can achieve an accuracy of 95.5% on the test set.
+Training the model for $60,000$ steps with stochastic gradient descent with a batch size of $32$, with a learning rate of $0.01$.
 
 ```
 MNIST already downloaded
-[16:10:35] [main/DEBUG]: Operation MULTIPLY found in backend GenCPUBackend
-[16:10:35] [main/DEBUG]: Operation MINUS found in backend GenCPUBackend
+[04:19:46] [main/DEBUG]: Operation MULTIPLY found in backend GenCPUBackend
+[04:19:46] [main/DEBUG]: Operation MINUS found in backend GenCPUBackend
 Start training...
-[16:10:35] [main/DEBUG]: Operation MATMUL found in backend GenCPUBackend
-[16:10:35] [main/DEBUG]: Operation PLUS found in backend GenCPUBackend
-[16:10:35] [main/DEBUG]: Operation RELU found in backend GenCPUBackend
-[16:10:35] [main/DEBUG]: Operation EXP found in backend GenCPUBackend
-[16:10:35] [main/DEBUG]: Operation REDUCE_SUM found in backend GenCPUBackend
-[16:10:35] [main/DEBUG]: Operation DIVIDE found in backend GenCPUBackend
-[16:10:35] [main/DEBUG]: Operation POW found in backend GenCPUBackend
-[16:10:35] [main/DEBUG]: Operation PLUS_INPLACE found in backend GenCPUBackend
-[16:10:35] [main/DEBUG]: Operation MINUS_INPLACE found in backend GenCPUBackend
-Training 100% |█████████████████| 60000/60000 (0:00:21 / 0:00:00) loss: 0.00947
-Training time: 21.992s
-Final loss value: 0.009466836228966713
-Examples per second: 87304.47435431066
+[04:19:46] [main/DEBUG]: Operation MATMUL found in backend GenCPUBackend
+[04:19:46] [main/DEBUG]: Operation PLUS found in backend GenCPUBackend
+[04:19:46] [main/DEBUG]: Operation RELU found in backend GenCPUBackend
+[04:19:46] [main/DEBUG]: Operation EXP found in backend GenCPUBackend
+[04:19:46] [main/DEBUG]: Operation REDUCE_SUM found in backend GenCPUBackend
+[04:19:46] [main/DEBUG]: Operation DIVIDE found in backend GenCPUBackend
+[04:19:46] [main/DEBUG]: Operation POW found in backend GenCPUBackend
+[04:19:46] [main/DEBUG]: Operation PLUS_INPLACE found in backend GenCPUBackend
+[04:19:46] [main/DEBUG]: Operation MINUS_INPLACE found in backend GenCPUBackend
+Training 100% |█████████████████| 60000/60000 (0:00:17 / 0:00:00) loss: 0.00000
+Training time: 17.643s
+Loss on training set after training: 3949.38037109375
+Examples per second: 108825.02975684407
 Start testing...
-(0:00:00 / ?) [16:10:57] [main/DEBUG]: Operation ARGMAX found in backend GenCPUBackend
-[16:10:57] [main/DEBUG]: Operation COMPARE_ELEMENTS found in backend JvmBackend
-[16:10:57] [main/DEBUG]: Operation CAST found in backend GenCPUBackend
-[16:10:57] [main/DEBUG]: Operation RESHAPE found in backend GenCPUBackend
+[04:20:04] [main/DEBUG]: Operation ARGMAX found in backend GenCPUBackend
+[04:20:04] [main/DEBUG]: Operation COMPARE_ELEMENTS found in backend JvmBackend
+[04:20:04] [main/DEBUG]: Operation CAST found in backend GenCPUBackend
+[04:20:04] [main/DEBUG]: Operation RESHAPE found in backend GenCPUBackend
 Testing 100% |██████████████| 20000/20000 (0:00:02 / 0:00:00) accuracy: 0.95475
-Final Accuracy: 0.9547
-Examples per second: 103755.74169143476
+Test Accuracy: 0.9547
+Disconnected from the target VM, address: '127.0.0.1:53878', transport: 'socket'
+
+Process finished with exit code 0
 ```
 
 The following figure shows the training loss per step for the duration of the 20k step training loop. The data is averaged over 100 steps to reduce noise in the plot.
 
-![mnist_loss](./figures/mnist_loss.png)
+![mnist_loss_sgd_avg](./figures/mnist_loss_sgd_avg.png)
 
 ![mnist_inference_screenshot](figures/mnist_inference_screenshot.png)
 
+### Optimizing optimizers
+Deep learning frameworks take advantage of the gradient of the loss function with respect to the parameters of the model to update the parameters of the model to a new optimal value via first-order optimization algorithms. While batch gradient descent, where the entirety of the dataset is used to compute the gradient for an optimization step is provably convergent on the global optimum of the loss function, it is computationally expensive and requires enormous amounts of memory to store the entire dataset in memory, and activations with a large leading batch size dimension. Therefore, stochastic gradient descent, or also referred to as mini-batch gradient descent, is often used instead, where the gradient is only computed on a small subset of the dataset, called a mini-batch, or often just 'batch'. Note however that for large datasets, where the mini-batch size is in comparisson small, the distribution of values in the mini-batch may not be representative of the entire dataset. The thus resulting variance can lead to a jittering loss function with large differences between loss values from one example to the next. This is in part why the loss in the figure above is averaged over 100 steps. If this average was not taken, the plot would look like this:
+
+![mnist_loss_sgd_no_average](./figures/mnist_loss_sgd_no_average.png)
+
+We see that the loss jitters to the point where the line-width of the graph almost fills the area of the plot down to the x-axis.
+While this may help the model escape local minima, it also slows down the process of convergence, as a large part of the descent process is spent of different high-variance examples across different mini-batches "fighting each other", with their gradients rapidly switching signs and changing network parameters back and forth.
+
+#### Momentum
+
+Stochastic gradient descent computes gradients for each batch, just to throw those gradients away after the optimization step has completed, while they could potentially still be useful for future optimization steps. 
+One could also imagine that if multiple gradient computations for multiple batches result in repeated similar gradient values for a particular parameter, that it is safe to accelarate along said dimension on the surface of the loss function.
+This is the intuition behind momentum, which can be equated to physical momentum, where the acceleration of an object can be thought of as accumulating over time to form velocity (analogous to the discrete euler integration method).
+
+Where gradient descent simply updated the parameters of the model as follows:
+$$
+\theta_{t+1} = \theta_t - \alpha \cdot \nabla_\theta L(\theta_t)
+$$
+where $\theta$ is the parameter vector, $\alpha$ is the learning rate and $\nabla_\theta L(\theta_t)$ is the gradient of the loss function with respect to the parameters of the model (a notation commonly used in favor of $\frac{\partial L(\theta)}{\partial \theta}$), momentum updates the parameters as follows:
+
+$$
+b_t = \mu \cdot b_{t-1} + (1 - \tau) \cdot \nabla_\theta L(\theta_t) \\
+\theta_{t+1} = \theta_t - \alpha \cdot b_t
+$$
+
+where $b_t$ is the momentum vector for all parameters and $\mu$ is the momentum coefficient and $\tau$ is the dampening factor.
+Note that the momentum vector is initialized to zero, and thus the first momentum vector is simply the gradient of the loss function with respect to the parameters of the model.
+
+The following code snipped shows SciCore's implementation of SGD with momentum:
+
+```java
+public class SgdWithMomentum implements IOptimizer {
+    
+    ...
+
+    /**
+     * Maps parameters to their last momentum tensors at t-1.
+     */
+    @NotNull
+    private final Map<ITensor, ITensor> lastMomentumTensors = new IdentityHashMap<>();
+
+    ...
+
+    @Override
+    public void step(@NotNull ITensor loss) {
+        try (IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, parameters)) {
+            sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
+                graph.backward();
+                for (ITensor parameter : parameters) {
+                    try (ITensor gradient = graph.getGradient(parameter)
+                            .orElseThrow(() -> new IllegalStateException("No gradient for parameter"))) {
+                        float learningRate;
+                        if (adaptiveLearningRate) {
+                            learningRate = (float) (initialLearningRate * Math.pow(learningRateDecayFactor, nSteps));
+                        } else {
+                            learningRate = this.initialLearningRate;
+                        }
+                        ITensor lastMomentumTensor = lastMomentumTensors.get(parameter);
+                        if (lastMomentumTensor == null) {
+                            lastMomentumTensor = sciCore.zerosLike(parameter);
+                            lastMomentumTensors.put(parameter, lastMomentumTensor);
+                        }
+                        try (ITensor scaledMomentum = lastMomentumTensor.multiply(momentumCoefficient);
+                             ITensor momentumScaledGradient = gradient.multiply(1f - dampeningFactor);
+                             ITensor momentumTensor = scaledMomentum.plus(momentumScaledGradient)) {
+                            try (ITensor scaledMomentumTensor = momentumTensor.multiply(learningRate)) {
+                                parameter.subtract(scaledMomentumTensor);
+                            }
+                            lastMomentumTensor.setContents(momentumTensor);
+                        }
+                    }
+                }
+                return null;
+            });
+            nSteps++;
+        }
+    }
+}
+```
+With a momentum coefficient of 0.9 and a dampening factor of 0.1, obtain a much lower loss and higher accuracy after the same number of training steps and identical learning rate. We could have achieved a similar result by simply increasing the learning rate, but this involves hyperparameter tuning outside the learning algorithm itself, which is not a very elegant solution.
+![mnist_loss_with_momentum](./figures/mnist_loss_with_momentum.png)
+
+```
+...
+Loss on training set after training: 631.509765625 // previous: 3949.38037109375
+...
+Test Accuracy: 0.9778 // previous: 0.9547
+```
+
+#### RMSprop
+
+RMSprop is a variant of stochastic gradient descent that attempts to reduce jitter (also referred to as oscillations) in the loss by building a moving average of the squared gradients of the loss function with respect to the parameters of the model. It makes the assumption that high-variance gradients when accumulated over time will result in large values, and low variance gradients will have consistently lower values. So, it is not variance per se that RMSprop is punishing, but rather gradient magnitue, an artifact of variance that is present in loss-function surfaces.
+The moving average is computed as follows:
+
+$$
+\begin{aligned}
+E[g^2]_t &= \beta E[g^2]_{t-1} + (1 - \beta) \cdot \nabla_\theta L(\theta_t)^2
+\end{aligned}
+$$
+
+where $\beta$ is a hyperparameter that controls the decay rate of the moving average. The update rule for the parameters of the model is then as follows:
+
+$$
+\begin{aligned}
+\theta_{t+1} &= \theta_t - \alpha \cdot \frac{\nabla_\theta L(\theta_t)}{\sqrt{E[g^2]_t + \epsilon}}    
+\end{aligned}
+$$
+
+where $\epsilon$ is a small constant to prevent division by zero.
+
+The following code snippet shows SciCore's implementation of RMSprop:
+
+```java
+public class RMSProp implements IOptimizer {
+
+    ...
+
+    private final Map<ITensor, ITensor> lastMovingAvgs = new IdentityHashMap<>();
+
+    private final float epsilon = 1e-8f;
+
+    ...
+
+    @Override
+    public void step(@NotNull ITensor loss) {
+        try (IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, parameters)) {
+            sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
+                graph.backward();
+                for (ITensor parameter : parameters) {
+                    try (ITensor gradient = graph.getGradient(parameter)
+                            .orElseThrow(() -> new IllegalStateException("No gradient for parameter"))) {
+                        float learningRate;
+                        if (adaptiveLearningRate) {
+                            learningRate = (float) (initialLearningRate * Math.pow(learningRateDecayFactor, nSteps));
+                        } else {
+                            learningRate = this.initialLearningRate;
+                        }
+                        ITensor movingAvg = lastMovingAvgs.get(parameter);
+                        if (movingAvg == null) {
+                            movingAvg = sciCore.zerosLike(parameter);
+                            lastMovingAvgs.put(parameter, movingAvg);
+                        }
+                        try (ITensor scaledOldMovingAvg = movingAvg.multiply(rmsDecayFactor);
+                             ITensor squaredGradient = gradient.pow(2.0f);
+                             ITensor scaledNewMovingAvg = squaredGradient.multiply(1.0f - rmsDecayFactor);
+                             ITensor newMovingAvg = scaledOldMovingAvg.plus(scaledNewMovingAvg)) {
+                            movingAvg.setContents(newMovingAvg);
+                        }
+                        try (ITensor movingAvgSqrt = movingAvg.pow(0.5f);
+                             ITensor movingAvgSqrtPlusEps = movingAvgSqrt.plus(epsilon);
+                             ITensor rmsScaledGradients = gradient.divide(movingAvgSqrtPlusEps);
+                             ITensor lrScaledGradients = rmsScaledGradients.multiply(learningRate)) {
+                            parameter.subtract(lrScaledGradients);
+                        }
+                    }
+                }
+                return null;
+            });
+            nSteps++;
+        }
+    }
+}
+```
+
+When using RMSprop, we have to reduce our learning rate by an order of magnitude to 0.001 as to not destable gradient descent. We have to remember the context in which RMSprop was developed. RMSprop was originally proposed as a solution to the vanishing/exploding gradient problem that occurs in RNNs, where repeated matrix multiplication of activations results in an approximate equivalence with exponentiation. Exponential functions of the form $f(x) = a^x$ have the tendency to either approach infinity or zero as $x$ approaches infinity, depending on whether $a$ is smaller or greater than 1. Training RNNs involves the seemingly impossible task of finding meaningful parameters $\theta$, while staying below the threshold of numerical instability for activations and gradients. RMSprop was proposed as a solution to scale down the influence of exploding gradients and scale up the influence of vanishing gradients. Now, we are not training a recurrent neural network in this example, but a simple multilayer perceptron. Our gradients do not particularly explode or vanish, but we can still benefit from RMSprop's improved convergence speed. However, we have to be careful when chosing our learning rate. Our previous learning rate of 0.01 destabilizes gradient descent in a matter of single-digit steps using RMSprop, resulting in a loss of NaN. We therefore have to reduce our learning rate. Nevertheless, RMSprop still manages to converge to a lower loss than SGD with momentum.
+However, our accuracy is slightly lower then the result achieve with SGD with momentum, which indicates our model is starting to overfit on our training data. Descreasing the loss beyond this point does not seem to improve generalization performance.
+
+![mnist_loss_with_rmsprop](./figures/mnist_loss_with_rmsprop.png)
+
+```
+Loss on training set after training: 593.4767456054688 // previous: 631.509765625
+Final Accuracy: 0.9751 // previous: 0.9778
+```
+
+### Adam
+An astude observer might notice that the goals of momentum and RMSProp seem to partially contradict each other.
+RMSProp punishes large gradients, while momentum accelerates along large gradients.
+When gradients are large, RMSProp will scale down their effect, while momentum will over time scale up the effect of large gradients - the key part here being "over time".
+While RMSProp alone will punish legitimate large gradients and high variance parameters equally, momentum will allow large gradients to accumulate over time, if the trend persists across multiple optimization steps.
+The net effect is reduced variance and faster convergence - the best of both worlds.
+
+This is the intuition behind the Adam optimizer, which combines the ideas of momentum and RMSProp.
+
+The adam optimizer maintains two moment vectors, the first moment vector $m_t$, as in momentum, and the second moment vector $v_t$, as in RMSProp.
+
+$$
+\begin{aligned}
+m_t &= \beta_1 m_{t-1} + (1 - \beta_1) \cdot \nabla_\theta L(\theta_t) \\
+v_t &= \beta_2 v_{t-1} + (1 - \beta_2) \cdot \nabla_\theta L(\theta_t)^2
+\end{aligned}
+$$
+
+Given that both vectors are initialized to zero, the optimizer will be heavily biased towards zero in the early stages of training.
+To counteract this, we introduce a bias correction term:
+
+$$
+\begin{aligned}
+\hat{m}_t &= \frac{m_t}{1 - \beta_1^t} \\
+\hat{v}_t &= \frac{v_t}{1 - \beta_2^t}
+\end{aligned}
+$$
+
+The purpose of the bias correction term is to scale up the moment vectors in the early stages of training, where the bias towards zero is most pronounced. Given that $\beta_1$ and $\beta_2$ $\in [0, 1)$ and $\beta^t \rightarrow 0$ as $t \rightarrow \infty$, therefore as the number of traing steps increases, the bias correction will become less and less influential.
+
+The final update step is then:
+
+$$
+\theta_{t+1} = \theta_t - \alpha \cdot \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}
+$$
+
+The following code snippet shows the implementation of the Adam optimizer in SciCore:
+```java
+public class Adam implements IOptimizer {
+
+    /**
+     * Maps parameters to their first moment (momentum).
+     */
+    private final Map<ITensor, ITensor> lastFirstMoments = new IdentityHashMap<>();
+
+    /**
+     * Maps parameters to their second moment (RMSProp).
+     */
+    private final Map<ITensor, ITensor> lastSecondMoments = new IdentityHashMap<>();
+
+    private static final float EPSILON = 1e-8f;
+    
+    @Override
+    public void step(@NotNull ITensor loss) {
+        try (IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, parameters)) {
+            sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
+                graph.backward();
+                for (ITensor parameter : parameters) {
+                    try (ITensor gradients = graph.getGradient(parameter)
+                            .orElseThrow(() -> new IllegalStateException("No gradient for parameter"))) {
+                        float learningRate = getLearningRate();
+
+                        ITensor firstMoment = lastFirstMoments.get(parameter);
+                        if (firstMoment == null) {
+                            firstMoment = sciCore.zerosLike(parameter);
+                            lastFirstMoments.put(parameter, firstMoment);
+                        }
+
+                        ITensor secondMoment = lastSecondMoments.get(parameter);
+                        if (secondMoment == null) {
+                            secondMoment = sciCore.zerosLike(parameter);
+                            lastSecondMoments.put(parameter, secondMoment);
+                        }
+
+                        try (ITensor scaledMomentum = firstMoment.multiply(beta1);
+                             ITensor scaledGradients = gradients.multiply(1.0f - beta1);
+                             ITensor momentumTensor = scaledMomentum.plus(scaledGradients)) {
+                            firstMoment.setContents(momentumTensor);
+                        }
+
+                        try (ITensor scaledRMSProp = secondMoment.multiply(beta2);
+                             ITensor scaledGradients = gradients.pow(2.0f).multiply(1.0f - beta2);
+                             ITensor rmsPropTensor = scaledRMSProp.plus(scaledGradients)) {
+                            secondMoment.setContents(rmsPropTensor);
+                        }
+
+                        try (ITensor biasCorrectedFirstMoment = firstMoment.divide(1.0f - (float) Math.pow(beta1, nSteps + 1));
+                             ITensor biasCorrectedSecondMoment = secondMoment.divide(1.0f - (float) Math.pow(beta2, nSteps + 1));
+                             ITensor biasCorrectedSecondMomentSqrt = biasCorrectedSecondMoment.pow(0.5f);
+                             ITensor biasCorrectedSecondMomentSqrtPlusEpsilon = biasCorrectedSecondMomentSqrt.plus(EPSILON);
+                             ITensor gradientsWithMoments = biasCorrectedFirstMoment.divide(biasCorrectedSecondMomentSqrtPlusEpsilon);
+                             ITensor scaledGradientsWithMoments = gradientsWithMoments.multiply(learningRate)) {
+                            parameter.subtract(scaledGradientsWithMoments);
+                        }
+                    }
+                }
+                return null;
+            });
+            nSteps++;
+        }
+    }
+
+}
+```
+
+Using the Adam optimizer with the same learning rate of 0.001 as with RMSprop, and a $\beta_1 = 0.9$ and $\beta_2 = 0.999$, we can slightly lower the loss on the training set, but again with a drop in accuracy on the test set, which solidifies that lowering the loss at all costs will result in worse generalization performance.
+![mnist_loss_with_adam](./figures/mnist_loss_with_adam.png)
+
+```
+...
+Loss on training set after training: 531.6087646484375 (previous(rmsprop): 593.4767456054688)
+...
+Test Accuracy: 0.9778 (previous(rmsprop): 0.9751, best (sgd): 0.9778)
+```
+
 ### Performance considersations
 
-Note that the training only takes 21 seconds on my M1 MacBook Pro using the CPU backend with ARM Neon SIMD and Apple Accelerate optimizations and
-only 17 seconds on my AMD Ryzen 5800X desktop using the CPU backend with AVX2 SIMD and Intel MKL optimizations.
+Note that the training only takes 21.5 seconds on my M1 MacBook Pro using the CPU backend with ARM Neon SIMD and Apple Accelerate optimizations and
+only 17.5 seconds on my AMD Ryzen 5800X desktop using the CPU backend with AVX2 SIMD and Intel MKL optimizations.
 If no platform specific matrix multiplication optimizations are available, we fall back on my simple BLAS implementation called "TinyBLAS"
 Note that TinyBLAS implements matrix multiplication in a rather naive way, with only low hanging fruit optimizations, which we will discuss later.
-TinyBLAS also handles SIMD optimizations for less complicated operators, like multiplication and addition etc. while respecting the strides of a tensor
-data structure as well as handling broadcasting in an efficient manner.
+TinyBLAS also handles SIMD optimizations for less complicated operators, like multiplication and addition etc. while respecting the strides of a tensor data structure as well as handling broadcasting in an efficient manner.
 
 
 The following snippet shows how matrix multiplication is delegated to Apple Accelerate/Intel MKL, which both implement a common BLAS interface:
@@ -2056,6 +2365,18 @@ bool tblas_plus_nd_by_nd(const float *a, const float *b, float *c, const size_t 
     return true;
 }
 ```
+#### Further potential optimizations
+
+There are two types of common tensor processing library architectures: "eager execution" and "lazy execution".
+Eager execution means that tensor processing operations are executed immediately as their methods are called.
+Lazy execution means that tensor processing operations are not executed immediately, but instead added to a graph of operations that can be executed later.
+The first operation which reads the result of a tensor, will trigger the execution of the entire graph of operations.
+The benefit of lazy execution is that it allows for more optimizations, since the entire graph of operations can be optimized before execution.
+For example, if two element-wise operations are chained, they can be fused into a single operation. This has the benefit that eg. the cpu can load the data from memory only once, instead of loading from memory and writing the result back to RAM, only for the next operation to load the data from RAM again.
+This is not possible in eager execution, since the operations are executed immediately.
+
+Now, while SciCore has the architectural foundation for lazy execution, the geneneric-cpu backend, which is currently the only backend that is capable of executing operations at an acceptible speed, is not capable of taking advantage of this architecture.
+While operations are recorded into a graph and lazily executed, the individual operations are handwritten cpu kernels, which for example cannot easily be fused. Taking advantage of lazy execution would require a more sophisticated backend, which is capable of just-in-time code generation for kernels specific to the graph of operations that is to be executed. One might imagine emitting LLVM IR, which can then be compiled to native code, or even emitting native code directly. However, due to time constraints, this will not be implemented for the time being.
 
 #### Difficulties implementing a tensor processing library in the JVM
 
@@ -2072,7 +2393,6 @@ While forcing the Garbage collector to work with insanely low heap sizes will ke
 Thus, the only way to keep a bearable memory footprint in Java is unfortunately via explicit memory management. We can make this bearable by using
 the `try-with-resources` statement and the `.use { }` extension function in kotlin, which introduces a form of scoped memory management.
 This will also help us maintain a clean operation graph with short lookup times.
-
 
 # Language Modelling
 What we have implemented so far is a tensor processing library that allows us to optimize scalar-valued functions with tensor-valued parameters, such as the loss function of a neural network. We can now use this approach to optimize a model with predictive power over a sequence of tokens or characters. Such a model is called a neural language model.

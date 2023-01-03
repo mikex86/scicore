@@ -493,12 +493,17 @@ public class SciCore implements ISciCore {
     }
 
     @Override
-    @NotNull
-    public ITensor onesLike(@NotNull ITensor reference) {
+    public @NotNull ITensor zerosLike(@NotNull ITensor reference) {
         ISciCoreBackend backend = getBackend();
         DataType dataType = reference.getDataType();
         long[] shape = reference.getShape();
-        ITensor tensor = backend.createTensor(dataType, shape);
+        return backend.createTensor(dataType, shape);
+    }
+
+    @Override
+    @NotNull
+    public ITensor onesLike(@NotNull ITensor reference) {
+        ITensor tensor = zerosLike(reference);
         tensor.fill(1);
         return tensor;
     }

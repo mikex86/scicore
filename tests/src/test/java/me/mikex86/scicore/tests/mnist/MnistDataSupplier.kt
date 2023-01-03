@@ -62,12 +62,10 @@ class MnistDataSupplier(sciCore: ISciCore, train: Boolean, shuffle: Boolean) : S
     private val imagesRAF: RandomAccessFile
     private val labelsRAF: RandomAccessFile
 
-    /**
-     * List of (X, Y) pairs where X is the image and Y is the label.
-     */
-    private val samples: MutableList<Pair<ITensor, ITensor>>
+    val x: ITensor
+    val y: ITensor
     private val random: Random?
-    private var idx = 0
+    private var idx = 0L
 
     companion object {
         init {
@@ -98,18 +96,17 @@ class MnistDataSupplier(sciCore: ISciCore, train: Boolean, shuffle: Boolean) : S
             if (nImages != nLabels) {
                 throw IOException("Images and labels have different number of samples")
             }
-            samples = ArrayList(nImages)
+            x = sciCore.zeros(DataType.FLOAT32, nImages.toLong(), height.toLong() * width.toLong())
+            y = sciCore.zeros(DataType.FLOAT32, nImages.toLong(), 10)
             for (i in 0 until nImages) {
-                val label = labelsRAF.readByte().toInt()
+                val label = labelsRAF.readByte()
                 val bytes = ByteArray(height * width)
                 imagesRAF.read(bytes)
-                val pixels = FloatArray(width * height)
-                for (j in pixels.indices) {
-                    pixels[j] = (bytes[j].toInt() and 0xFF) / 255.0f
+
+                for (j in 0 until height * width) {
+                    x.setFloat((bytes[j].toInt() and 0xFF) / 255.0f, i.toLong(), j.toLong())
                 }
-                val labelTensor = sciCore.zeros(DataType.FLOAT32, 10)
-                labelTensor.setFloatFlat(1f, label.toLong())
-                samples.add(Pair(sciCore.array(pixels), labelTensor))
+                y.setFloat(1.0f, i.toLong(), label.toLong())
             }
         } catch (e: IOException) {
             throw RuntimeException(e)
@@ -119,9 +116,18 @@ class MnistDataSupplier(sciCore: ISciCore, train: Boolean, shuffle: Boolean) : S
     override fun get(): Pair<ITensor, ITensor> {
         val random = random
         return if (random != null) {
-            samples[random.nextInt(samples.size)]
+            Pair(
+                x.getView(random.nextLong(x.shape[0])),
+                y.getView(random.nextLong(y.shape[0]))
+            )
         } else {
-            samples[idx++ % samples.size]
+            Pair(
+                x.getView(idx),
+                y.getView(idx)
+            ).also {
+                idx++
+                idx %= x.shape[0]
+            }
         }
     }
 }

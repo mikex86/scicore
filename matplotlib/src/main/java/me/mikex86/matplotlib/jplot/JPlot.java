@@ -89,6 +89,10 @@ public class JPlot {
         this.endY = endInclusive;
     }
 
+    public void setBeginY(float beginY) {
+        this.beginY = beginY;
+    }
+
     public void setImageWidth(int width) {
         this.width = width;
     }
@@ -257,7 +261,7 @@ public class JPlot {
 
     private float calculateBeginY() {
         if (beginY != null) {
-            return beginY;
+            return beginY - Math.ulp(beginY);
         }
         float minBeginY = Float.MAX_VALUE;
         for (Series series : series) {
