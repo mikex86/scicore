@@ -22,6 +22,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-engine")
 
     testImplementation("me.tongfei:progressbar:0.9.5")
+    testImplementation("com.google.code.gson:gson:2.10")
+
 
     implementation("org.jetbrains:annotations:23.0.0")
     implementation(project(":matplotlib"))

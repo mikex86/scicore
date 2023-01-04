@@ -108,7 +108,6 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         long bBatchStride = stridesB.length == 3 ? stridesB[0] : 0;
         long cBatchStride = resultStrides.length == 3 ? resultStrides[0] : 0;
 
-        // TODO: MAKE THIS RESPECT STRIDES
         if (batchSize == 1) {
             matmul(MATMUL_LAYOUT_ROW_MAJOR,
                     transposeA ? MATMUL_OP_TRANSPOSE : MATMUL_OP_NONE,

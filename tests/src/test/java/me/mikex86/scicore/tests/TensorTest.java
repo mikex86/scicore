@@ -1011,10 +1011,10 @@ abstract class TensorTest {
                                 for (boolean transposeBinMatmul : new boolean[]{false, true}) {
                                     ITensor aCast = a.cast(dataTypeA);
                                     ITensor bCast = b.cast(dataTypeB);
-                                    ITensor aTransposedViaViews = transposeAViaViews ? aCast.view(new long[]{3, 3}, new long[]{1, 3}) : aCast;
+                                    ITensor aTransposedViaViews = transposeAViaViews ? aCast.transpose() : aCast;
                                     assertEquals(transposeAViaViews ? aTransposedManuallyCast : aCast, aTransposedViaViews);
 
-                                    ITensor bTransposedViaViews = transposeBViaViews ? bCast.view(new long[]{3, 3}, new long[]{1, 3}) : bCast;
+                                    ITensor bTransposedViaViews = transposeBViaViews ? bCast.transpose() : bCast;
                                     assertEquals(transposeBViaViews ? bTransposedManuallyCast : bCast, bTransposedViaViews);
 
                                     boolean netTransposeForExpectedA = transposeAViaViews ^ transposeAinMatmul;
@@ -2589,15 +2589,6 @@ abstract class TensorTest {
             assertEquals(sciCore.matrix(new float[][]{
                     {2, 1}, {1, 7}, {0, 3}
             }), transpose);
-        }
-
-        @Test
-        void transpose_3d_failure() {
-            ITensor a = sciCore.ndarray(new float[][][]{
-                    {{2, 1, 0}, {1, 0, 3}},
-                    {{2, 1, 0}, {1, 0, 3}}
-            });
-            assertThrows(IllegalArgumentException.class, a::transpose);
         }
     }
 

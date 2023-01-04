@@ -2407,7 +2407,9 @@ A simple character-level tokenizer might look like this:
 charToIndex = mapOf('a' to 0, 'b' to 1, ...)
 
 fun tokenize(text: String): List<Int> {
-    return text.toCharArray().map { charToIndex[it]!!.toInt() }.toList()
+    return text.toCharArray()
+        .map { charToIndex[it]!!.toInt() }
+        .toList()
 }
 ```
 
@@ -2417,11 +2419,13 @@ A word-level tokenizer might look like this:
 word_dict = mapOf("apple" to 0, "banana" to 1, ...)
 
 fun tokenize(text: String): List<Int> {
-    return text.split(" ").map { word_dict[it]!!.toInt() }.toList()
+    return text.split(" ")
+        .map { word_dict[it]!!.toInt() }
+        .toList()
 }
 ```
 
-In practice, we will use a tokenizer that has word-level, character-level and subword-level tokenization capabilities, choosing the granularity as course-grained as possible, as to "compress" the ASCII string into as few tokens as possible, while still retaining a lossless bidirectional mapping between the tokens and the original string.
+In practice, we will use a tokenizer that has word-level, character-level and subword-level tokenization capabilities, choosing the granularity as course-grained as possible, as to "compress" the ASCII string into as few tokens as possible, while still retaining a lossless bidirectional mapping between the tokens and the original string. This is a form of byte-pair encoding, which we will discuss in more detail later in the section on GPT-like language models.
 The exact way in which we tokenize can have large implications on the performance of large language models on certain tasks.
 Given that a token is the fundamental perceptive unit of a language model, sub-token perception is severely limited.
 For example, GPT-3 will often fail to understand the concept of syllable-counts and will thus fail at tasks such as counting the number of syllables in a word and or characters. Note however that eg. misspellings will force the tokenizer to choose a sub-token granularity that is more fine-grained than the word-level granularity, as to preserve the misspelling. Over a large corpus of text, a large language model will learn to equate the sub-token "misspelling" with the word-level token "misspelled", which can lead to an understanding of how certain common words are spelled - even down to the character level, which also exist as tokens, however, GPT-3 can be frequently observed to fail at spelling tasks and or syllable-dependent poetry generation tasks in English, while excelling at arguably more difficult tasks such as summarization, question answering and code generation.

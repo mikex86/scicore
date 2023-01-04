@@ -749,9 +749,23 @@ public abstract class AbstractTensor implements ITensor {
     @Override
     @NotNull
     public ITensor transpose() {
-        ISciCoreBackend backend = getSciCoreBackend();
-        IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.TRANSPOSE, backend, this);
+        long[] shape = getShape();
+        return transpose(shape.length - 2, shape.length - 1);
+    }
+
+    @Override
+    public @NotNull ITensor transpose(int dimension1, int dimension2) {
+        long[] shape = getShape();
+        long[] newShape = Arrays.copyOf(shape, shape.length);
+        long temp = newShape[dimension1];
+        newShape[dimension1] = newShape[dimension2];
+        newShape[dimension2] = temp;
+        long[] strides = getStrides();
+        long[] newStrides = Arrays.copyOf(strides, strides.length);
+        temp = newStrides[dimension1];
+        newStrides[dimension1] = newStrides[dimension2];
+        newStrides[dimension2] = temp;
+        return view(newShape, newStrides);
     }
 
     @Override

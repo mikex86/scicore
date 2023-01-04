@@ -803,6 +803,8 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor transpose();
 
+    @NotNull ITensor transpose(int dimension1, int dimension2);
+
     @Override
     boolean equals(Object other);
 
@@ -847,6 +849,32 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
     @NotNull ITensor multiply(float value);
 
     @NotNull ITensor multiply(double value);
+
+
+    default @NotNull ITensor times(byte value) {
+        return multiply(value);
+    }
+
+    default @NotNull ITensor times(short value) {
+        return multiply(value);
+    }
+
+    default @NotNull ITensor times(int value) {
+        return multiply(value);
+    }
+
+    default @NotNull ITensor times(long value) {
+        return multiply(value);
+    }
+
+    default @NotNull ITensor times(float value) {
+        return multiply(value);
+    }
+
+    default @NotNull ITensor times(double value) {
+        return multiply(value);
+    }
+
 
     @NotNull ITensor relu();
 
@@ -1031,4 +1059,5 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
      * @throws IOException if an I/O error occurs.
      */
     void readFrom(@NotNull InputStream inputStream) throws IOException;
+
 }
