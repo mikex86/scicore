@@ -209,4 +209,10 @@ public interface ISciCore {
         @NotNull
         public abstract ISciCoreBackend newInstance();
     }
+
+    boolean isTraining();
+
+    void eval();
+
+    void train();
 }

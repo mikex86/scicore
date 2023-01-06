@@ -335,36 +335,36 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
             case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value, nBytes);
             case INT16 -> {
                 ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     shortBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case INT32 -> {
                 IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     intBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case INT64 -> {
                 LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case FLOAT32 -> {
                 FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case FLOAT64 -> {
                 DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case BOOLEAN -> {
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     setBooleanFlat(startFlatIndex + i, value != 0);
                 }
             }
@@ -389,36 +389,36 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
             case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value, nBytes);
             case INT16 -> {
                 ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     shortBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case INT32 -> {
                 IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     intBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case INT64 -> {
                 LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case FLOAT32 -> {
                 FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case FLOAT64 -> {
                 DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case BOOLEAN -> {
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     setBooleanFlat(startFlatIndex + i, value != 0);
                 }
             }
@@ -443,36 +443,36 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
             case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value, nBytes);
             case INT16 -> {
                 ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
                 }
             }
             case INT32 -> {
                 IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     intBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case INT64 -> {
                 LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case FLOAT32 -> {
                 FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case FLOAT64 -> {
                 DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case BOOLEAN -> {
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     setBooleanFlat(startFlatIndex + i, value != 0);
                 }
             }
@@ -497,36 +497,36 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
             case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, (int) value, nBytes);
             case INT16 -> {
                 ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
                 }
             }
             case INT32 -> {
                 IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     intBuffer.put(Math.toIntExact(startFlatIndex + i), (int) value);
                 }
             }
             case INT64 -> {
                 LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case FLOAT32 -> {
                 FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case FLOAT64 -> {
                 DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case BOOLEAN -> {
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     setBooleanFlat(startFlatIndex + i, value != 0);
                 }
             }
@@ -551,36 +551,36 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
             case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, (int) value, nBytes);
             case INT16 -> {
                 ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
                 }
             }
             case INT32 -> {
                 IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     intBuffer.put(Math.toIntExact(startFlatIndex + i), (int) value);
                 }
             }
             case INT64 -> {
                 LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     longBuffer.put(Math.toIntExact(startFlatIndex + i), (long) value);
                 }
             }
             case FLOAT32 -> {
                 FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case FLOAT64 -> {
                 DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case BOOLEAN -> {
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     setBooleanFlat(startFlatIndex + i, value != 0);
                 }
             }
@@ -605,36 +605,36 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
             case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, (int) value, nBytes);
             case INT16 -> {
                 ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
                 }
             }
             case INT32 -> {
                 IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     intBuffer.put(Math.toIntExact(startFlatIndex + i), (int) value);
                 }
             }
             case INT64 -> {
                 LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     longBuffer.put(Math.toIntExact(startFlatIndex + i), (long) value);
                 }
             }
             case FLOAT32 -> {
                 FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     floatBuffer.put(Math.toIntExact(startFlatIndex + i), (float) value);
                 }
             }
             case FLOAT64 -> {
                 DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
                 }
             }
             case BOOLEAN -> {
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     setBooleanFlat(startFlatIndex + i, value != 0);
                 }
             }
@@ -659,36 +659,36 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
             case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value ? 1 : 0, nBytes);
             case INT16 -> {
                 ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) (value ? 1 : 0));
                 }
             }
             case INT32 -> {
                 IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     intBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
                 }
             }
             case INT64 -> {
                 LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     longBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
                 }
             }
             case FLOAT32 -> {
                 FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     floatBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
                 }
             }
             case FLOAT64 -> {
                 DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
                 }
             }
             case BOOLEAN -> {
-                for (int i = 0; i < nElementsInRegion; i++) {
+                for (long i = 0; i < nElementsInRegion; i++) {
                     setBooleanFlat(startFlatIndex + i, value);
                 }
             }

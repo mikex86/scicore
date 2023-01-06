@@ -42,7 +42,7 @@ public class Adam implements IOptimizer {
         );
     }
 
-    private Adam(@NotNull ISciCore sciCore, float initialLearningRate, boolean adaptiveLearningRate, float learningRateDecayFactor, float beta1, float beta2, @NotNull List<ITensor> parameters) {
+    public Adam(@NotNull ISciCore sciCore, float initialLearningRate, boolean adaptiveLearningRate, float learningRateDecayFactor, float beta1, float beta2, @NotNull List<ITensor> parameters) {
         this.sciCore = sciCore;
         this.initialLearningRate = initialLearningRate;
         this.beta1 = beta1;

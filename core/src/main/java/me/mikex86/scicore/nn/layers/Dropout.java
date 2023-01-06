@@ -24,8 +24,15 @@ public class Dropout implements IModule {
     @Override
     public @NotNull ITensor forward(@NotNull ITensor input) {
         ITensor randomValues = sciCore.uniform(DataType.FLOAT32, input.getShape());
-        ITensor states = randomValues.lessThan(p).cast(DataType.FLOAT32);
-        return input.multiply(states);
+        ITensor states = randomValues.lessThan(1f - p).cast(DataType.FLOAT32);
+        ITensor inputDropped = input.multiply(states);
+        ITensor output;
+        if (sciCore.isTraining()) {
+            output = inputDropped.divide(1f - p);
+        } else {
+            output = inputDropped;
+        }
+        return output;
     }
 
     @Override

@@ -1,7 +1,10 @@
 package me.mikex86.scicore.tensor;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
-import me.mikex86.scicore.graph.*;
+import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.graph.IGraphRecorder;
+import me.mikex86.scicore.graph.OperationType;
+import me.mikex86.scicore.graph.OptionBundle;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
@@ -9,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -71,10 +73,10 @@ public abstract class AbstractTensor implements ITensor {
     public ITensor getView(long @NotNull ... indices) {
         long[] shape = getShape();
         validateIndices(indices);
-        long[] strides = ShapeUtils.makeStrides(shape);
+        long[] strides = getStrides();
 
         long[] sliceShape = Arrays.copyOfRange(shape, indices.length, shape.length);
-        long[] sliceStrides = Arrays.copyOfRange(strides, indices.length, strides.length);
+        long[] sliceStrides = ShapeUtils.makeStrides(sliceShape);
 
         long offset = ShapeUtils.getFlatIndex(indices, shape, strides);
         return new View(this, sliceShape, offset, sliceStrides);
@@ -749,22 +751,24 @@ public abstract class AbstractTensor implements ITensor {
     @Override
     @NotNull
     public ITensor transpose() {
-        long[] shape = getShape();
-        return transpose(shape.length - 2, shape.length - 1);
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.TRANSPOSE, backend, this);
     }
 
+    @NotNull
     @Override
-    public @NotNull ITensor transpose(int dimension1, int dimension2) {
+    public ITensor transpose(int dim1, int dim2) {
         long[] shape = getShape();
         long[] newShape = Arrays.copyOf(shape, shape.length);
-        long temp = newShape[dimension1];
-        newShape[dimension1] = newShape[dimension2];
-        newShape[dimension2] = temp;
+        long temp = newShape[dim1];
+        newShape[dim1] = newShape[dim2];
+        newShape[dim2] = temp;
         long[] strides = getStrides();
         long[] newStrides = Arrays.copyOf(strides, strides.length);
-        temp = newStrides[dimension1];
-        newStrides[dimension1] = newStrides[dimension2];
-        newStrides[dimension2] = temp;
+        temp = newStrides[dim1];
+        newStrides[dim1] = newStrides[dim2];
+        newStrides[dim2] = temp;
         return view(newShape, newStrides);
     }
 

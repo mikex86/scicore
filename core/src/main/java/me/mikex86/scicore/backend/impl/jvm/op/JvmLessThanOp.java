@@ -32,14 +32,15 @@ public class JvmLessThanOp implements IBinaryOperation {
         for (long i = 0; i < a.getNumberOfElements(); i++) {
             boolean isLessThan;
             if (a.getDataType().isFloatingPoint()) {
-                isLessThan = a.getDouble(i) < bAsDouble;
+                isLessThan = a.getAsDoubleFlat(i) < bAsDouble;
             } else {
-                isLessThan = a.getLong(i) < bAsLong;
+                isLessThan = a.getAsDoubleFlat(i) < bAsLong;
             }
             if (isLessThan) {
-                result.setBoolean(true, i);
+                result.setBooleanFlat(true, i);
             }
         }
+        result = result.view(a.getShape(), a.getStrides());
         return result;
     }
 

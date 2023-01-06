@@ -662,7 +662,7 @@ public class SciCore implements ISciCore {
                 ITensor probabilitiesAssignedToCorrectLabelsMasked = probabilitiesAssignedToCorrectLabels;
                 if (mask != null) {
                     ITensor tmp = probabilitiesAssignedToCorrectLabels.multiply(mask);
-                    try (ITensor negativeMask = mask.leftMinus(1)) {
+                    try (ITensor negativeMask = mask.leftMinus(1f)) {
                         // TODO: FIX THIS
                         probabilitiesAssignedToCorrectLabelsMasked = tmp.plus(negativeMask);
                     }
@@ -674,7 +674,7 @@ public class SciCore implements ISciCore {
                     if (probabilitiesAssignedToCorrectLabelsMasked != probabilitiesAssignedToCorrectLabels) {
                         probabilitiesAssignedToCorrectLabelsMasked.close();
                     }
-                    try (ITensor meanLogProbabilitiesAssignedToCorrectLabels = logProbabilitiesAssignedToCorrectLabels.mean(-1)) {
+                    try (ITensor meanLogProbabilitiesAssignedToCorrectLabels = logProbabilitiesAssignedToCorrectLabels.mean(-1, false)) {
                         return meanLogProbabilitiesAssignedToCorrectLabels.multiply(-1f);
                     }
                 }
@@ -716,4 +716,22 @@ public class SciCore implements ISciCore {
     public void disableBackendFallback() {
         operationRegistry.disableFallthrough();
     }
+
+    private boolean isTraining = true;
+
+    @Override
+    public boolean isTraining() {
+        return isTraining;
+    }
+
+    @Override
+    public void eval() {
+        isTraining = false;
+    }
+
+    @Override
+    public void train() {
+        isTraining = true;
+    }
+
 }

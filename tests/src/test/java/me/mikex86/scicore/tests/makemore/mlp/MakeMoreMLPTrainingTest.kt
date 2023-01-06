@@ -88,7 +88,7 @@ fun main() {
     jplot.setName("MLP Language Model Training")
     jplot.setXLabel("Step")
     jplot.setYLabel("Loss")
-    val avgLosses = losses.view(-1, 100).mean(1)
+    val avgLosses = losses.view(-1, 100).mean(1, false)
     val lossesArray = FloatArray(avgLosses.numberOfElements.toInt()) { avgLosses.getFloat(it.toLong()) }
     jplot.plot(lossesArray, Color(46, 204, 113), true)
     jplot.save(Path.of("mlplm_loss.png"))

@@ -803,7 +803,7 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor transpose();
 
-    @NotNull ITensor transpose(int dimension1, int dimension2);
+    @NotNull ITensor transpose(int dim1, int dim2);
 
     @Override
     boolean equals(Object other);
@@ -875,6 +875,10 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
         return multiply(value);
     }
 
+    default @NotNull ITensor times(@NotNull ITensor other) {
+        return multiply(other);
+    }
+
 
     @NotNull ITensor relu();
 
@@ -923,22 +927,26 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
     @NotNull ITensor get(@NotNull ITensor... indicesTensors);
 
     @NotNull
-    default ITensor mean(int dimension) {
-        try (ITensor sum = reduceSum(dimension, false)) {
-            return sum.divide(getNumberOfElements());
+    default ITensor mean(int dimension, boolean keepDimensions) {
+        try (ITensor sum = reduceSum(dimension, keepDimensions)) {
+            if (dimension != -1) {
+                return sum.divide(getShape()[dimension]);
+            } else {
+                return sum.divide(getNumberOfElements());
+            }
         }
     }
 
     @NotNull
-    default ITensor variance(int dim, boolean unbiased) {
+    default ITensor variance(int dim, boolean unbiased, boolean keepDimensions) {
         long[] shape = getShape();
         if (dim < 0 || dim >= shape.length) {
             throw new IllegalArgumentException("Invalid dimension: " + dim);
         }
-        try (ITensor mean = mean(dim)) {
+        try (ITensor mean = mean(dim, true)) {
             try (ITensor diff = minus(mean)) {
-                try (ITensor squaredDiff = diff.pow(2)) {
-                    try (ITensor sum = squaredDiff.reduceSum(dim, false)) {
+                try (ITensor squaredDiff = diff.pow(2f)) {
+                    try (ITensor sum = squaredDiff.reduceSum(dim, keepDimensions)) {
                         long nElements = shape[dim];
                         if (unbiased && nElements > 1) {
                             nElements--;
@@ -960,7 +968,7 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
         long nSplits = nElementsInDim / size;
         long nElementsInLastSplit = nElementsInDim % size;
         if (nElementsInLastSplit != 0) {
-            nSplits++;
+            throw new IllegalArgumentException("The size of the last split must be 0, but it is " + nElementsInLastSplit);
         }
         List<ITensor> result = new ArrayList<>();
         long start = 0;
@@ -968,13 +976,12 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
         long[] strides = getStrides();
         for (int i = 0; i < nSplits; i++) {
             long end = start + size;
-            if (i == nSplits - 1 && nElementsInLastSplit != 0) {
-                end = start + nElementsInLastSplit;
-            }
             long[] splitShape = Arrays.copyOf(shape, shape.length);
             splitShape[dim] = end - start;
-            long[] splitStrides = ShapeUtils.makeStrides(splitShape);
-            result.add(new View(this, splitShape, offset, splitStrides));
+            long[] splitStrides = new long[splitShape.length];
+            System.arraycopy(strides, 0, splitStrides, 0, splitShape.length);
+            View view = new View(this, splitShape, offset, splitStrides);
+            result.add(view);
             offset += (end - start) * strides[dim];
             start = end;
         }
@@ -1060,4 +1067,24 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
      */
     void readFrom(@NotNull InputStream inputStream) throws IOException;
 
+    @NotNull
+    default ITensor relayout() {
+        ISciCoreBackend backend = getSciCoreBackend();
+        long[] shape = getShape();
+        DataType dataType = getDataType();
+        ITensor tensor = backend.createTensor(dataType, shape);
+        long[] index = new long[getShape().length];
+        if (dataType.isFloatingPoint()) {
+            do {
+                double value = getAsDouble(index);
+                tensor.setByDouble(value, index);
+            } while (ShapeUtils.incrementIndex(index, shape));
+        } else if (dataType.isInteger()) {
+            do {
+                long value = getAsLong(index);
+                tensor.setByLong(value, index);
+            } while (ShapeUtils.incrementIndex(index, shape));
+        }
+        return tensor;
+    }
 }

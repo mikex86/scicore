@@ -21,15 +21,15 @@ public class LayerNorm implements IModule {
 
     public LayerNorm(@NotNull ISciCore sciCore, int dim) {
         this.dim = dim;
-        this.gamma = sciCore.scalar(1.0);
-        this.beta = sciCore.scalar(0.0);
+        this.gamma = sciCore.scalar(1.0f);
+        this.beta = sciCore.scalar(0.0f);
     }
 
     @Override
     public @NotNull ITensor forward(@NotNull ITensor input) {
-        try (ITensor mean = input.mean(dim);
-             ITensor variance = input.variance(dim, false);
-             ITensor varianceEpsilon = variance.plus(1e-5);
+        try (ITensor mean = input.mean(dim, true);
+             ITensor variance = input.variance(dim, false, true);
+             ITensor varianceEpsilon = variance.plus(1e-5f);
              ITensor std = varianceEpsilon.pow(0.5f);
              ITensor normalized = input.minus(mean).divide(std);
              ITensor rescaled = normalized.multiply(gamma)) {

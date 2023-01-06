@@ -228,7 +228,7 @@ public class JPlot {
         }
         jFrame.repaint();
         jFrame.setVisible(true);
-        jFrame.toFront();
+//        jFrame.toFront();
         if (wait) {
             while (jFrame.isVisible()) {
                 try {

@@ -27,9 +27,9 @@ public class Linear implements IModule {
     public Linear(@NotNull ISciCore sciCore, @NotNull DataType dataType, long inputSize, long outputSize, boolean useBias) {
         this.inputSize = inputSize;
         float k = (float) (1.0 / Math.sqrt(inputSize));
-        this.weights = ((LazyTensor) sciCore.uniform(dataType, outputSize, inputSize).multiply(2 * k).minus(k)).result();
+        this.weights = ((LazyTensor) sciCore.uniform(dataType, outputSize, inputSize).multiply(2f * k).minus(k)).result();
         if (useBias) {
-            this.bias = ((LazyTensor) sciCore.uniform(dataType, outputSize).multiply(2 * k).minus(k)).result();
+            this.bias = ((LazyTensor) sciCore.uniform(dataType, outputSize).multiply(2f * k).minus(k)).result();
         } else {
             this.bias = null;
         }

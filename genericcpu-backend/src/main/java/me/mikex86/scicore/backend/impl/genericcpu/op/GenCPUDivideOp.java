@@ -87,7 +87,7 @@ public class GenCPUDivideOp implements IDifferentiableBinaryOperation {
             // dR/dB = -A * (B^-2)
             // dL/dB = dL/dR * -A * (B^-2)
             try (ITensor bPowNeg2 = B.pow(-2f)) {
-                try (ITensor negativeA = A.multiply(-1)) {
+                try (ITensor negativeA = A.multiply(-1f)) {
                     try (ITensor dRdB = negativeA.multiply(bPowNeg2)) {
                         try (ITensor dLdBTmp = upstreamGradients.multiply(dRdB)) {
                             ITensor dLdB = GradientUtil.sumGradientsOnBroadcastDims(dLdBTmp, B.getShape());

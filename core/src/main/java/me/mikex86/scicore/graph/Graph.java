@@ -128,8 +128,8 @@ public class Graph implements IGraph {
                     ITensor value = nodeWithGradient.getGradient();
                     if (value instanceof LazyTensor lazyTensor) {
                         lazyTensor.result(); // force computation of gradient
-                        gradients.add(lazyTensor); // the instance in the set returned is the lazy wrapper
                     }
+                    gradients.add(value); // the instance in the set returned is the lazy wrapper (if any)
                 }
                 if (nodeWithGradient.requiresGradients()) {
                     if (node instanceof OperationGraphNode operationNode) {
@@ -323,7 +323,9 @@ public class Graph implements IGraph {
             } else {
                 Validator.assertTrue(ShapeUtils.equals(this.upstreamGradient.getShape(), gradient.getShape()), "Accumulative gradients must match shape");
                 this.upstreamGradient.add(gradient);
-                gradient.close();
+                if (!gradient.isDeReferenced()) {
+                    gradient.close();
+                }
             }
         }
 
