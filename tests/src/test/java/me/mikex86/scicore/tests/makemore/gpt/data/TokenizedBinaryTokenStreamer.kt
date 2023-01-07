@@ -12,13 +12,11 @@ class TokenizedBinaryTokenStreamer(private val sciCore: SciCore, tokenFile: Path
 
     private val trainBin = RandomAccessFile(tokenFile.toFile(), "r")
 
-//    private val random = Random(123)
-    private var idx = 0L
+    private val random = Random(123)
 
     override fun get(): Pair<ITensor, ITensor> {
-//        val idx = random.nextLong(trainBin.length() / Short.SIZE_BYTES)
+        val idx = random.nextLong(trainBin.length() / Short.SIZE_BYTES)
         trainBin.seek(idx * Short.SIZE_BYTES)
-        idx += blockSize
         val tokens = IntArray(blockSize + 1)
         val bytes = ByteArray(Short.SIZE_BYTES * (blockSize + 1))
         trainBin.read(bytes)

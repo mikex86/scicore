@@ -35,6 +35,7 @@ fun main() {
     )
 
     val model = GPTModel(sciCore, config)
+
     val optimizer = Adam(sciCore, 2.5e-3f, 0.9f, 0.95f, model.parameters())
 
     val datasetSupplier = TokenizedBinaryTokenStreamer(sciCore, Path.of("openwebtext.bin"), config.blockSize)

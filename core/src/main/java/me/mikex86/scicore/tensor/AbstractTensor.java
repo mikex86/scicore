@@ -1118,8 +1118,6 @@ public abstract class AbstractTensor implements ITensor {
     public void close() {
         if (!deReferenced) {
             deReferenced = true;
-        } else {
-            throw new IllegalStateException("Tensor has already been de-referenced! Make sure to only call close() once. Also check your usage of try-with-resources or .use in Kotlin.");
         }
     }
 

@@ -21,7 +21,7 @@ The concept of a tensor will be introduced, which is a generalisation of a vecto
 While neural networks in their raw form of sufficient complexity are considered universal function approximators, architectures with intent to speed up the learning process in light of the task-specific problem structure are introduced.
 The concept of a recurrent neural network will be introduced as an example of such an architecture, as a way to handle sequential data, while also focusing on their shortcomings.
 The concept of a transformer will be introduced as a way to overcome the shortcomings of recurrent neural networks.
-Lastly, we will introduce the concept of language models, which are a special case of transformers, as well the concept of a chatbot, which is a special case of language models.
+Lastly, we will introduce the concept of language models, as well the concept of a chatbot, which is a special case of language models.
 
 <div style="page-break-after: always;"></div>
 
@@ -2454,7 +2454,7 @@ We will represent the model as a matrix $P$ of size $|V| \times |V|$.
 The matrix $P$ is a probability distribution over all possible tokens, given the previous token.
 A given entry $P_{i,j}$ corresponds to $P(s_j | s_i)$, where $s_i$ is the previous token and $s_j$ is the next token.
 
-We could populate such a matrix given a corpus of text by counting the number of times a token $s_j$ occurs after $s_i$ and deviding it by the number of tokens we have encountered after $s_i$ such that each row $P_k$ sums to 1.
+We could populate such a matrix given a corpus of text by counting the number of times a token $s_j$ occurs after $s_i$ and dividing it by the number of tokens we have encountered after $s_i$ such that each row $P_k$ sums to 1.
 
 For the following example, we will implement a character-level bigram language model trained on names.
 
@@ -2542,7 +2542,7 @@ In this section we will implement a language model based on a multi-layer percep
 We will use the same dataset as in the previous section.
 
 To allow for context longer than one token, we will use a sliding window of size `BLOCK_SIZE` to move over the sequence of tokens of the input text.
-Each ofset of the sliding window will serve as a feature vector for an example of the training set. The label will be the token that follows the sliding window.
+Each offset of the sliding window will serve as a feature vector for an example of the training set. The label will be the token that follows the sliding window.
 We again use a special token `.` to denote the start and end of a sequence.
 The following code shows a possible implementaton of such a sliding window:
 
@@ -2631,6 +2631,7 @@ class MakeMoreMLPNet(sciCore: SciCore) : IModule {
 The architecture consists of an embedding layer, a fully connected layer with a tanh activation function and an output layer that produces logits.
 The logits are intentionally left unnormalized to not tie the model architecture to a specific loss function in favor of nicer inference code.
 In the forward pass we first embed the input sequence by looking up the respective entry for an incoming token in the embedding matrix.
+An embedding serves as a representation of a token in a vector space that is populated via the gradients that flow into the embedding matrix during gradient descent. It thus serves as an abstract representation of a token that is internal to the model and crafted by gradient descent such that it contains useful values that the layers following the embedding layer can make use of to correctly predict the next token in the sequence.
 We then concatinate / flatten the resulting sequence of embeddings, which are then fed into the first fully connected layer.
 The output of the first fully connected layer is then passed through a tanh activation function and then fed into the second fully connected layer, which will learn to produce logits for the next token in the sequence.
 
@@ -2751,3 +2752,731 @@ With a context length of 3, the n-gram model would consist of $27^{3+1}=531441$ 
 has $10643$ parameters. This is a huge difference in terms of model complexity and training time.
 
 # Language modeling using Transformers
+
+Language modeling using Transformers has become a popular approach in recent years. The paper "Language Models are Unsupervised Multitask Learners" first established that large language models when trained on large amounts of text display a wide range of capabilities such as few shot learning simple to complex tasks such as reading comprehension, question answering or summarization, or basic reasoning tasks as an emergent property of predicting the next token in a sequence.
+
+## GPT-like language models
+
+### Tokenization
+GPT-like language models such as GPT2 or GPT3 rely on hardcoded tokenization to transform text into a set of tokens which are then fed into the model.
+OpenAI uses a form of byte-pair encoding to tokenize the text into a vocabulary of 50257 tokens.
+We will first implement a tokenizer that conforms to the open source `tiktoken` python package released by OpenAI.
+
+At their core, an tokenizer in the `tiktoken` package is represented by two files, which are downloaded from OpenAI's repository:
+
+- `encoder.json`: A JSON file that maps tokens to their respective token IDs
+- `vocab.bpe`: A text file that contains the byte-pair encoding rules
+
+The following snippet shows the first 50 entries of the `encoder.json` file for the `gpt2` tokenizer:
+
+```json
+{
+"!": 0, "\"": 1, "#": 2, "$": 3, "%": 4, "&": 5, "'": 6, "(": 7, ")": 8, "*": 9, "+": 10, ",": 11, "-": 12, ".": 13, "/": 14, "0": 15, "1": 16, "2": 17, "3": 18, "4": 19, "5": 20, "6": 21, "7": 22, "8": 23, "9": 24, ":": 25, ";": 26, "<": 27, "=": 28, ">": 29, "?": 30, "@": 31, "A": 32, "B": 33, "C": 34, "D": 35, "E": 36, "F": 37, "G": 38, "H": 39, "I": 40, "J": 41, "K": 42, "L": 43, "M": 44, "N": 45, "O": 46, "P": 47, "Q": 48, "R": 49, ...
+}
+```
+
+The first tokens map to the ASCII characters and other single-character unicode symbols, while the remaining tokens map to subword or word tokens, word-punctuation permutations or uninterpretable character compounds.
+
+For example, we can observe almost all words having a token representing the word itself with a leading `\u0120` character (a `Ġ`).
+
+```json
+{
+    ...
+     "\u0120reinforced": 23738, "Record": 23739, "\u0120Survivor": 23740, "GHz": 23741, "\u0120screws": 23742, "parents": 23743, "\u0120oceans": 23744, "mares": 23745, "\u0120brakes": 23746, "vasive": 23747, "\u0120hello": 23748,
+    ...
+}
+```
+
+Note that this is not actually supposed to represent the rather rare combination of a leading `\u0120` character and the word `hello`, but rather the word `hello` with a leading space character. The `\u0120` character is a rather obscure artifact of the way OpenAI's tokenizer was implemented.
+
+The following code snippet shows the `encode` function of the OpenAI-conform `GPT2Tokenizer`:
+
+```kotlin
+fun encode(text: String): List<Int> {
+    val bpeTokens = mutableListOf<Int>()
+    val tokens = pattern.findAll(text).map { it.value }.toList()
+    for (token in tokens) {
+        bpeTokens.addAll(
+            token.toByteArray(Charsets.UTF_8).joinToString("") { byteEncoder[it]!! }
+                .let { bytesAsAsciiChars -> bpe(bytesAsAsciiChars).split(" ") }
+                .map { bpeToken -> encoder[bpeToken] ?: throw IllegalArgumentException("Unknown token: $bpeToken") }
+        )
+    }
+    return bpeTokens
+}
+```
+Note that we first split the text into a list of potential tokens by an initial regular expression. While this initial regex in part limits the potential course-granularity of the tokenizer, it is a valid optimization, as our goal is not exactly compression here, but rather to obtain a reasonable representation of the text as a set of tokens.
+For example, the list of regular expression matches produced by the regex for the following text "Hello, world! This is an example sentence." is the following:
+```json
+["Hello", ",", "world", "!", "This", "is", "an", "example", "sentence", "."]
+```
+We will from now on refer to this list of tokens as token candidates.
+We then iterate over this list of token candidates and encode each string as a UTF-8 encoded byte array.
+At this point, the rather obscure `\u0120` character will start to make sense. For each byte of the byte array, we encode each byte as a string using the `byteEncoder` mapping, which we will now take a look at:
+
+```kotlin
+private val byteEncoder: Map<Byte, String> = run {
+    val bs = ((33..126).toList() + (161..172).toList() + (174..255).toList()).toMutableList()
+    val cs = bs.toMutableList()
+    var n = 0
+    for (b in 0..255) {
+        if (b !in bs) {
+            bs.add(b)
+            cs.add(256 + n)
+            n += 1
+        }
+    }
+    bs.map { it.toUByte().toByte() }.zip(cs.map { it.toChar().toString() }).toMap()
+}
+```
+
+What this mapping achieves that every character not in the intervals $[33, 126]$ and $[161, 172]$ and $[174, 255]$ is mapped to a unique character outside the ASCII range, crossing into multi-byte UTF-8 characters, while all other characters are mapped to their unchanged string representations. However dangerous and lossy this operation my seem, it is in fact a fully reversible operation when the mapping is reversed. The reason for this rather strange encoding is this massively decreases the number of byte-pair encoding rules in the `vocab.bpe` file, as the thousands of unicode characters now map to an arrangement of 256 strings according to their multi-byte representations.
+
+We will now look at this byte-pair encoding in more detail. After a token candidate is mapped to a sequence of byte-string representations, we join the sequence of byte-strings into a single string and then apply the byte-pair encoding rules to the string.
+
+The byte-pair encoding rules are stored in the `vocab.bpe` file, which we will now take a look at:
+
+```text
+#version: 0.2
+Ġ t
+Ġ a
+h e
+i n
+r e
+o n
+Ġt he
+e r
+Ġ s
+a t
+Ġ w
+...
+```
+
+
+The `vocab.bpe` file is structured such that each line represents a byte-pair encoding rule, indicating that the sequence of the left and the sequence of the right can be merged into a single sequence.
+Each rule has a rank, indicated by its line-number. A higher rank indicates the rule takes precedence over rules of lower rank. Therefore, the last line of the file is the rule of highest rank.
+
+To understand the structure of this file better, we will now take a look at the `bpe` function of the tokenizer:
+
+```kotlin
+private fun bpe(token: String): String {
+    ...
+    var word = token.toCharArray().map { it.toString() }
+    var pairs = getPairs(word)
+
+    if (pairs.isEmpty()) {
+        return token
+    }
+    ...
+}
+```
+
+The `bpe` function takes a token candiate string, splits it into its individual characters, each of which is represented as a string, and then obtains a set of pairs of adjacent characters using the `getPairs`, which is function is defined as follows:
+
+```kotlin
+private fun getPairs(chars: List<String>): Set<Pair<String, String>> {
+    val pairs = mutableSetOf<Pair<String, String>>()
+    var prevChar = chars[0]
+    for (char in chars.drop(1)) {
+        pairs.add(prevChar to char)
+        prevChar = char
+    }
+    return pairs
+}
+```
+
+The `getPairs` function simply returns a set of pairs of adjacent characters in the token candidate string. For example, the token candidate string `Hello` will be split into the list of strings `["H", "e", "l", "l", "o"]` and the set of pairs of adjacent characters will be the set of pairs `{"H" to "e", "e" to "l", "l" to "l", "l" to "o"}`.
+Note that as merge rules get applied, pairs can also be pairs of adjecent merged multi-character-sequences.
+If `getPairs` returns an empty set, it means that the token is a single character, which will later be represented as a single token. Note that the job of the `bpe` function is only to partition a token candidate in such a way that a lookup for each of the output string-parts into the `encoder` map will return the correct token.
+
+During initialization of the `GPTTokenizer`, we construct the following mapping:
+
+```kotlin
+private val bpeRanks = bpeMerges.withIndex().associate { (i, pair) -> pair to i }
+```
+where `bpeMerges` is a list of all byte-pair encoding rules in the `vocab.bpe` file as a `List<Pair<String, String>>`.
+
+The `bpe` function then iteratively applies the byte-pair encoding rules of the pair of highest rank, until no more merge rules can be applied.
+This is implemented as follows:
+
+```kotlin
+while (true) {
+    // Find the pair of highest rank
+    val bigram = run {
+        var minBigram = pairs.first()
+        var minRank = bpeRanks[minBigram] ?: Int.MAX_VALUE
+        for (pair in pairs) {
+            val rank = bpeRanks[pair] ?: Int.MAX_VALUE
+            if (rank < minRank) {
+                minBigram = pair
+                minRank = rank
+            }
+        }
+        if (minRank == Int.MAX_VALUE) {
+            return@run null
+        }
+        minBigram
+    }
+    val (first, second) = bigram ?: break
+    val newWord = mutableListOf<String>() // list of merged sequences after this iteration
+    var i = 0 // current index
+    while (i < word.size) {
+        // locate the pair in the string
+        val j = with(word) {
+            for (j in i..lastIndex) {
+                if (this[j] == first) {
+                    return@with j
+                }
+            }
+            return@with null
+        }
+        // if the pair is not found, add the rest of the word to the new word as un-merged sequences and break
+        if (j == null) {
+            newWord.addAll(word.subList(i, word.size))
+            break
+        }
+        // Add all sequences before the pair to the new string (as un-merged sequences)
+        newWord.addAll(word.subList(i, j))
+        i = j
+
+        i += if (word[i] == first && i < word.size - 1 && word[i + 1] == second) {
+            // perform the merge
+            newWord.add(first + second)
+            2 // advance to after the current pair
+        } else {
+            // if j points to first but not not second, add the first sequence to the new word as un-merged sequence
+            newWord.add(word[i])
+            1
+        }
+    }
+    word = newWord
+    if (word.size == 1) {
+        break // no further merges possible
+    }
+    pairs = getPairs(word) // construct pairs of possibly multi-char sequences
+}
+```
+
+After partitioning the token candidate string into the list of string-parts for which tokens exist, we look up the respective token ids in the `encoder` map constructed from the `vocab.json` file and return the list of token ids.
+
+Decoding this list of tokens again is a simple lookup in the `decoder` map constructed from the `vocab.json` applying the `byteDecoder` mapping, which was constructed as the inverse to the `byteEncoder` mapping, which re-interprets our string-represented UTF-8 bytes with their corresponding UTF-8 bytes. We then decode the UTF-8 bytes into a string.
+
+```kotlin
+fun decode(tokens: List<Int>): String {
+    val text = tokens.joinToString("") { decoder[it] ?: throw IllegalArgumentException("Unknown token: $it") }
+    return text.toCharArray()
+            .map { byteDecoder[it.toString()]!! }
+            .toByteArray()
+            .decodeToString()
+}
+```
+
+Using this encoder, we can now encode the text `This is an example sentence! Hällö wörld!` as the following list of tokens:
+
+```json
+[1212, 318, 281, 1672, 6827, 0, 367, 11033, 297, 9101, 266, 30570, 335, 0]
+```
+
+Decoding this list of tokens will result in the original text: `"This is an example sentence! Hällö wörld!"`.
+
+This produces an identical result to OpenAI's GPT-3 tokenizer API (https://beta.openai.com/tokenizer):
+
+![gpt3_tokenizer_api](./figures/gpt3_tokenizer_api.png)
+![gpt3_tokenizer_api_2](./figures/gpt3_tokenizer_api_2.png)
+
+### Training a GPT-like model
+We will now train a GPT-like model on OpenWebText, an open source re-creation of the WebText dataset that was used by OpenAI in the original GPT-2 paper, while exploring the transformer architecture with this hands-on example. While we will be training a much smaller model than the smallest GPT-2 version, the only difference between our GPT-2 implementation and the original GPT-2 model will be a config parameter and lack of computational resources.
+
+The transformer architecture was first introduced in the paper "Attention is all you need" by Vaswani et al. 2017 as a proposed architecture for language translation in sequence to sequence tasks. The architecture has since proven to be much more versatile and powerful than originally thought and has been successfully used in a wide range of tasks such as language modeling, image captioning or even object detection.
+
+To understand the power of the transformer, we could first ask the question, why have RNN-language models not been scaled to model sizes of 175B parameters?
+The answer is that RNNs are not very well suited for our hardware. RNNs are sequential in their very design an each step of the RNN has a dependency on previously computed results and thus cannot be computed in parallel. With Moore's law slowing down, GPUs have been the record holders for FLOP counts ever since the early 2000s. With GPUs being turing-complete, flexible, programable accelerators, they have proven to be the perfect platform for training deep learning models. However, as GPUs obtain their performance by executing many operations in parallel on thousands of cores, the ideal model architecture should be embarrassingly parallel. The transformer architecture has been designed with large scale parallelization in mind and distributed transformer implementations can scale to hundreds of GPUs for not only training but also inference.
+
+We will now take a look at the transformer architecture in more detail with the specific example of a GPT2-like language model implemented in SciCore.
+
+We will first take a look at our configuration object for the GPT2 model:
+
+```kotlin
+data class GPTConfig(
+    val vocabSize: Int,
+    val blockSize: Int = 1024,
+    val nLayers: Int = 12,
+    val nHeads: Int = 12,
+    val nEmbed: Int = 768,
+    val dropout: Float = 0.1f,
+)
+```
+
+The configuration object contains the following parameters:
+- vocabSize: The size of the vocabulary, which is the number of unique tokens in the dataset. This thus also controls the number of entries in the word embedding matrix.
+- The blockSize parameter controls the length of the sequence that the language model processes. The number of tokens of context and the number of tokens to predict must in total be less or equal to the block size. The block size also controls the number of entries in the positional embedding matrix.
+- The number of layers controlls the number of transformer blocks in the model.
+- The number of heads controls the number of attention heads for the causal self-attention layer in the transformer block.
+- The number of embedding dimensions controls the number of dimensions used to represent a token in the word embedding matrix.
+- The dropout parameter controls the probability of an element being zeroed out at various stages during the forward pass of the model. This is a regularization technique to prevent overfitting.
+
+We will now look at the main `GPTModel` class:
+
+```kotlin
+class GPTModel(sciCore: ISciCore, config: GPTConfig) : IModule {
+
+    private val wte = sciCore.gaussian(DataType.FLOAT32, config.vocabSize.toLong(), config.nEmbed.toLong())
+    private val wpe = sciCore.gaussian(DataType.FLOAT32, config.blockSize.toLong(), config.nEmbed.toLong())
+    private val dropout = Dropout(sciCore, config.dropout)
+    private val blocks = (0 until config.nLayers).map { Block(sciCore, config) }
+    private val lnFin = LayerNorm(sciCore, 2)
+    private val lmHead = Linear(sciCore, DataType.FLOAT32, config.nEmbed.toLong(), config.vocabSize.toLong(), false)
+
+    override fun forward(input: ITensor): ITensor {
+        return input
+            .use { x -> wte[x] }
+            .use { x ->
+                sciCore
+                    .arange(0, input.shape[1], 1, DataType.INT64)
+                    .view(1, input.shape[1])
+                    .use { pos ->
+                        x.plus(wpe[pos])
+                    }
+            }
+            .use { x -> dropout(x) }
+            .use { x ->
+                blocks.fold(x) { acc, block ->
+                    block(acc)
+                }
+            }
+            .use { x -> lnFin(x) }
+            .use { x -> lmHead(x) }
+    }
+
+    override fun subModules(): List<IModule> {
+        return listOf(dropout, *blocks.toTypedArray(), lnFin)
+    }
+
+    override fun parameters(): List<ITensor> {
+        return super.parameters()
+            .toMutableList()
+            .apply {
+                add(wte)
+                add(wpe)
+            }
+    }
+}
+```
+
+In the forward pass, our model receives a list of tokens of at most `config.blockSize` tokens. The first step is to look up the word embeddings for each token in the input sequence. The word embeddings are stored in the `wte` matrix and is optimized via gradient descent such the embedding vector provides helpful information for future layers to correctly predict the next token. In the next stage, we introduce positional embeddings. As the transformer is a non-sequential architecture by nature, temporal information needs to be explicitly provided for each part of the sequence for the set of tokens not to be interpreted as "a bag of words". We first create a tensor of indices from 0 to `input.shape[1]` representing the sequence length. The `wpe` matrix is a parameter of the model optimized via gradient descent such that adding the positional embeddings indexed at `wpe[pos]` where `pos` is the temporal index in the interval $[0, blockSize]$ provides helpful information for future layers to correctly predict the next token. More primitive variations of positional encodings have been used in the past, such as sinusoidal positional encodings, where the temporal dimension is encoded as $sin(t)$ values for even indices and $cos(t)$ values for odd indices. However, simply defining a positional embedding provides more flexibility to the model to learn about the temporal dimension of the sequence. The next step is to apply dropout to the input sequence. Dropout will simply generate a tensor of equal shape populated with uniformly distributed random values in the range $\mathcal{U}(0, 1)$ and transform it into a tensor of boolean states indicating whether a particular element is greater than $1 - p$ where $p$ is the dropout probability. The input is then multiplied by the tensor of states, resulting in a tensor of the same shape with a fraction of the elements set to zero. This is a regularization technique to prevent overfitting. The next step is to apply the transformer blocks to the input sequence. We will go into further detail about the transformer later. The last step is to apply a layer normalization to activations, which will re-scale the distribution of activations to mean $\theta_1$ and variance $\theta_2$ which are learned parameters of the model. The `lmHead` or language model head is a linear layer that maps the activations of the last layer to the vocabulary size to produce unnormalized logits for the prediction at time step $t$.
+Note that the shape of this the logit tensor is $batchSize \times seqLen \times vocabSize$. Training the model such that $Y_t = X_{t+1}$ will result in the logits at index $seqLen - 1$ for dimension $1$ to be the next character in the sequence.
+When training, we can then use these logits to compute the cross entropy loss between the logits and the target tokens.
+When generating text, we can use the softmax function to normalize the logits and sample from the resulting probability distribution to get the next token in the sequence. Appending the sampled token to the input sequence and repeating the inference process will allow us to generate text of arbitrary length.
+
+We will now take a look at the structure of a transformer block:
+
+```kotlin
+class Block(sciCore: ISciCore, config: GPTConfig) : IModule {
+
+    private val ln1 = LayerNorm(sciCore, 2)
+    private val attn = CausalSelfAttention(sciCore, config)
+    private val ln2 = LayerNorm(sciCore, 2)
+    private val mlp = MLP(sciCore, config)
+
+    override fun forward(input: ITensor): ITensor {
+        var residualH: ITensor
+        return ln1(input) 
+            .use { h -> attn(h) }
+            .use { h -> h.plus(input) }
+            .also { h -> residualH = h }
+            .use { h -> ln2(h) }
+            .use { h -> mlp(h) }
+            .use { h -> h.plus(residualH) }
+    }
+
+}
+```
+
+A transformer block first applies a layer normalization to the input sequence. The activations are then fed into the causal self-attention layer. We will discuss the causal self-attention layer in more detail later. We then add the input tensor to the current activations again. This serves as a residual connection to the input sequence. The goal of this is to produce a more direct pathway for gradients to flow to different depths along the transformer block, as the backwards pass of a plus operator simply distributes the upstream gradients to all of its inputs. Before we apply the next layer normalization and go into the multi-layer perceptron, we put aside a copy of the activations for the second residual connection which will be added to the output of the multi-layer perceptron. The next layer normalization is applied to the activations and then fed into the multi-layer perceptron. The multi-layer perceptron is a simple feed-forward neural network with two linear layers and a GeLU activation function in between with dropout. The output of the multi-layer perceptron is then added to the activations from the second residual connection. The output of the transformer block is then returned.
+
+We will now take a look at the causal self-attention layer:
+
+```kotlin
+class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IModule {
+
+    private val cAttn = Linear(sciCore, DataType.FLOAT32, config.nEmbed.toLong(), config.nEmbed * 3L, true)
+
+    private val cProj = Linear(sciCore, DataType.FLOAT32, config.nEmbed.toLong(), config.nEmbed.toLong(), true)
+
+    private val attnDropout = Dropout(sciCore, config.dropout)
+
+    private val residDropout = Dropout(sciCore, config.dropout)
+
+    override fun forward(x: ITensor): ITensor {
+        val (batchSize, seqLen, embedDim) = x.shape
+        var attnV: ITensor
+        return cAttn(x) // x: (batch, seq, embed), cAttn: (batch, seq, embed*3)
+            .use { h -> h.split(config.nEmbed, 2) } // list of 3 tensors: (batch, seq, embed)
+            .use { (q, k, v) ->
+                Triple(
+                    q.view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads),
+                    k.view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads),
+                    v.view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads)
+                )
+            }
+            .let { (q, k, v) ->
+                Triple(
+                    q.transpose(1, 2),
+                    k.transpose(1, 2),
+                    v.transpose(1, 2)
+                )
+            }
+            .let { (q, k, v) ->
+                Triple(
+                    q.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads),
+                    k.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads),
+                    v.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads)
+                )
+            }
+            .let { (q, k, v) ->
+                Pair(q, k).use { _, _ ->
+                    q.matmul(k, false, true) * (1.0f / sqrt(k.shape.last().toFloat()))
+                }.also {
+                    attnV = v
+                }
+            }
+            .use { att ->
+                val attnMaskMul = sciCore.zeros(DataType.FLOAT32, seqLen, seqLen)
+                val attnMaskAdd = sciCore.zeros(DataType.FLOAT32, seqLen, seqLen)
+                // triangle mask for causal attention
+                for (i in 0 until seqLen) {
+                    for (j in 0..i) {
+                        attnMaskMul.setFloat(1f, i, j)
+                    }
+                    for (j in i + 1 until seqLen) {
+                        attnMaskAdd.setFloat(Float.NEGATIVE_INFINITY, i, j)
+                    }
+                }
+                att * attnMaskMul + attnMaskAdd
+            }
+            .use { att ->
+                att.softmax(2)
+            }
+            .use { att ->
+                att.view(batchSize * config.nHeads, seqLen, seqLen)
+            }
+            .use { att ->
+                attnDropout(att)
+            }
+            .use { att ->
+                att.matmul(attnV)
+            }
+            .use { att ->
+                att.view(batchSize, config.nHeads.toLong(), seqLen, embedDim / config.nHeads)
+            }
+            .use { y ->
+                y.transpose(1, 2).view(batchSize, seqLen, embedDim)
+            }
+            .use { y ->
+                cProj(y)
+            }
+            .use { y ->
+                residDropout(y)
+            }
+    }
+
+    override fun subModules(): List<IModule> {
+        return listOf(cAttn, cProj, attnDropout, residDropout)
+    }
+
+}
+```
+
+The attention mechanism may be the most complicated part of the transformer. Its principles are loosely inspired by retrieval systems.
+To understand this analogy better, lets first look at something that already looks like a retrieval operation - our word embeddings.
+
+In the first stages of the language model, we obtain embedding vectors for each token of the input sequence via `wte[input]`. This is the most literal definition of a lookup. Now, the same operation can be expressed less efficiently as a matrix multiplication with a one-hot encoded input vector.
+
+```kotlin
+val inputToken = tokenizer.encode("Hello")[0]
+val oneHot = sciCore.zeros(DataType.FLOAT32, 1, vocabSize)
+oneHot.setFloat(1f, 0, inputToken)
+oneHot.matmul(wte)
+```
+
+Now, think of a less clear case, where our input is not a clear one-hot vector, but more than one component is populated with a non-zero value, which can also be $]0, 1[$.
+    
+```kotlin
+val inputTokens = tokenizer.encode("car boat")
+val mutipleKindofHot = sciCore.zeros(DataType.FLOAT32, 1, vocabSize)
+inputTokens.forEach { oneHot.setFloat(0.5f, 0, it) }
+mutipleKindofHot.matmul(wte)
+```
+
+We have now obtained not the word embedding vector for one word, but a weighted sum of the embeddinfs for the words $0.5 \times "car" + 0.5 \times "boat"$. This illustrates the basis of a more loose definition of a retrival system.
+
+In the forward pass of the causal self-attention layer, a linear layer called the `cAttn` is applied to the input tensor. The input tensor at this point in time has the shape $batchSize \times sequenceLength \times embeddingSize$. The `cAttn` layer is constructed such that the output is of the shape $batchSize \times sequenceLength \times 3 * embeddingSize$.
+We split the output into three tensors of the shape $batchSize \times sequenceLength \times embeddingSize$ and call them $q$, $k$ and $v$ for query, key and value respectively. The query and key tensors are then reshaped to the shape $batchSize \times sequenceLength \times numHeads \times headSize$ where $headSizes$ is derived from $embeddingSize / numHeads$. We then transpose such that $headSize$ is the least significant dimension. This is done to allow for a matrix multiplication between the query and key tensors, where the key is virtually transposed as part of the matrix multiplication. This creates a tensor of the shape $batchSize \times numHeads \times sequenceLength \times sequenceLength$. This tensor can be interpreted as different tokens of the input sequence "attending each other" for a certain number of attention heads.
+The following figure shows the attention matrix of the second attention head in the first attention block after the softmax and attention mask has been applied of a trained GPT2-model for the input `"User: Hello how are you?\nBot: I am an artificial intelligence to assist you with your questions.\nUser: What is the CUDA programming language?\nBot:"`:
+
+![attention_matrix_gpt2](figures/attention_matrix_gpt2.png)
+
+While the attention matrix has no obligation to be interpretable to us, we can observe the the subject tokens `["CU", "DA", "programming", "language"]` that the user is asking about as well as the verb of the question `"is"` clearly attending with the "What" token.
+The figure also perfectly illustrates the need for a triangular mask applied to the attention matrix. The mask is applied to the attention matrix such that the attention of a token to all tokens that come after it is set to zero. This is done to prevent the model from "cheating" by looking at the future tokens of the input sequence. This is the causal part of the causal self-attention layer.
+
+After applying another dropout layer, the attention matrix is multiplied with the value tensor `attnV`.
+The value tensor `attnV` was created by the `cAttn` linear layer and the subsequent split into the query, key and value tensors. Given its shape of $batchSize \times sequenceLength \times headSize$ and the input shape to `cAttn` of $batchSize \times sequenceLength \times embeddingSize$, the value tensor can be interpreted as a compression of the incoming embedding vectors of $embeddingSize$ dimensions to $headSize$ dimensions, as $headSize$ is derived from $embeddingSize / numHeads$ and thus smaller than $embeddingSize$, if $numHeads$ is greater than 1.
+The matrix multiplication of `att` with `attnV` corresponds to the loose retrieval system, where the attention matrix controls the weighted sum of embedding compressions to retrieve.
+
+We then transpose dimensions 1 and 2 to re-align the dimensions $numHeads$ in a non-strided manner such that they can be reshaped to the shape $batchSize \times sequenceLength \times embeddingSize$ again.
+
+The output of the causal self-attention layer is then passed through a final linear layer and a dropout layer. Note that this operation does not change the shape of the activations.
+
+#### Training
+With our model architecture implemented, we can now move on to creating a dataset and training the model.
+As already mentioned, we will use the OpenWebText corpus for training. The dataset aims to create OpenAI's proprietary "WebText" dataset occording to the GPT-2 paper.
+The dataset can be downloaded from https://huggingface.co/datasets/openwebtext.
+
+
+For preprocessing we will write a small python script to download the dataset from huggingface and tokenize the dataset using the `tiktoken` python package. We will then write the results in a tightly packet binary file, where each token is represented as a Little-endian 16-bit unsigned integer. This is possible as the vocabulary size of the GPT-2 model is 50257.
+
+```python
+import tiktoken
+from datasets import load_dataset
+
+dataset = load_dataset("openwebtext")
+enc = tiktoken.get_encoding("gpt2")
+
+if __name__ == "__main__": # needed because of multiprocessing weirdness on Windows because fork() does not exist
+    def process(example):
+        global enc
+        tokens = enc.encode(example["text"])
+        tokens.append(enc.eot_token_id)
+        return tokens
+    
+    train_ds = dataset["train"].map(process, batched=True, num_proc=4, remove_columns=["text"])
+
+    with open("openwebtext.bin", "wb") as f:
+        for tokens in train_ds:
+            binary = struct.pack("<" + "H" * len(tokens), *tokens)
+            f.write(binary)
+
+```
+
+We can then write a simple dataset supplier that reads the binary file and returns input tokens and targets for the model to train on.
+
+```kotlin
+class TokenizedBinaryTokenStreamer(private val sciCore: SciCore, tokenFile: Path, private val blockSize: Int) :
+    Supplier<Pair<ITensor, ITensor>> {
+
+    private val trainBin = RandomAccessFile(tokenFile.toFile(), "r")
+
+    private val random = Random(123)
+
+    override fun get(): Pair<ITensor, ITensor> {
+        val idx = random.nextLong(trainBin.length() / Short.SIZE_BYTES)
+        trainBin.seek(idx * Short.SIZE_BYTES)
+        val tokens = IntArray(blockSize + 1)
+        val bytes = ByteArray(Short.SIZE_BYTES * (blockSize + 1))
+        trainBin.read(bytes)
+        for (i in 0 until blockSize + 1) {
+            // read little endian unsigned shorts
+            tokens[i] = (bytes[i * Short.SIZE_BYTES].toInt() and 0xFF) or
+                    ((bytes[i * Short.SIZE_BYTES + 1].toInt() and 0xFF) shl 8)
+        }
+        val x = sciCore.array(tokens.sliceArray(0 until blockSize))
+        val y = sciCore.array(tokens.sliceArray(1 until tokens.size))
+        return x to y
+
+    }
+
+}
+```
+
+We can now define a simple training loop that trains the model on the dataset.
+
+```kotlin
+fun main() {
+    val sciCore = SciCore()
+    sciCore.seed(123)
+    sciCore.setBackend(ISciCore.BackendType.CPU)
+
+    // tiny gpt
+    val config = GPTConfig(
+        vocabSize = 50257,
+        nLayers = 2,
+        nHeads = 4,
+        nEmbed = 32,
+        blockSize = 256,
+    )
+
+    val model = GPTModel(sciCore, config)
+    val optimizer = Adam(sciCore, 2.5e-3f, 0.9f, 0.95f, model.parameters())
+
+    val datasetSupplier = TokenizedBinaryTokenStreamer(sciCore, Path.of("openwebtext.bin"), config.blockSize)
+
+    val trainIt = DatasetIterator(BATCH_SIZE, datasetSupplier)
+
+    sciCore.train()
+
+    for (step in 0 until N_TRAINING_STEPS) {
+        sciCore.backend.operationRecorder.scopedRecording {
+            val batch = trainIt.next()
+            batch.use { x, y ->
+                model(x)
+                    .let { logits -> sciCore.crossEntropy(logits.view(-1, logits.shape.last()), y.view(-1)) }
+                    .use { loss ->
+                        optimizer.step(loss)
+                    }
+            }
+        }
+    }
+    println("Finished training")
+    model.save(Path.of("ckpts/tiny-gpt2.scm"))
+}
+```
+
+Note that this model only has approximately 1.6 million parameters and that we will only train it for 500 steps, as this is only for demonstration purposes.
+Training the model for 500 steps will result in the following loss curve:
+
+![tinygpt2-lossplot](./figures/tinygpt2-lossplot.png)
+
+We can now use the model to generate text. The following code snippet shows a function which iteratively samples from the probability distribution output by the model and appends the sampled token to the prompt. The `top1` parameter determines whether the model should sample from the distribution by simply taking the token with the highest probability or whether it should sample from the distribution randomly proportional to the probability of each token. The `temperature` parameter is used to scale the unnormalized probability distribution before it is passed to the softmax function. A higher temperature will result in a more uniform distribution, while a lower temperature will result in a more peaked distribution. While a temperature of 0 is not possible, as the temperature approaches 0, the distribution will approach a one-hot distribution for the token with the highest probability.
+Note that the output of the model will be a tensor of shape $batchSize \times sequenceLength \times vocabSize$. We are only interested in the last token of the sequence, so we index into the tensor with `seqLen - 1` to get the logits for the last token of the sequence.
+
+```kotlin
+fun generateText(
+    sciCore: SciCore,
+    prompt: String,
+    numTokens: Int,
+    model: GPTModel,
+    tokenizer: GPTTokenizer,
+    top1: Boolean = false,
+    temperature: Float = 1.0f
+): String {
+    val promptTokens = tokenizer.encode(prompt).toMutableList()
+    val outputStringBuilder = StringBuilder()
+
+    for (i in 0 until numTokens) {
+        val input = sciCore.array(promptTokens.toIntArray())
+            .view(1, -1)
+        val seqLen = input.shape.last()
+        sciCore.backend.operationRecorder.scopedRecording {
+            model(input)
+                .let { logits ->
+                    logits / temperature
+                }
+                .let { logits ->
+                    logits.softmax(2)
+                }
+                .use { blockLogits -> blockLogits[LongRange.ALL, seqLen - 1, LongRange.ALL] }
+                .use { probs ->
+                    if (!top1) {
+                        sciCore.multinomial(
+                            probs.view(1, -1),
+                            1
+                        )
+                    } else {
+                        probs.argmax(0)
+                    }
+                }
+                .use { nextToken ->
+                    nextToken.getAsInt(0)
+                }
+                .let { nextToken ->
+                    val text = tokenizer.decode(listOf(nextToken))
+                    outputStringBuilder.append(text)
+                    promptTokens.add(nextToken)
+                }
+        }
+    }
+    return outputStringBuilder.toString()
+}
+```
+
+We can now load the model and use it to generate text.
+
+```kotlin
+fun main() {
+    val sciCore = SciCore()
+    sciCore.seed(123)
+    sciCore.setBackend(ISciCore.BackendType.CPU)
+
+    val config = GPTConfig(
+        vocabSize = 50257,
+        nLayers = 2,
+        nHeads = 4,
+        nEmbed = 32,
+        blockSize = 256,
+    )
+
+    val tokenizer = GPTTokenizer.getEncoder(
+        Path.of("encoder.json"),
+        Path.of("vocab.bpe"),
+    )
+
+    val model = GPTModel(sciCore, config)
+    model.load(Path.of("ckpts/tiny-gpt2.scm"))
+
+    val prompt = "Hello, my name is "
+    val numTokens = 10
+    val output = generateText(sciCore, prompt, numTokens, model, tokenizer, false, 0.01f)
+    println("Prompt: $prompt")
+    println("Completion: $output")
+}
+```
+
+Generating text with a temperature of 0.01 results in the following rather nonsensical output:
+
+```
+Prompt: Hello, my name is
+[06:30:54] [main/DEBUG]: Operation MULTIPLY found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation MINUS found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation RESHAPE found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation GET found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation REDUCE_SUM found in backend JvmBackend
+[06:30:54] [main/DEBUG]: Operation DIVIDE found in backend JvmBackend
+[06:30:54] [main/DEBUG]: Operation RESHAPE found in backend JvmBackend
+[06:30:54] [main/DEBUG]: Operation PLUS found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation LESS_THAN found in backend JvmBackend
+[06:30:54] [main/DEBUG]: Operation CAST found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation DIVIDE found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation REDUCE_SUM found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation POW found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation MATMUL found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation EXP found in backend GenCPUBackend
+[06:30:54] [main/DEBUG]: Operation TANH found in backend GenCPUBackend
+Prompt: Hello, my name is 
+Completion:  ShepardFourth affiliation withheld legality delim affiliation Dinner stroke successive
+```
+
+If we wanted to train a model equivalent to GPT2-xl, we would simply change the following parameters in the configuration.
+
+```kotlin
+val config = GPTConfig(
+    vocabSize = 50257,
+    nLayers = 48,
+    nHeads = 25,
+    nEmbed = 1600,
+    blockSize = 1024,
+)
+```
+
+However, training such a model would require a lot of computational resources and would take a long time to train. Thus the conclusion of this section is rather anticlimactic. However, we created all the necessary components to train a GPT-like model from scratch.
+
+## Chatbots
+
+The paper "Language Models are Unsupervised Multitask Learners" established a language model's capability to perform a variety of tasks without explicit supervision. Large language models like GPT-3 can be prompted in a format representing a conversation between a user and a chatbot. The language model will be able to meaningfully respond to the user's input as an emergent phenomenon of the model's capability of predicting the next token in a sequence.
+
+The following figure shows GPT-3 few-shot learning the format of a conversation. A prompt is added before the conversation, which helps steer the responses of the model in a particular direction. Note that the language model is not embodied in its role as a chatbot and will happily play both sides of the conversation if text generation is not interrupted:
+![gpt3_fewshot_conversation_format](./figures/gpt3_fewshot_conversation_format.png)
+
+It is therefore also not helpful to instruct the language model directly as in "You are a chat bot", but rather in the form "The following is a conversation between a user and a chatbot". This however changes when a language model is fine-tuned using RLHF (Reinforcement Learning via Human Feedback). In this case, a base language model trained to predict the next token in a sequence will be further optimized to maximize for example a "helpfulness" score. This arguably gives rise to "self-aware" chatbots that are capable of understanding their role in a conversation. Note however that "self-awareness" and "sentience" have since then taken on distict meanings.
+However, RLHF is a topic we will not go into detail in this thesis.
+
+### Chatbots with domain-specific knowledge
+As large language models are trained on text corpuses created by scraping webpages, the resulting knowledge base of these language models is limited to publically available information. This is problematic for chatbots that are supposed to provide domain-specific information. For example, a chatbot that is supposed to provide information about a company's products and services will not be able to fulfill this task.
+To overcome this limitation, a chatbot can be fine-tuned on a dataset of conversations that include domain-specific information, however large language models will also be able to generalize when trained on domain-specific information that is not in a conversation format.
+As the goal of this thesis is to lay the theoretical foundation for implementing a conversational AI system for the Higher Technical College of St. Pölten, we can for example fine-tune a language model on a dataset of conversations that include information about the school's subjects etc. aswell as summaries of the school's teaching material.
+
+The following figure shows a fine-tuned GPT-3 language model respond with domain-specific information about the school's subjects, whitout the information being present in the prompt:
+
+![gpt3_domain_specific_knowledge](./figures/gpt3_domain_specific_knowledge.png)
+
+
+## Conclusion

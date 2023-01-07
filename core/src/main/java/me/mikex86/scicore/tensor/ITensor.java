@@ -1067,24 +1067,4 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
      */
     void readFrom(@NotNull InputStream inputStream) throws IOException;
 
-    @NotNull
-    default ITensor relayout() {
-        ISciCoreBackend backend = getSciCoreBackend();
-        long[] shape = getShape();
-        DataType dataType = getDataType();
-        ITensor tensor = backend.createTensor(dataType, shape);
-        long[] index = new long[getShape().length];
-        if (dataType.isFloatingPoint()) {
-            do {
-                double value = getAsDouble(index);
-                tensor.setByDouble(value, index);
-            } while (ShapeUtils.incrementIndex(index, shape));
-        } else if (dataType.isInteger()) {
-            do {
-                long value = getAsLong(index);
-                tensor.setByLong(value, index);
-            } while (ShapeUtils.incrementIndex(index, shape));
-        }
-        return tensor;
-    }
 }

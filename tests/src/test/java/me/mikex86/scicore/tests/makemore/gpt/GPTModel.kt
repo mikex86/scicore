@@ -37,25 +37,25 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
         var attnV: ITensor
         return cAttn(x) // x: (batch, seq, embed), cAttn: (batch, seq, embed*3)
             .use { h -> h.split(config.nEmbed, 2) } // list of 3 tensors: (batch, seq, embed)
-            .let { (q, k, v) ->
+            .use { (q, k, v) ->
                 Triple(
-                    q.relayout().view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads),
-                    k.relayout().view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads),
-                    v.relayout().view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads)
+                    q.view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads),
+                    k.view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads),
+                    v.view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads)
                 )
             }
             .let { (q, k, v) ->
                 Triple(
-                    q.relayout().transpose(1, 2),
-                    k.relayout().transpose(1, 2),
-                    v.relayout().transpose(1, 2)
+                    q.transpose(1, 2),
+                    k.transpose(1, 2),
+                    v.transpose(1, 2)
                 )
             }
             .let { (q, k, v) ->
                 Triple(
-                    q.relayout().view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads),
-                    k.relayout().view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads),
-                    v.relayout().view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads)
+                    q.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads),
+                    k.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads),
+                    v.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads)
                 )
             }
             .let { (q, k, v) ->
@@ -95,7 +95,7 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
                 att.view(batchSize, config.nHeads.toLong(), seqLen, embedDim / config.nHeads)
             }
             .use { y ->
-                y.transpose(1, 2).relayout().view(batchSize, seqLen, embedDim)
+                y.transpose(1, 2).view(batchSize, seqLen, embedDim)
             }
             .use { y ->
                 cProj(y)
@@ -111,6 +111,11 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
 
 }
 
+
+private fun gelu(x: ITensor): ITensor {
+    return x * 0.5f * (((x * 0.044715f * x.pow(3.0f)) * sqrt(2.0f / PI.toFloat())).tanh() + 1.0f)
+}
+
 class MLP(sciCore: ISciCore, config: GPTConfig) : IModule {
 
     private val cFc = Linear(sciCore, DataType.FLOAT32, config.nEmbed.toLong(), config.nEmbed * 4L, true)
@@ -119,7 +124,7 @@ class MLP(sciCore: ISciCore, config: GPTConfig) : IModule {
 
     override fun forward(input: ITensor): ITensor {
         return cFc(input)
-            .use { h -> h.tanh() }
+            .use { h -> gelu(h) }
             .use { h -> cProj(h) }
             .use { h -> dropout(h) }
     }
@@ -161,7 +166,7 @@ class GPTModel(sciCore: ISciCore, config: GPTConfig) : IModule {
 
     override fun forward(input: ITensor): ITensor {
         return input
-            .let { x -> wte[x] }
+            .use { x -> wte[x] }
             .use { x ->
                 sciCore
                     .arange(0, input.shape[1], 1, DataType.INT64)
