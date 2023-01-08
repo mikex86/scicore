@@ -105,8 +105,8 @@ public class JvmConcatOp implements IDifferentiableBinaryOperation {
                 long offsetInB = i * bStrides[superDimension];
                 long offsetInResult = i * superDimStrideInResult;
 
-                View aView = new View(a, new long[]{numElementsInConcatDimensionInA}, offsetInA, Arrays.copyOfRange(aStrides, superDimension + 1, aStrides.length));
-                View bView = new View(b, new long[]{numElementsInConcatDimensionInB}, offsetInB, Arrays.copyOfRange(bStrides, superDimension + 1, bStrides.length));
+                View aView = new View(a.getSciCoreBackend(), a.getDataContainer(), new long[]{numElementsInConcatDimensionInA}, offsetInA, Arrays.copyOfRange(aStrides, superDimension + 1, aStrides.length));
+                View bView = new View(b.getSciCoreBackend(), b.getDataContainer(), new long[]{numElementsInConcatDimensionInB}, offsetInB, Arrays.copyOfRange(bStrides, superDimension + 1, bStrides.length));
                 result.setContentsWithOffset(offsetInResult, aView);
                 result.setContentsWithOffset(offsetInResult + numElementsInConcatDimensionInA, bView);
             }
@@ -122,12 +122,12 @@ public class JvmConcatOp implements IDifferentiableBinaryOperation {
         if (dimension == 0) {
             ITensor aValue = a.getValue();
             if (a.requiresGradients()) {
-                View upstreamGradientView = new View(upstreamGradient, aValue.getShape(), 0, ShapeUtils.makeStrides(aValue.getShape()));
+                View upstreamGradientView = new View(upstreamGradient.getSciCoreBackend(), upstreamGradient.getDataContainer(), aValue.getShape(), 0, ShapeUtils.makeStrides(aValue.getShape()));
                 a.accumulateGradient(upstreamGradientView);
             }
             if (b.requiresGradients()) {
                 ITensor bValue = b.getValue();
-                View upstreamGradientView = new View(upstreamGradient, bValue.getShape(), aValue.getNumberOfElements(), ShapeUtils.makeStrides(bValue.getShape()));
+                View upstreamGradientView = new View(upstreamGradient.getSciCoreBackend(), upstreamGradient.getDataContainer(), bValue.getShape(), aValue.getNumberOfElements(), ShapeUtils.makeStrides(bValue.getShape()));
                 b.accumulateGradient(upstreamGradientView);
             }
         } else {
@@ -159,14 +159,14 @@ public class JvmConcatOp implements IDifferentiableBinaryOperation {
                     long offsetInB = i * bStrides[superDimension];
                     long offsetInUpstreamGradient = i * superDimStrideInUpstreamGradient;
 
-                    View aView = new View(aValue, new long[]{numElementsInConcatDimensionInA}, offsetInA, Arrays.copyOfRange(aStrides, superDimension + 1, aStrides.length));
-                    View bView = new View(bValue, new long[]{numElementsInConcatDimensionInB}, offsetInB, Arrays.copyOfRange(bStrides, superDimension + 1, bStrides.length));
+                    View aView = new View(aValue.getSciCoreBackend(), aValue.getDataContainer(), new long[]{numElementsInConcatDimensionInA}, offsetInA, Arrays.copyOfRange(aStrides, superDimension + 1, aStrides.length));
+                    View bView = new View(bValue.getSciCoreBackend(), bValue.getDataContainer(), new long[]{numElementsInConcatDimensionInB}, offsetInB, Arrays.copyOfRange(bStrides, superDimension + 1, bStrides.length));
                     View upstreamGradientViewForA = new View(
-                            upstreamGradient, new long[]{numElementsInConcatDimensionInA + numElementsInConcatDimensionInB}, offsetInUpstreamGradient,
+                            upstreamGradient.getSciCoreBackend(), upstreamGradient.getDataContainer(), new long[]{numElementsInConcatDimensionInA + numElementsInConcatDimensionInB}, offsetInUpstreamGradient,
                             Arrays.copyOfRange(upstreamGradientStrides, superDimension + 1, upstreamGradientStrides.length)
                     );
                     View upstreamGradientViewForB = new View(
-                            upstreamGradient, new long[]{numElementsInConcatDimensionInA + numElementsInConcatDimensionInB}, offsetInUpstreamGradient,
+                            upstreamGradient.getSciCoreBackend(), upstreamGradient.getDataContainer(), new long[]{numElementsInConcatDimensionInA + numElementsInConcatDimensionInB}, offsetInUpstreamGradient,
                             Arrays.copyOfRange(upstreamGradientStrides, superDimension + 1, upstreamGradientStrides.length)
                     );
                     upstreamGradientViewForA.setContents(aView);

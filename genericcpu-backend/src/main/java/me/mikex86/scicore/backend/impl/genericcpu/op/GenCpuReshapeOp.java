@@ -32,7 +32,7 @@ public class GenCpuReshapeOp implements IDifferentiableTrinaryOperation {
         if (shapeNumElements > tensorNumberOfElements) {
             throw new IllegalArgumentException("Cannot reshape tensor with " + tensorNumberOfElements + " elements to shape " + Arrays.toString(shape));
         }
-        return new View(tensor, shape, 0, strides);
+        return new View(tensor.getSciCoreBackend(), tensor.getDataContainer(), shape, 0, strides);
     }
 
     @Override

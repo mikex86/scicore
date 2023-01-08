@@ -60,11 +60,12 @@ fun main() {
     sciCore.seed(123)
     sciCore.setBackend(ISciCore.BackendType.CPU)
 
+
     val config = GPTConfig(
         vocabSize = 50257,
         nLayers = 2,
         nHeads = 4,
-        nEmbed = 32,
+        nEmbed = 256,
         blockSize = 256,
     )
 
@@ -74,11 +75,11 @@ fun main() {
     )
 
     val model = GPTModel(sciCore, config)
-    model.load(Path.of("ckpts/tiny-gpt2.scm"))
+    model.load(Path.of("ckpts/gpt2-12300.scm"))
 
-    val prompt = "Hello, my name is "
-    val numTokens = 10
-    val output = generateText(sciCore, prompt, numTokens, model, tokenizer, false, 0.01f)
+    val prompt = "What is the meaning of life? The meaning of life is "
+    val numTokens = 20
+    val output = generateText(sciCore, prompt, numTokens, model, tokenizer, false, 0.5f)
     println("Prompt: $prompt")
     println("Completion: $output")
 }

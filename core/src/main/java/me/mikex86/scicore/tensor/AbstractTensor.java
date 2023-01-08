@@ -79,7 +79,7 @@ public abstract class AbstractTensor implements ITensor {
         long[] sliceStrides = ShapeUtils.makeStrides(sliceShape);
 
         long offset = ShapeUtils.getFlatIndex(indices, shape, strides);
-        return new View(this, sliceShape, offset, sliceStrides);
+        return new View(getSciCoreBackend(), getDataContainer(), sliceShape, offset, sliceStrides);
     }
 
     @Override

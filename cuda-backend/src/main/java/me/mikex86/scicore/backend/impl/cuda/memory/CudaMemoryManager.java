@@ -2,6 +2,7 @@ package me.mikex86.scicore.backend.impl.cuda.memory;
 
 import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
+import me.mikex86.scicore.backend.impl.cuda.CudaDataContainer;
 import me.mikex86.scicore.memory.AbstractMemoryManager;
 import me.mikex86.scicore.memory.IMemoryHandle;
 import me.mikex86.scicore.tensor.DataType;
@@ -105,9 +106,9 @@ public class CudaMemoryManager extends AbstractMemoryManager<CudaMemoryHandle> {
     public CudaMemoryHandle ensureOnDevice(@NotNull ITensor tensor) {
         if (tensor instanceof CudaTensor cudaTensor) {
             return cudaTensor.getDataContainer().getDeviceMemoryHandle().createReference();
-        } else if (tensor instanceof View view && ViewUtils.getViewed(view) instanceof CudaTensor viewedCudaTensor) {
-            long offset = viewedCudaTensor.getDataType().getSizeOf(ViewUtils.getTotalOffset(view));
-            return viewedCudaTensor.getDataContainer().getDeviceMemoryHandle().offset(offset);
+        } else if (tensor instanceof View view && view.getDataContainer() instanceof CudaDataContainer cudaDataContainer) {
+            long offset = cudaDataContainer.getDataType().getSizeOf(view.getOffset());
+            return cudaDataContainer.getDeviceMemoryHandle().offset(offset);
         } else {
             return copyToDevice(tensor);
         }

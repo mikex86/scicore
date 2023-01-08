@@ -7,9 +7,8 @@ import me.mikex86.scicore.nn.layers.LayerNorm
 import me.mikex86.scicore.nn.layers.Linear
 import me.mikex86.scicore.tensor.DataType
 import me.mikex86.scicore.tensor.ITensor
-import me.mikex86.scicore.tests.makemore.bigram.sciCore
+import me.mikex86.scicore.tensor.get
 import me.mikex86.scicore.utils.use
-import kotlin.math.PI
 import kotlin.math.sqrt
 
 
@@ -22,7 +21,7 @@ data class GPTConfig(
     val dropout: Float = 0.1f,
 )
 
-class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IModule {
+class CausalSelfAttention(private val sciCore: ISciCore, private val config: GPTConfig) : IModule {
 
     private val cAttn = Linear(sciCore, DataType.FLOAT32, config.nEmbed.toLong(), config.nEmbed * 3L, true)
 
@@ -34,9 +33,10 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
 
     override fun forward(x: ITensor): ITensor {
         val (batchSize, seqLen, embedDim) = x.shape
-        var attnV: ITensor
+        var attnV: ITensor? = null
         return cAttn(x) // x: (batch, seq, embed), cAttn: (batch, seq, embed*3)
-            .use { h -> h.split(config.nEmbed, 2) } // list of 3 tensors: (batch, seq, embed)
+            .use { h -> h.view(3, batchSize, seqLen, embedDim) }
+            .use { h -> listOf(h[0], h[1], h[2]) } // list of 3 tensors: (batch, seq, embed)
             .use { (q, k, v) ->
                 Triple(
                     q.view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads),
@@ -44,21 +44,21 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
                     v.view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads)
                 )
             }
-            .let { (q, k, v) ->
+            .use { q, k, v ->
                 Triple(
                     q.transpose(1, 2),
                     k.transpose(1, 2),
                     v.transpose(1, 2)
                 )
             }
-            .let { (q, k, v) ->
+            .use { q, k, v ->
                 Triple(
                     q.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads),
                     k.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads),
                     v.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads)
                 )
             }
-            .let { (q, k, v) ->
+            .use { q, k, v ->
                 Pair(q, k).use { _, _ ->
                     q.matmul(k, false, true) * (1.0f / sqrt(k.shape.last().toFloat()))
                 }.also {
@@ -77,7 +77,11 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
                         attnMaskAdd.setFloat(Float.NEGATIVE_INFINITY, i, j)
                     }
                 }
-                att * attnMaskMul + attnMaskAdd
+                attnMaskMul.use {
+                    attnMaskAdd.use {
+                        att * attnMaskMul + attnMaskAdd
+                    }
+                }
             }
             .use { att ->
                 att.softmax(2)
@@ -89,7 +93,7 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
                 attnDropout(att)
             }
             .use { att ->
-                att.matmul(attnV)
+                att.matmul(attnV!!)
             }
             .use { att ->
                 att.view(batchSize, config.nHeads.toLong(), seqLen, embedDim / config.nHeads)
@@ -112,10 +116,6 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
 }
 
 
-private fun gelu(x: ITensor): ITensor {
-    return x * 0.5f * (((x * 0.044715f * x.pow(3.0f)) * sqrt(2.0f / PI.toFloat())).tanh() + 1.0f)
-}
-
 class MLP(sciCore: ISciCore, config: GPTConfig) : IModule {
 
     private val cFc = Linear(sciCore, DataType.FLOAT32, config.nEmbed.toLong(), config.nEmbed * 4L, true)
@@ -124,7 +124,7 @@ class MLP(sciCore: ISciCore, config: GPTConfig) : IModule {
 
     override fun forward(input: ITensor): ITensor {
         return cFc(input)
-            .use { h -> gelu(h) }
+            .use { h -> h.relu() }
             .use { h -> cProj(h) }
             .use { h -> dropout(h) }
     }
@@ -153,9 +153,13 @@ class Block(sciCore: ISciCore, config: GPTConfig) : IModule {
             .use { h -> h.plus(residualH) }
     }
 
+    override fun subModules(): List<IModule> {
+        return listOf(ln1, attn, ln2, mlp)
+    }
+
 }
 
-class GPTModel(sciCore: ISciCore, config: GPTConfig) : IModule {
+class GPTModel(private val sciCore: ISciCore, config: GPTConfig) : IModule {
 
     private val wte = sciCore.gaussian(DataType.FLOAT32, config.vocabSize.toLong(), config.nEmbed.toLong())
     private val wpe = sciCore.gaussian(DataType.FLOAT32, config.blockSize.toLong(), config.nEmbed.toLong())
@@ -170,15 +174,19 @@ class GPTModel(sciCore: ISciCore, config: GPTConfig) : IModule {
             .use { x ->
                 sciCore
                     .arange(0, input.shape[1], 1, DataType.INT64)
-                    .view(1, input.shape[1])
+                    .use { posIdx -> posIdx.view(1, input.shape[1]) }
                     .use { pos ->
-                        x.plus(wpe[pos])
+                        wpe[pos].use { posEmb ->
+                            x.plus(posEmb)
+                        }
                     }
             }
             .use { x -> dropout(x) }
             .use { x ->
                 blocks.fold(x) { acc, block ->
-                    block(acc)
+                    acc.use {
+                        block(acc)
+                    }
                 }
             }
             .use { x -> lnFin(x) }

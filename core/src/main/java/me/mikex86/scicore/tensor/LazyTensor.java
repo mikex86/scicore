@@ -5,6 +5,7 @@ import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.GraphExecutor;
 import me.mikex86.scicore.graph.IGraphRecorder;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
+import me.mikex86.scicore.tensor.data.ITensorDataContainer;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +45,22 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
         this.resultDataType = tensor.getDataType();
         this.lazyResult = tensor;
         this.sciCoreBackend = tensor.getSciCoreBackend();
+    }
+
+    @Override
+    @NotNull
+    public ITensor getView(long @NotNull ... indices) {
+        long[] shape = getShape();
+        validateIndices(indices);
+        long[] strides = getStrides();
+
+        long[] sliceShape = Arrays.copyOfRange(shape, indices.length, shape.length);
+        long[] sliceStrides = ShapeUtils.makeStrides(sliceShape);
+
+        long viewOffset = result() instanceof View view ? view.getOffset() : 0;
+
+        long offset = viewOffset + ShapeUtils.getFlatIndex(indices, shape, strides);
+        return new View(getSciCoreBackend(), getDataContainer(), sliceShape, offset, sliceStrides);
     }
 
     @NotNull
@@ -266,6 +283,11 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
     @Override
     public @NotNull ISciCoreBackend getSciCoreBackend() {
         return this.sciCoreBackend;
+    }
+
+    @Override
+    public @NotNull ITensorDataContainer getDataContainer() {
+        return result().getDataContainer();
     }
 
     @Override

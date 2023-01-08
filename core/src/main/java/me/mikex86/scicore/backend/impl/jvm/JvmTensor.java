@@ -1143,4 +1143,9 @@ public class JvmTensor extends AbstractTensor implements ITensor {
     public @NotNull ISciCoreBackend getSciCoreBackend() {
         return this.backend;
     }
+
+    @Override
+    public @NotNull ITensorDataContainer getDataContainer() {
+        return dataContainer;
+    }
 }

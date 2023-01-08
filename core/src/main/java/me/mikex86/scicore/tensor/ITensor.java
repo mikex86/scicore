@@ -3,6 +3,7 @@ package me.mikex86.scicore.tensor;
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
+import me.mikex86.scicore.tensor.data.ITensorDataContainer;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import me.mikex86.scicore.utils.dispose.IDisposable;
@@ -958,35 +959,7 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
         }
     }
 
-    @NotNull
-    default List<ITensor> split(int size, int dim) {
-        long[] shape = getShape();
-        if (dim < 0 || dim >= shape.length) {
-            throw new IllegalArgumentException("Invalid dimension: " + dim);
-        }
-        long nElementsInDim = shape[dim];
-        long nSplits = nElementsInDim / size;
-        long nElementsInLastSplit = nElementsInDim % size;
-        if (nElementsInLastSplit != 0) {
-            throw new IllegalArgumentException("The size of the last split must be 0, but it is " + nElementsInLastSplit);
-        }
-        List<ITensor> result = new ArrayList<>();
-        long start = 0;
-        long offset = 0;
-        long[] strides = getStrides();
-        for (int i = 0; i < nSplits; i++) {
-            long end = start + size;
-            long[] splitShape = Arrays.copyOf(shape, shape.length);
-            splitShape[dim] = end - start;
-            long[] splitStrides = new long[splitShape.length];
-            System.arraycopy(strides, 0, splitStrides, 0, splitShape.length);
-            View view = new View(this, splitShape, offset, splitStrides);
-            result.add(view);
-            offset += (end - start) * strides[dim];
-            start = end;
-        }
-        return result;
-    }
+    @NotNull ITensorDataContainer getDataContainer();
 
     @NotNull ITensor to(@NotNull ISciCoreBackend backend);
 
