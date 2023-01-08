@@ -1101,6 +1101,8 @@ GraphVisualizer.saveGraph(DAGGraphRenderPlanFactory.makeRenderPlan(graph), "grap
 
 ![opgraph_1](./figures/opgraph_1.png)
 
+
+
 Only branches of the graph that lead to explictly requested gradients will be computed to avoid unnecessary computation.
 Only the gradients of the requested tensors persist after the backward pass completes.
 
@@ -2389,10 +2391,10 @@ This results in a situation where the JVM has to keep track of a lot of tiny obj
 Python can avoid this problem because objects have an exact reference count at all times, which allows for instant resource freeing when the reference count reaches zero.
 Actual JVM heap size stays at around ~125MB for the average training loop,
 while the memory allocated outside the JVM will quickly grow to the entirety of your system memory, as large tensors are created, but never freed.
-While forcing the Garbage collector to work with insanely low heap sizes will keep native memory footprint bearable, but requires a tedious process of finding out the ideal heap size where the garbage collector is motivated enough to clean tiny objects entangled in the complicated reference structure that is the operation graph used for backpropagation. Another solution are perioding full GC calls via `System.gc()`, but this will slow down the training loop significantly.
-Thus, the only way to keep a bearable memory footprint in Java is unfortunately via explicit memory management. We can make this bearable by using
+Forcing the Garbage collector to work with insanely low heap sizes will keep native memory footprint bearable, but requires a tedious process of finding out the ideal heap size where the garbage collector is motivated enough to clean tiny objects entangled in the complicated reference structure that is the operation graph used for backpropagation. Another solution are perioding full GC calls via `System.gc()`, but this will slow down the training loop significantly.
+Thus, the only way to keep a bearable native memory footprint in Java is via explicit memory management. We can make this bearable by using
 the `try-with-resources` statement and the `.use { }` extension function in kotlin, which introduces a form of scoped memory management.
-This will also help us maintain a clean operation graph with short lookup times.
+This will also help us maintain short lookup times in the `GraphRecorder`.
 
 # Language Modelling
 What we have implemented so far is a tensor processing library that allows us to optimize scalar-valued functions with tensor-valued parameters, such as the loss function of a neural network. We can now use this approach to optimize a model with predictive power over a sequence of tokens or characters. Such a model is called a neural language model.
@@ -3080,7 +3082,7 @@ class Block(sciCore: ISciCore, config: GPTConfig) : IModule {
 
     override fun forward(input: ITensor): ITensor {
         var residualH: ITensor
-        return ln1(input) 
+        return ln1(input)
             .use { h -> attn(h) }
             .use { h -> h.plus(input) }
             .also { h -> residualH = h }
@@ -3089,7 +3091,12 @@ class Block(sciCore: ISciCore, config: GPTConfig) : IModule {
             .use { h -> h.plus(residualH) }
     }
 
+    override fun subModules(): List<IModule> {
+        return listOf(ln1, attn, ln2, mlp)
+    }
+
 }
+
 ```
 
 A transformer block first applies a layer normalization to the input sequence. The activations are then fed into the causal self-attention layer. We will discuss the causal self-attention layer in more detail later. We then add the input tensor to the current activations again. This serves as a residual connection to the input sequence. The goal of this is to produce a more direct pathway for gradients to flow to different depths along the transformer block, as the backwards pass of a plus operator simply distributes the upstream gradients to all of its inputs. Before we apply the next layer normalization and go into the multi-layer perceptron, we put aside a copy of the activations for the second residual connection which will be added to the output of the multi-layer perceptron. The next layer normalization is applied to the activations and then fed into the multi-layer perceptron. The multi-layer perceptron is a simple feed-forward neural network with two linear layers and a GeLU activation function in between with dropout. The output of the multi-layer perceptron is then added to the activations from the second residual connection. The output of the transformer block is then returned.
@@ -3097,7 +3104,7 @@ A transformer block first applies a layer normalization to the input sequence. T
 We will now take a look at the causal self-attention layer:
 
 ```kotlin
-class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IModule {
+class CausalSelfAttention(private val sciCore: ISciCore, private val config: GPTConfig) : IModule {
 
     private val cAttn = Linear(sciCore, DataType.FLOAT32, config.nEmbed.toLong(), config.nEmbed * 3L, true)
 
@@ -3109,9 +3116,10 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
 
     override fun forward(x: ITensor): ITensor {
         val (batchSize, seqLen, embedDim) = x.shape
-        var attnV: ITensor
+        var attnV: ITensor? = null
         return cAttn(x) // x: (batch, seq, embed), cAttn: (batch, seq, embed*3)
-            .use { h -> h.split(config.nEmbed, 2) } // list of 3 tensors: (batch, seq, embed)
+            .use { h -> h.view(3, batchSize, seqLen, embedDim) }
+            .use { h -> listOf(h[0], h[1], h[2]) } // list of 3 tensors: (batch, seq, embed)
             .use { (q, k, v) ->
                 Triple(
                     q.view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads),
@@ -3119,21 +3127,21 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
                     v.view(batchSize, seqLen, config.nHeads.toLong(), embedDim / config.nHeads)
                 )
             }
-            .let { (q, k, v) ->
+            .use { q, k, v ->
                 Triple(
                     q.transpose(1, 2),
                     k.transpose(1, 2),
                     v.transpose(1, 2)
                 )
             }
-            .let { (q, k, v) ->
+            .use { q, k, v ->
                 Triple(
                     q.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads),
                     k.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads),
                     v.view(batchSize * config.nHeads, seqLen, embedDim / config.nHeads)
                 )
             }
-            .let { (q, k, v) ->
+            .use { q, k, v ->
                 Pair(q, k).use { _, _ ->
                     q.matmul(k, false, true) * (1.0f / sqrt(k.shape.last().toFloat()))
                 }.also {
@@ -3152,7 +3160,11 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
                         attnMaskAdd.setFloat(Float.NEGATIVE_INFINITY, i, j)
                     }
                 }
-                att * attnMaskMul + attnMaskAdd
+                attnMaskMul.use {
+                    attnMaskAdd.use {
+                        att * attnMaskMul + attnMaskAdd
+                    }
+                }
             }
             .use { att ->
                 att.softmax(2)
@@ -3164,7 +3176,7 @@ class CausalSelfAttention(sciCore: ISciCore, private val config: GPTConfig) : IM
                 attnDropout(att)
             }
             .use { att ->
-                att.matmul(attnV)
+                att.matmul(attnV!!)
             }
             .use { att ->
                 att.view(batchSize, config.nHeads.toLong(), seqLen, embedDim / config.nHeads)
@@ -3301,12 +3313,12 @@ fun main() {
         vocabSize = 50257,
         nLayers = 2,
         nHeads = 4,
-        nEmbed = 32,
+        nEmbed = 256,
         blockSize = 256,
     )
 
     val model = GPTModel(sciCore, config)
-    val optimizer = Adam(sciCore, 2.5e-3f, 0.9f, 0.95f, model.parameters())
+    val optimizer = Adam(sciCore, 2.5e-4f, 0.9f, 0.95f, model.parameters())
 
     val datasetSupplier = TokenizedBinaryTokenStreamer(sciCore, Path.of("openwebtext.bin"), config.blockSize)
 
@@ -3331,10 +3343,12 @@ fun main() {
 }
 ```
 
-Note that this model only has approximately 1.6 million parameters and that we will only train it for 500 steps, as this is only for demonstration purposes.
-Training the model for 500 steps will result in the following loss curve:
+Note that this model only has approximately 14.5 million parameters and that we will only train it for 15000 steps, as this is only for demonstration purposes.
+The following figure shows training loss averaged over 100 steps of the model for 15000 steps of training.
 
 ![tinygpt2-lossplot](./figures/tinygpt2-lossplot.png)
+
+The model achieves a loss of approximately $8.5$, with $-\log(1/vocabSize) \approx 10.82$.
 
 We can now use the model to generate text. The following code snippet shows a function which iteratively samples from the probability distribution output by the model and appends the sampled token to the prompt. The `top1` parameter determines whether the model should sample from the distribution by simply taking the token with the highest probability or whether it should sample from the distribution randomly proportional to the probability of each token. The `temperature` parameter is used to scale the unnormalized probability distribution before it is passed to the softmax function. A higher temperature will result in a more uniform distribution, while a lower temperature will result in a more peaked distribution. While a temperature of 0 is not possible, as the temperature approaches 0, the distribution will approach a one-hot distribution for the token with the highest probability.
 Note that the output of the model will be a tensor of shape $batchSize \times sequenceLength \times vocabSize$. We are only interested in the last token of the sequence, so we index into the tensor with `seqLen - 1` to get the logits for the last token of the sequence.
@@ -3401,7 +3415,7 @@ fun main() {
         vocabSize = 50257,
         nLayers = 2,
         nHeads = 4,
-        nEmbed = 32,
+        nEmbed = 256,
         blockSize = 256,
     )
 
@@ -3413,9 +3427,9 @@ fun main() {
     val model = GPTModel(sciCore, config)
     model.load(Path.of("ckpts/tiny-gpt2.scm"))
 
-    val prompt = "Hello, my name is "
-    val numTokens = 10
-    val output = generateText(sciCore, prompt, numTokens, model, tokenizer, false, 0.01f)
+    val prompt = "What is the meaning of life? The meaning of life is "
+    val numTokens = 20
+    val output = generateText(sciCore, prompt, numTokens, model, tokenizer, false, 0.5f)
     println("Prompt: $prompt")
     println("Completion: $output")
 }
@@ -3424,25 +3438,22 @@ fun main() {
 Generating text with a temperature of 0.01 results in the following rather nonsensical output:
 
 ```
-Prompt: Hello, my name is
-[06:30:54] [main/DEBUG]: Operation MULTIPLY found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation MINUS found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation RESHAPE found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation GET found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation REDUCE_SUM found in backend JvmBackend
-[06:30:54] [main/DEBUG]: Operation DIVIDE found in backend JvmBackend
-[06:30:54] [main/DEBUG]: Operation RESHAPE found in backend JvmBackend
-[06:30:54] [main/DEBUG]: Operation PLUS found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation LESS_THAN found in backend JvmBackend
-[06:30:54] [main/DEBUG]: Operation CAST found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation DIVIDE found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation REDUCE_SUM found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation POW found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation MATMUL found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation EXP found in backend GenCPUBackend
-[06:30:54] [main/DEBUG]: Operation TANH found in backend GenCPUBackend
-Prompt: Hello, my name is 
-Completion:  ShepardFourth affiliation withheld legality delim affiliation Dinner stroke successive
+Connected to the target VM, address: '127.0.0.1:58477', transport: 'socket'
+[17:11:06] [main/DEBUG]: Operation MULTIPLY found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation MINUS found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation RESHAPE found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation GET found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation PLUS found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation LESS_THAN found in backend JvmBackend
+[17:11:06] [main/DEBUG]: Operation CAST found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation DIVIDE found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation REDUCE_SUM found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation POW found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation MATMUL found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation EXP found in backend GenCPUBackend
+[17:11:06] [main/DEBUG]: Operation RELU found in backend GenCPUBackend
+Prompt: What is the meaning of life? The meaning of life is 
+Completion:  to be a waved to the world, and theActive.
 ```
 
 If we wanted to train a model equivalent to GPT2-xl, we would simply change the following parameters in the configuration.
@@ -3474,9 +3485,10 @@ As large language models are trained on text corpuses created by scraping webpag
 To overcome this limitation, a chatbot can be fine-tuned on a dataset of conversations that include domain-specific information, however large language models will also be able to generalize when trained on domain-specific information that is not in a conversation format.
 As the goal of this thesis is to lay the theoretical foundation for implementing a conversational AI system for the Higher Technical College of St. Pölten, we can for example fine-tune a language model on a dataset of conversations that include information about the school's subjects etc. aswell as summaries of the school's teaching material.
 
-The following figure shows a fine-tuned GPT-3 language model respond with domain-specific information about the school's subjects, whitout the information being present in the prompt:
+The following figure shows a fine-tuned GPT-3 language model respond with domain-specific information about the school's subjects, without the information being present in the prompt:
 
 ![gpt3_domain_specific_knowledge](./figures/gpt3_domain_specific_knowledge.png)
 
 
 ## Conclusion
+// TODO: Write conclusion
