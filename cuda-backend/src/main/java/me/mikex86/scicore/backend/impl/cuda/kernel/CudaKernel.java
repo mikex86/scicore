@@ -15,6 +15,7 @@ import java.util.Optional;
 import static jcuda.driver.JCudaDriver.*;
 import static jcuda.nvrtc.JNvrtc.*;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
+import static me.mikex86.scicore.backend.impl.cuda.Validator.nvrtcCheck;
 
 public class CudaKernel {
 
@@ -37,14 +38,22 @@ public class CudaKernel {
     }
 
     @NotNull
+    private static final Map<String, CudaKernel> cachedKernels = new HashMap<>();
+
+    @NotNull
     public static CudaKernel jitCompile(@NotNull String cudaCode, @NotNull List<String> functionNames) {
+        if (cachedKernels.containsKey(cudaCode)) {
+            return cachedKernels.get(cudaCode);
+        }
         nvrtcProgram program = new nvrtcProgram();
-        cuCheck(nvrtcCreateProgram(program, cudaCode, null, 0, null, null));
-        cuCheck(nvrtcCompileProgram(program, 0, null));
+        nvrtcCheck(nvrtcCreateProgram(program, cudaCode, null, 0, null, null));
+        nvrtcCheck(nvrtcCompileProgram(program, 0, null));
         String[] ptxCode = new String[1];
-        cuCheck(nvrtcGetPTX(program, ptxCode));
-        cuCheck(nvrtcDestroyProgram(program));
-        return new CudaKernel(ptxCode[0], functionNames);
+        nvrtcCheck(nvrtcGetPTX(program, ptxCode));
+        nvrtcCheck(nvrtcDestroyProgram(program));
+        CudaKernel cudaKernel = new CudaKernel(ptxCode[0], functionNames);
+        cachedKernels.put(cudaCode, cudaKernel);
+        return cudaKernel;
     }
 
     @NotNull

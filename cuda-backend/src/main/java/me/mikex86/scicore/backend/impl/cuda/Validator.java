@@ -2,6 +2,7 @@ package me.mikex86.scicore.backend.impl.cuda;
 
 import static jcuda.driver.JCudaDriver.cuGetErrorName;
 import static jcuda.jcublas.JCublas2.cublasGetStatusName;
+import static jcuda.nvrtc.JNvrtc.nvrtcGetErrorString;
 
 public class Validator {
 
@@ -17,6 +18,13 @@ public class Validator {
         if (result != 0) {
             String errorName = cublasGetStatusName(result);
             throw new RuntimeException("cuBLAS error: " + errorName);
+        }
+    }
+
+    public static void nvrtcCheck(int result) {
+        if (result != 0) {
+            String errorName = nvrtcGetErrorString(result);
+            throw new RuntimeException("NVRTC error: " + errorName);
         }
     }
 

@@ -202,38 +202,74 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     }
 
     @Override
-    public void fillRegion(long startFlatIndex, long endFlatIndex, byte i) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
+        switch (getDataType()) {
+            case INT8 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case INT16 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (short) value);
+            case INT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (int) value);
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (long) value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+        }
     }
 
     @Override
-    public void fillRegion(long startFlatIndex, long endFlatIndex, short i) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
+        switch (getDataType()) {
+            case INT16 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case INT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (int) value);
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (long) value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with short value for data type " + getDataType());
+        }
     }
 
     @Override
-    public void fillRegion(long startFlatIndex, long endFlatIndex, int i) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
+        switch (getDataType()) {
+            case INT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (long) value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with int value for data type " + getDataType());
+        }
     }
 
     @Override
-    public void fillRegion(long startFlatIndex, long endFlatIndex, long i) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
+        switch (getDataType()) {
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with long value for data type " + getDataType());
+        }
     }
 
     @Override
-    public void fillRegion(long startFlatIndex, long endFlatIndex, float i) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
+        switch (getDataType()) {
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with float value for data type " + getDataType());
+        }
     }
 
     @Override
-    public void fillRegion(long startFlatIndex, long endFlatIndex, double i) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
+        if (getDataType() != DataType.FLOAT64) {
+            throw new IllegalArgumentException("Cannot fill region with double value for data type " + getDataType());
+        }
+        dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
-    public void fillRegion(long startFlatIndex, long endFlatIndex, boolean i) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, i);
+    public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
+        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override

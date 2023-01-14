@@ -15,6 +15,9 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.FloatBuffer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.zip.GZIPInputStream
@@ -98,14 +101,19 @@ class MnistDataSupplier(sciCore: ISciCore, train: Boolean, shuffle: Boolean) : S
             }
             x = sciCore.zeros(DataType.FLOAT32, nImages.toLong(), height.toLong() * width.toLong())
             y = sciCore.zeros(DataType.FLOAT32, nImages.toLong(), 10)
+
+            val imageData = ByteBuffer.allocateDirect(height * width * 4).order(ByteOrder.LITTLE_ENDIAN)
             for (i in 0 until nImages) {
                 val label = labelsRAF.readByte()
                 val bytes = ByteArray(height * width)
                 imagesRAF.read(bytes)
 
                 for (j in 0 until height * width) {
-                    x.setFloat((bytes[j].toInt() and 0xFF) / 255.0f, i.toLong(), j.toLong())
+                    imageData.putFloat((bytes[j].toInt() and 0xFF) / 255.0f)
                 }
+                imageData.flip()
+
+                x.setContents(longArrayOf(i.toLong()), imageData)
                 y.setFloat(1.0f, i.toLong(), label.toLong())
             }
         } catch (e: IOException) {

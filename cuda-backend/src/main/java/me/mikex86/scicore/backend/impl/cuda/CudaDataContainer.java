@@ -381,10 +381,10 @@ public class CudaDataContainer implements ITensorDataContainer {
             throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
         }
         long nElements = endFlatIndex - startFlatIndex;
-        DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(nElements);
+        DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(nElements, dataType);
         ByteBuffer buffer = memoryHandle.asByteBuffer();
         Pointer hostPtr = Pointer.to(buffer);
-        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getDevicePointer().withByteOffset(dataType.getSizeOf(startFlatIndex)), (nElements * dataType.getBits() + 7) / 8));
+        cuCheck(cuMemcpyDtoH(hostPtr, deviceMemoryHandle.getDevicePointer().withByteOffset(dataType.getSizeOf(startFlatIndex)), dataType.getSizeOf(nElements)));
         buffer.flip();
         return memoryHandle;
     }
@@ -417,44 +417,77 @@ public class CudaDataContainer implements ITensorDataContainer {
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        if (dataType != DataType.INT8) {
+            throw new IllegalArgumentException("Cannot fill region, data type is not byte");
+        }
+        if (startFlatIndex < 0 || endFlatIndex > deviceMemoryHandle.getSize()) {
+            throw new IndexOutOfBoundsException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (data container length " + deviceMemoryHandle.getSize() + ")");
+        }
+        if (startFlatIndex >= endFlatIndex) {
+            throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
+        }
+        long nElements = endFlatIndex - startFlatIndex;
+        cuCheck(cuMemsetD8(deviceMemoryHandle.getDevicePointer().withByteOffset(dataType.getSizeOf(startFlatIndex)), value, nElements));
     }
-
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        if (dataType != DataType.INT16) {
+            throw new IllegalArgumentException("Cannot fill region, data type is not short");
+        }
+        if (startFlatIndex < 0 || endFlatIndex > deviceMemoryHandle.getSize()) {
+            throw new IndexOutOfBoundsException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (data container length " + deviceMemoryHandle.getSize() + ")");
+        }
+        if (startFlatIndex >= endFlatIndex) {
+            throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
+        }
+        long nElements = endFlatIndex - startFlatIndex;
+        cuCheck(cuMemsetD16(deviceMemoryHandle.getDevicePointer().withByteOffset(dataType.getSizeOf(startFlatIndex)), value, nElements));
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        if (dataType != DataType.INT32) {
+            throw new IllegalArgumentException("Cannot fill region, data type is not int");
+        }
+        if (startFlatIndex < 0 || endFlatIndex > deviceMemoryHandle.getSize()) {
+            throw new IndexOutOfBoundsException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (data container length " + deviceMemoryHandle.getSize() + ")");
+        }
+        if (startFlatIndex >= endFlatIndex) {
+            throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
+        }
+        long nElements = endFlatIndex - startFlatIndex;
+        cuCheck(cuMemsetD32(deviceMemoryHandle.getDevicePointer().withByteOffset(dataType.getSizeOf(startFlatIndex)), value, nElements));
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        throw new UnsupportedOperationException("Not implemented yet"); // AAAA WHY DOES cuMemsetD64 NOT EXIST??
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        if (dataType != DataType.FLOAT32) {
+            throw new IllegalArgumentException("Cannot fill region, data type is not int");
+        }
+        if (startFlatIndex < 0 || endFlatIndex > deviceMemoryHandle.getSize()) {
+            throw new IndexOutOfBoundsException("Index out of bounds: " + startFlatIndex + " to " + endFlatIndex + " (data container length " + deviceMemoryHandle.getSize() + ")");
+        }
+        if (startFlatIndex >= endFlatIndex) {
+            throw new IllegalArgumentException("startFlatIndex must be less than endFlatIndex");
+        }
+        long nElements = endFlatIndex - startFlatIndex;
+        cuCheck(cuMemsetD32(deviceMemoryHandle.getDevicePointer().withByteOffset(dataType.getSizeOf(startFlatIndex)), Float.floatToRawIntBits(value), nElements));
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
-        throw new UnsupportedOperationException("TODO: implement");
+        throw new UnsupportedOperationException("Not implemented yet"); // AAAA WHY DOES cuMemsetD64 NOT EXIST??
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
-        throw new UnsupportedOperationException("TODO: implement");
-    }
-
-    @Override
-    public void fill(boolean value) {
-        byte byteValue = value ? (byte) 0xFF : (byte) 0x00;
-        fill(byteValue);
+        fillRegion(startFlatIndex, endFlatIndex, value ? (byte) 0xFF : (byte) 0);
     }
 
     @Override

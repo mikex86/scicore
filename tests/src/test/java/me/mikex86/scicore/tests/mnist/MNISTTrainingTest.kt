@@ -31,7 +31,7 @@ private const val DAMPENING_FACTOR = 0.1f
 // The fact that the GC seems to not care about GC-ing memory handles because they are "small" on the Jvm heap (despite referencing large regions of native memory) is a bit concerning.
 fun main() {
     val sciCore = SciCore()
-    sciCore.setBackend(ISciCore.BackendType.CPU)
+    sciCore.setBackend(ISciCore.BackendType.CUDA)
     sciCore.seed(123)
 
     val trainSupplier = MnistDataSupplier(sciCore, train = true, shuffle = false)
@@ -69,6 +69,7 @@ fun main() {
                             .use { diffSquared -> diffSquared.reduceSum(-1) }
                             .use { sum -> sum.divide(BATCH_SIZE.toFloat()) }
                             .use { loss ->
+                                loss.elementAsDouble()
                                 optimizer.step(loss)
                                 loss.elementAsDouble()
                             }

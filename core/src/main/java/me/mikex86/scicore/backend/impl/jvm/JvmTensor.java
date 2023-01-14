@@ -208,32 +208,68 @@ public class JvmTensor extends AbstractTensor implements ITensor {
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        switch (getDataType()) {
+            case INT8 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case INT16 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (short) value);
+            case INT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (int) value);
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (long) value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        switch (getDataType()) {
+            case INT16 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case INT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (int) value);
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (long) value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with short value for data type " + getDataType());
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        switch (getDataType()) {
+            case INT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (long) value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with int value for data type " + getDataType());
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        switch (getDataType()) {
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with long value for data type " + getDataType());
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        switch (getDataType()) {
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with float value for data type " + getDataType());
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        if (getDataType() != DataType.FLOAT64) {
+            throw new IllegalArgumentException("Cannot fill region with double value for data type " + getDataType());
+        }
+        dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
@@ -630,38 +666,14 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            switch (dataType) {
-                case INT8 -> {
-                    byte[] byteData = getByteData();
-                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case INT16 -> {
-                    short[] shortData = getShortData();
-                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case INT32 -> {
-                    int[] intData = getIntData();
-                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case INT64 -> {
-                    long[] longData = getLongData();
-                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case FLOAT32 -> {
-                    float[] floatData = getFloatData();
-                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case FLOAT64 -> {
-                    double[] doubleData = getDoubleData();
-                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case BOOLEAN -> {
-                    BitSet booleanData = getBooleanData();
-                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
-                        booleanData.set(Math.toIntExact(i), value != 0);
-                    }
-                }
+            if (startFlatIndex > endFlatIndex) {
+                throw new IllegalArgumentException("Start index " + startFlatIndex + " is greater than end index " + endFlatIndex);
             }
+            if (dataType != DataType.INT8) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            byte[] byteData = getByteData();
+            Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
         }
 
         @Override
@@ -672,38 +684,14 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            switch (dataType) {
-                case INT8 -> {
-                    byte[] byteData = getByteData();
-                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (byte) value);
-                }
-                case INT16 -> {
-                    short[] shortData = getShortData();
-                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case INT32 -> {
-                    int[] intData = getIntData();
-                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case INT64 -> {
-                    long[] longData = getLongData();
-                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case FLOAT32 -> {
-                    float[] floatData = getFloatData();
-                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case FLOAT64 -> {
-                    double[] doubleData = getDoubleData();
-                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case BOOLEAN -> {
-                    BitSet booleanData = getBooleanData();
-                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
-                        booleanData.set(Math.toIntExact(i), value != 0);
-                    }
-                }
+            if (startFlatIndex > endFlatIndex) {
+                throw new IllegalArgumentException("Start index " + startFlatIndex + " is greater than end index " + endFlatIndex);
             }
+            if (dataType != DataType.INT16) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            short[] shortData = getShortData();
+            Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
         }
 
         @Override
@@ -714,38 +702,14 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            switch (dataType) {
-                case INT8 -> {
-                    byte[] byteData = getByteData();
-                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (byte) value);
-                }
-                case INT16 -> {
-                    short[] shortData = getShortData();
-                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (short) value);
-                }
-                case INT32 -> {
-                    int[] intData = getIntData();
-                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case INT64 -> {
-                    long[] longData = getLongData();
-                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case FLOAT32 -> {
-                    float[] floatData = getFloatData();
-                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case FLOAT64 -> {
-                    double[] doubleData = getDoubleData();
-                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case BOOLEAN -> {
-                    BitSet booleanData = getBooleanData();
-                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
-                        booleanData.set(Math.toIntExact(i), value != 0);
-                    }
-                }
+            if (startFlatIndex > endFlatIndex) {
+                throw new IllegalArgumentException("Start index " + startFlatIndex + " is greater than end index " + endFlatIndex);
             }
+            if (dataType != DataType.INT32) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            int[] intData = getIntData();
+            Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
         }
 
         @Override
@@ -756,38 +720,14 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            switch (dataType) {
-                case INT8 -> {
-                    byte[] byteData = getByteData();
-                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (byte) value);
-                }
-                case INT16 -> {
-                    short[] shortData = getShortData();
-                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (short) value);
-                }
-                case INT32 -> {
-                    int[] intData = getIntData();
-                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (int) value);
-                }
-                case INT64 -> {
-                    long[] longData = getLongData();
-                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case FLOAT32 -> {
-                    float[] floatData = getFloatData();
-                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case FLOAT64 -> {
-                    double[] doubleData = getDoubleData();
-                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case BOOLEAN -> {
-                    BitSet booleanData = getBooleanData();
-                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
-                        booleanData.set(Math.toIntExact(i), value != 0);
-                    }
-                }
+            if (startFlatIndex > endFlatIndex) {
+                throw new IllegalArgumentException("Start index " + startFlatIndex + " is greater than end index " + endFlatIndex);
             }
+            if (dataType != DataType.INT64) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            long[] longData = getLongData();
+            Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
         }
 
         @Override
@@ -798,38 +738,14 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            switch (dataType) {
-                case INT8 -> {
-                    byte[] byteData = getByteData();
-                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (byte) value);
-                }
-                case INT16 -> {
-                    short[] shortData = getShortData();
-                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (short) value);
-                }
-                case INT32 -> {
-                    int[] intData = getIntData();
-                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (int) value);
-                }
-                case INT64 -> {
-                    long[] longData = getLongData();
-                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (long) value);
-                }
-                case FLOAT32 -> {
-                    float[] floatData = getFloatData();
-                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case FLOAT64 -> {
-                    double[] doubleData = getDoubleData();
-                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case BOOLEAN -> {
-                    BitSet booleanData = getBooleanData();
-                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
-                        booleanData.set(Math.toIntExact(i), value != 0);
-                    }
-                }
+            if (startFlatIndex > endFlatIndex) {
+                throw new IllegalArgumentException("Start index " + startFlatIndex + " is greater than end index " + endFlatIndex);
             }
+            if (dataType != DataType.FLOAT32) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            float[] floatData = getFloatData();
+            Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
         }
 
         @Override
@@ -840,38 +756,14 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            switch (dataType) {
-                case INT8 -> {
-                    byte[] byteData = getByteData();
-                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (byte) value);
-                }
-                case INT16 -> {
-                    short[] shortData = getShortData();
-                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (short) value);
-                }
-                case INT32 -> {
-                    int[] intData = getIntData();
-                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (int) value);
-                }
-                case INT64 -> {
-                    long[] longData = getLongData();
-                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (long) value);
-                }
-                case FLOAT32 -> {
-                    float[] floatData = getFloatData();
-                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), (float) value);
-                }
-                case FLOAT64 -> {
-                    double[] doubleData = getDoubleData();
-                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
-                }
-                case BOOLEAN -> {
-                    BitSet booleanData = getBooleanData();
-                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
-                        booleanData.set(Math.toIntExact(i), value != 0);
-                    }
-                }
+            if (startFlatIndex > endFlatIndex) {
+                throw new IllegalArgumentException("Start index " + startFlatIndex + " is greater than end index " + endFlatIndex);
             }
+            if (dataType != DataType.FLOAT64) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            double[] doubleData = getDoubleData();
+            Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value);
         }
 
         @Override
@@ -882,37 +774,17 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             if (endFlatIndex < 0 || endFlatIndex > nElements) {
                 throw new IndexOutOfBoundsException("End index " + endFlatIndex + " is out of bounds for shape " + ShapeUtils.toString(shape));
             }
-            switch (dataType) {
-                case INT8 -> {
-                    byte[] byteData = getByteData();
-                    Arrays.fill(byteData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? (byte) 1 : (byte) 0);
-                }
-                case INT16 -> {
-                    short[] shortData = getShortData();
-                    Arrays.fill(shortData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? (short) 1 : (short) 0);
-                }
-                case INT32 -> {
-                    int[] intData = getIntData();
-                    Arrays.fill(intData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? 1 : 0);
-                }
-                case INT64 -> {
-                    long[] longData = getLongData();
-                    Arrays.fill(longData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? 1 : 0);
-                }
-                case FLOAT32 -> {
-                    float[] floatData = getFloatData();
-                    Arrays.fill(floatData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? 1 : 0);
-                }
-                case FLOAT64 -> {
-                    double[] doubleData = getDoubleData();
-                    Arrays.fill(doubleData, Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex), value ? 1 : 0);
-                }
-                case BOOLEAN -> {
-                    BitSet booleanData = getBooleanData();
-                    for (long i = startFlatIndex; i < endFlatIndex; i++) {
-                        booleanData.set(Math.toIntExact(i), value);
-                    }
-                }
+            if (startFlatIndex > endFlatIndex) {
+                throw new IllegalArgumentException("Start index " + startFlatIndex + " is greater than end index " + endFlatIndex);
+            }
+            if (dataType != DataType.BOOLEAN) {
+                throw new UnsupportedOperationException("Cannot fill region of a DataContainer with data type " + dataType);
+            }
+            BitSet booleanData = getBooleanData();
+            if (value) {
+                booleanData.set(Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex));
+            } else {
+                booleanData.clear(Math.toIntExact(startFlatIndex), Math.toIntExact(endFlatIndex));
             }
         }
 

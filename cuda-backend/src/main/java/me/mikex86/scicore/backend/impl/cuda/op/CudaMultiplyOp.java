@@ -1,6 +1,8 @@
 package me.mikex86.scicore.backend.impl.cuda.op;
 
 import jcuda.Pointer;
+import me.mikex86.scicore.backend.impl.cuda.codegen.BroadcastingElementWiseOperationKernelCodeGenerator;
+import me.mikex86.scicore.backend.impl.cuda.codegen.KernelCodeGenerator;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
@@ -8,7 +10,6 @@ import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernel;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernelLaunchConfig;
-import me.mikex86.scicore.backend.impl.cuda.kernel.KernelNameUtility;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryHandle;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
@@ -23,9 +24,6 @@ public class CudaMultiplyOp implements IDifferentiableBinaryOperation {
     @NotNull
     private final CudaBackend backend;
 
-    @NotNull
-    private final CudaKernel multiplyKernel = CudaKernel.loadClassPath("kernels/cuda/multiply.ptx", KernelNameUtility.getAllTypePermutations("multiply", List.of(DataType.INT8, DataType.INT16, DataType.INT32, DataType.INT64, DataType.FLOAT32, DataType.FLOAT64)));
-
     public CudaMultiplyOp(@NotNull CudaBackend backend) {
         this.backend = backend;
     }
@@ -35,38 +33,64 @@ public class CudaMultiplyOp implements IDifferentiableBinaryOperation {
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
 
-        long aNumElements = ShapeUtils.getNumElements(shapeA);
-        long bNumElements = ShapeUtils.getNumElements(shapeB);
+        long[] stridesA = a.getStrides();
+        long[] stridesB = b.getStrides();
 
-        long[] finalShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
+        long[] resultShape = ShapeUtils.broadcastShapes(shapeA, shapeB);
 
         DataType dataTypeA = a.getDataType();
         DataType dataTypeB = b.getDataType();
         DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
 
-        long nElements = ShapeUtils.getNumElements(finalShape);
+        long nElements = ShapeUtils.getNumElements(resultShape);
 
-        CudaTensor result = new CudaTensor(this.backend, resultDataType, finalShape);
+        CudaTensor result = new CudaTensor(this.backend, resultDataType, resultShape);
+
+        long[] resultStrides = result.getStrides();
 
         CudaMemoryHandle aDevicePtr = backend.getCudaMemoryManager().ensureOnDevice(a);
         CudaMemoryHandle bDevicePtr = backend.getCudaMemoryManager().ensureOnDevice(b);
         int threadsPerBlock = 1024;
         int nBlocks = Math.toIntExact((nElements + threadsPerBlock - 1) / threadsPerBlock);
 
-        // KERNEL_TEMPLATE void multiply(A *a, size_t nA, B *b, size_t nB, C *out, size_t nOut)
-        this.multiplyKernel.launchBlocking(
-                KernelNameUtility.getTypePermutation("multiply", dataTypeA, dataTypeB),
+        // KERNEL_TEMPLATE void multiply(A *a, B* b, C *result)
+        CudaKernel multiplyKernel = CudaKernel.jitCompile(
+                KernelCodeGenerator
+                        .create()
+                        .addFunction(
+                                KernelCodeGenerator.KernelFunction
+                                        .builder()
+                                        .returnType("void")
+                                        .functionName("multiply")
+                                        .parameter(dataTypeA, 1, "a")
+                                        .parameter(dataTypeB, 1, "b")
+                                        .parameter(resultDataType, 1, "out")
+                                        .body(
+                                                BroadcastingElementWiseOperationKernelCodeGenerator
+                                                        .builder()
+                                                        .shapeA(shapeA)
+                                                        .shapeB(shapeB)
+                                                        .resultShape(resultShape)
+                                                        .stridesA(stridesA)
+                                                        .stridesB(stridesB)
+                                                        .resultStrides(resultStrides)
+                                                        .operation("*")
+                                                        .build()
+                                                        .generateCode()
+                                        )
+                                        .build()
+                        )
+                        .buildCode(), List.of("multiply"));
+        multiplyKernel.launchBlocking(
+                "multiply",
                 CudaKernelLaunchConfig.builder()
                         .blockDimX(threadsPerBlock)
                         .gridDimX(nBlocks)
                         .parameters(
                                 Pointer.to(
                                         Pointer.to(aDevicePtr.getDevicePointer()),
-                                        Pointer.to(new long[]{aNumElements}),
                                         Pointer.to(bDevicePtr.getDevicePointer()),
-                                        Pointer.to(new long[]{bNumElements}),
-                                        Pointer.to(result.getDataContainer().getDeviceMemoryHandle().getDevicePointer()),
-                                        Pointer.to(new long[]{nElements})
+                                        Pointer.to(result.getDataContainer().getDeviceMemoryHandle().getDevicePointer())
                                 )
                         )
                         .build()

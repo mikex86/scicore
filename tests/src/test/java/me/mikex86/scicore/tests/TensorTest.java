@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Disabled // this test is disabled because it is abstract
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class TensorTest {
 
     private static final float EPSILON = 1E-3f;
@@ -995,11 +996,11 @@ abstract class TensorTest {
 
             List<Arguments> arguments = new ArrayList<>();
             for (DataType dataTypeA : DataType.values()) {
-                if (!dataTypeA.isNumeric()){
+                if (!dataTypeA.isNumeric()) {
                     continue;
                 }
                 for (DataType dataTypeB : DataType.values()) {
-                    if (!dataTypeB.isNumeric()){
+                    if (!dataTypeB.isNumeric()) {
                         continue;
                     }
 

@@ -589,6 +589,17 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
         setContentsWithOffset(flatIndex, tensor);
     }
 
+    default void setContents(long @NotNull [] index, @NotNull ByteBuffer buffer) {
+        long flatIndex = ShapeUtils.getFlatIndex(index, getStrides());
+        long[] shape = getShape();
+        long[] subTensorShape = Arrays.copyOfRange(shape, index.length, shape.length);
+        long numElements = ShapeUtils.getNumElements(subTensorShape);
+        if (buffer.capacity() != getDataType().getSizeOf(numElements)) {
+            throw new IllegalArgumentException("Dimensions of destination tensor do not match with source tensor in setContents(index, buffer)");
+        }
+        setContentsWithOffset(flatIndex, buffer);
+    }
+
     long getNumberOfElements();
 
     @NotNull ITensor matmul(@NotNull ITensor other);

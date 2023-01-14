@@ -7,6 +7,7 @@ import me.mikex86.scicore.memory.AbstractMemoryManager;
 import me.mikex86.scicore.memory.IMemoryHandle;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.tensor.View;
 import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
@@ -85,7 +86,7 @@ public class CudaMemoryManager extends AbstractMemoryManager<CudaMemoryHandle> {
     public CudaMemoryHandle copyToDevice(@NotNull ITensor tensor) {
         CudaMemoryHandle handle = alloc(tensor.getNumberOfElements(), tensor.getDataType());
         DirectMemoryHandle memoryHandle = tensor.getContentsAsDirectMemory();
-        cuCheck(cuMemcpyHtoD(handle.getDevicePointer(), Pointer.to(memoryHandle.asByteBuffer()), handle.getSize()));
+        cuCheck(cuMemcpyHtoD(handle.getDevicePointer(), Pointer.to(memoryHandle.asByteBuffer()), memoryHandle.getSize()));
         if (memoryHandle.canFree()) {
             memoryHandle.free();
         }
@@ -106,11 +107,28 @@ public class CudaMemoryManager extends AbstractMemoryManager<CudaMemoryHandle> {
     public CudaMemoryHandle ensureOnDevice(@NotNull ITensor tensor) {
         if (tensor instanceof CudaTensor cudaTensor) {
             return cudaTensor.getDataContainer().getDeviceMemoryHandle().createReference();
-        } else if (tensor instanceof View view && view.getDataContainer() instanceof CudaDataContainer cudaDataContainer) {
-            long offset = cudaDataContainer.getDataType().getSizeOf(view.getOffset());
-            return cudaDataContainer.getDeviceMemoryHandle().offset(offset);
         } else {
-            return copyToDevice(tensor);
+            CudaDataContainer cudaDataContainer;
+            long offset = -1;
+            {
+                if (tensor instanceof View view && view.getDataContainer() instanceof CudaDataContainer dataContainer) {
+                    cudaDataContainer = dataContainer;
+                    offset = view.getOffset();
+                }
+//                else if (tensor instanceof LazyTensor lazyTensor && lazyTensor.result() instanceof View view && view.getDataContainer() instanceof CudaDataContainer dataContainer) {
+//                    cudaDataContainer = dataContainer;
+//                    offset = view.getOffset();
+//                }
+                else {
+                    cudaDataContainer = null;
+                }
+            }
+            if (cudaDataContainer != null) {
+                long byteOffset = cudaDataContainer.getDataType().getSizeOf(offset);
+                return cudaDataContainer.getDeviceMemoryHandle().offset(byteOffset);
+            } else {
+                return copyToDevice(tensor);
+            }
         }
     }
 

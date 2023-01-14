@@ -329,46 +329,11 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        long nElementsInRegion = endFlatIndex - startFlatIndex;
-        long nBytes = dataType.getSizeOf(nElementsInRegion);
-        switch (dataType) {
-            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value, nBytes);
-            case INT16 -> {
-                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case INT32 -> {
-                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    intBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case INT64 -> {
-                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case FLOAT32 -> {
-                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case FLOAT64 -> {
-                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case BOOLEAN -> {
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    setBooleanFlat(startFlatIndex + i, value != 0);
-                }
-            }
+        if (this.dataType != DataType.INT8) {
+            throw new IllegalArgumentException("Cannot fill region of data container of type " + dataType + " with byte value");
         }
+        long nBytes = dataType.getSizeOf(endFlatIndex - startFlatIndex);
+        MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value, nBytes);
     }
 
     @Override
@@ -383,45 +348,14 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        long nElementsInRegion = endFlatIndex - startFlatIndex;
-        long nBytes = dataType.getSizeOf(nElementsInRegion);
-        switch (dataType) {
-            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value, nBytes);
-            case INT16 -> {
-                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case INT32 -> {
-                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    intBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case INT64 -> {
-                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case FLOAT32 -> {
-                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case FLOAT64 -> {
-                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case BOOLEAN -> {
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    setBooleanFlat(startFlatIndex + i, value != 0);
-                }
-            }
+        if (this.dataType != DataType.INT16) {
+            throw new IllegalArgumentException("Cannot fill region of data container of type " + dataType + " with short value");
+        }
+        long nBytes = dataType.getSizeOf(endFlatIndex - startFlatIndex);
+        ShortBuffer buffer = this.memoryHandle.asShortBuffer();
+        buffer.position((int) startFlatIndex);
+        for (int i = 0; i < nBytes / Short.BYTES; i++) {
+            buffer.put(value);
         }
     }
 
@@ -437,45 +371,14 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        long nElementsInRegion = endFlatIndex - startFlatIndex;
-        long nBytes = dataType.getSizeOf(nElementsInRegion);
-        switch (dataType) {
-            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value, nBytes);
-            case INT16 -> {
-                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
-                }
-            }
-            case INT32 -> {
-                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    intBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case INT64 -> {
-                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case FLOAT32 -> {
-                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case FLOAT64 -> {
-                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case BOOLEAN -> {
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    setBooleanFlat(startFlatIndex + i, value != 0);
-                }
-            }
+        if (this.dataType != DataType.INT32) {
+            throw new IllegalArgumentException("Cannot fill region of data container of type " + dataType + " with int value");
+        }
+        long nBytes = dataType.getSizeOf(endFlatIndex - startFlatIndex);
+        IntBuffer buffer = this.memoryHandle.asIntBuffer();
+        buffer.position((int) startFlatIndex);
+        for (int i = 0; i < nBytes / Integer.BYTES; i++) {
+            buffer.put(value);
         }
     }
 
@@ -491,45 +394,14 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        long nElementsInRegion = endFlatIndex - startFlatIndex;
-        long nBytes = dataType.getSizeOf(nElementsInRegion);
-        switch (dataType) {
-            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, (int) value, nBytes);
-            case INT16 -> {
-                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
-                }
-            }
-            case INT32 -> {
-                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    intBuffer.put(Math.toIntExact(startFlatIndex + i), (int) value);
-                }
-            }
-            case INT64 -> {
-                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    longBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case FLOAT32 -> {
-                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case FLOAT64 -> {
-                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case BOOLEAN -> {
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    setBooleanFlat(startFlatIndex + i, value != 0);
-                }
-            }
+        if (this.dataType != DataType.INT64) {
+            throw new IllegalArgumentException("Cannot fill region of data container of type " + dataType + " with long value");
+        }
+        long nBytes = dataType.getSizeOf(endFlatIndex - startFlatIndex);
+        LongBuffer buffer = this.memoryHandle.asLongBuffer();
+        buffer.position((int) startFlatIndex);
+        for (int i = 0; i < nBytes / Long.BYTES; i++) {
+            buffer.put(value);
         }
     }
 
@@ -545,45 +417,14 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        long nElementsInRegion = endFlatIndex - startFlatIndex;
-        long nBytes = dataType.getSizeOf(nElementsInRegion);
-        switch (dataType) {
-            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, (int) value, nBytes);
-            case INT16 -> {
-                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
-                }
-            }
-            case INT32 -> {
-                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    intBuffer.put(Math.toIntExact(startFlatIndex + i), (int) value);
-                }
-            }
-            case INT64 -> {
-                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    longBuffer.put(Math.toIntExact(startFlatIndex + i), (long) value);
-                }
-            }
-            case FLOAT32 -> {
-                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case FLOAT64 -> {
-                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case BOOLEAN -> {
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    setBooleanFlat(startFlatIndex + i, value != 0);
-                }
-            }
+        if (this.dataType != DataType.FLOAT32) {
+            throw new IllegalArgumentException("Cannot fill region of data container of type " + dataType + " with float value");
+        }
+        long nBytes = dataType.getSizeOf(endFlatIndex - startFlatIndex);
+        FloatBuffer buffer = this.memoryHandle.asFloatBuffer();
+        buffer.position((int) startFlatIndex);
+        for (int i = 0; i < nBytes / Float.BYTES; i++) {
+            buffer.put(value);
         }
     }
 
@@ -599,45 +440,14 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        long nElementsInRegion = endFlatIndex - startFlatIndex;
-        long nBytes = dataType.getSizeOf(nElementsInRegion);
-        switch (dataType) {
-            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, (int) value, nBytes);
-            case INT16 -> {
-                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) value);
-                }
-            }
-            case INT32 -> {
-                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    intBuffer.put(Math.toIntExact(startFlatIndex + i), (int) value);
-                }
-            }
-            case INT64 -> {
-                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    longBuffer.put(Math.toIntExact(startFlatIndex + i), (long) value);
-                }
-            }
-            case FLOAT32 -> {
-                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), (float) value);
-                }
-            }
-            case FLOAT64 -> {
-                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value);
-                }
-            }
-            case BOOLEAN -> {
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    setBooleanFlat(startFlatIndex + i, value != 0);
-                }
-            }
+        if (this.dataType != DataType.FLOAT64) {
+            throw new IllegalArgumentException("Cannot fill region of data container of type " + dataType + " with double value");
+        }
+        long nBytes = dataType.getSizeOf(endFlatIndex - startFlatIndex);
+        DoubleBuffer buffer = this.memoryHandle.asDoubleBuffer();
+        buffer.position((int) startFlatIndex);
+        for (int i = 0; i < nBytes / Double.BYTES; i++) {
+            buffer.put(value);
         }
     }
 
@@ -653,45 +463,14 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
         if (endFlatIndex < startFlatIndex) {
             throw new IllegalArgumentException("End flat index " + endFlatIndex + " is less than start flat index " + startFlatIndex);
         }
-        long nElementsInRegion = endFlatIndex - startFlatIndex;
-        long nBytes = dataType.getSizeOf(nElementsInRegion);
-        switch (dataType) {
-            case INT8 -> MemoryUtil.memSet(this.memoryHandle.getNativePtr() + startFlatIndex, value ? 1 : 0, nBytes);
-            case INT16 -> {
-                ShortBuffer shortBuffer = this.memoryHandle.asShortBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    shortBuffer.put(Math.toIntExact(startFlatIndex + i), (short) (value ? 1 : 0));
-                }
-            }
-            case INT32 -> {
-                IntBuffer intBuffer = this.memoryHandle.asIntBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    intBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
-                }
-            }
-            case INT64 -> {
-                LongBuffer longBuffer = this.memoryHandle.asLongBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    longBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
-                }
-            }
-            case FLOAT32 -> {
-                FloatBuffer floatBuffer = this.memoryHandle.asFloatBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    floatBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
-                }
-            }
-            case FLOAT64 -> {
-                DoubleBuffer doubleBuffer = this.memoryHandle.asDoubleBuffer();
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    doubleBuffer.put(Math.toIntExact(startFlatIndex + i), value ? 1 : 0);
-                }
-            }
-            case BOOLEAN -> {
-                for (long i = 0; i < nElementsInRegion; i++) {
-                    setBooleanFlat(startFlatIndex + i, value);
-                }
-            }
+        if (this.dataType != DataType.BOOLEAN) {
+            throw new IllegalArgumentException("Cannot fill region of data container of type " + dataType + " with boolean value");
+        }
+        long nBytes = dataType.getSizeOf(endFlatIndex - startFlatIndex);
+        ByteBuffer buffer = this.memoryHandle.asByteBuffer();
+        buffer.position((int) startFlatIndex);
+        for (int i = 0; i < nBytes; i++) {
+            buffer.put((byte) (value ? 0xFF : 0));
         }
     }
 

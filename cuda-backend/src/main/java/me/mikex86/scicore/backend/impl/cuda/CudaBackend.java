@@ -3,6 +3,8 @@ package me.mikex86.scicore.backend.impl.cuda;
 import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;
 import jcuda.jcublas.cublasHandle;
+import me.mikex86.scicore.backend.impl.cuda.op.CudaCastOp;
+import me.mikex86.scicore.backend.impl.cuda.op.CudaReshapeOp;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.tensor.ITensor;
@@ -37,6 +39,8 @@ public class CudaBackend extends AbstractSciCoreBackend {
     {
         operationTable.put(OperationType.MATMUL, new CudaMatmulOp(this));
         operationTable.put(OperationType.MULTIPLY, new CudaMultiplyOp(this));
+        operationTable.put(OperationType.RESHAPE, new CudaReshapeOp(this));
+        operationTable.put(OperationType.CAST, new CudaCastOp(this));
     }
 
     @NotNull
@@ -122,7 +126,7 @@ public class CudaBackend extends AbstractSciCoreBackend {
     }
 
     @Override
-    public @NotNull ITensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
+    public @NotNull CudaTensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
         return new CudaTensor(this, dataType, shape);
     }
 

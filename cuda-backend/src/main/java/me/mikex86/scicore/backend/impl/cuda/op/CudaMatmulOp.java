@@ -18,10 +18,13 @@ import me.mikex86.scicore.graph.OptionBundle;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.awt.*;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import static jcuda.cudaDataType.CUDA_R_32F;
 import static jcuda.cudaDataType.CUDA_R_64F;
@@ -40,140 +43,304 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
     @NotNull
     private final CudaKernel matmulKernel = CudaKernel.loadClassPath("kernels/cuda/matmul.ptx", KernelNameUtility.getAllTypePermutations("matmul", List.of(DataType.INT8, DataType.INT16, DataType.INT32, DataType.INT64, DataType.FLOAT32, DataType.FLOAT64)));
 
+    @Nullable
+    private DirectMemoryHandle float32AlphaHandle;
+
+    @Nullable
+    private DirectMemoryHandle float64AlphaHandle;
+
     public CudaMatmulOp(@NotNull CudaBackend backend) {
         this.backend = backend;
     }
 
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
-        long[] shapeA = a.getShape();
-        long[] shapeB = b.getShape();
-        Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
+        long[] rowMajorShapeA = a.getShape();
+        long[] rowMajorShapeB = b.getShape();
+        Validator.assertTrue(ShapeUtils.shapeFitsInInt(rowMajorShapeA), "Shape of A is too large, no dimension must exceed Integer.MAX_VALUE");
+        Validator.assertTrue(ShapeUtils.shapeFitsInInt(rowMajorShapeB), "Shape of B is too large, no dimension must exceed Integer.MAX_VALUE");
+
         OptionBundle options = ctx.getOptionBundle();
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
-        long[] opShapeA, opShapeB;
-        if (transposeA) {
-            opShapeA = new long[]{shapeA[1], shapeA[0]};
-        } else {
-            opShapeA = shapeA;
+
+        long[] opRowMajorShapeA;
+        long[] opRowMajorShapeB;
+        long[] resultShapeRowMajor;
+        {
+            Validator.assertTrue(rowMajorShapeA.length == 2 || rowMajorShapeA.length == 3, "Only 2D and 3D tensors are supported");
+            Validator.assertTrue(rowMajorShapeB.length == 2 || rowMajorShapeB.length == 3, "Only 2D and 3D tensors are supported");
+
+
+            long[] stridesA = a.getStrides();
+            long[] stridesB = b.getStrides();
+
+            // TODO: Support more complex strides
+            if (stridesA[stridesA.length - 1] != 1 &&
+                stridesA[stridesA.length - 1] == rowMajorShapeA[rowMajorShapeA.length - 1]
+                && stridesA[stridesA.length - 2] == 1) {
+                transposeA = !transposeA;
+            }
+
+            if (stridesB[stridesB.length - 1] != 1 &&
+                stridesB[stridesB.length - 1] == rowMajorShapeB[rowMajorShapeB.length - 1]
+                && stridesB[stridesB.length - 2] == 1) {
+                transposeB = !transposeB;
+            }
+
+            if (transposeA) {
+                if (rowMajorShapeA.length == 2) {
+                    opRowMajorShapeA = new long[]{rowMajorShapeA[rowMajorShapeA.length - 1], rowMajorShapeA[rowMajorShapeA.length - 2]};
+                } else {
+                    opRowMajorShapeA = new long[]{rowMajorShapeA[0], rowMajorShapeA[rowMajorShapeA.length - 1], rowMajorShapeA[rowMajorShapeA.length - 2]};
+                }
+            } else {
+                opRowMajorShapeA = rowMajorShapeA;
+            }
+            if (transposeB) {
+                if (rowMajorShapeB.length == 2) {
+                    opRowMajorShapeB = new long[]{rowMajorShapeB[rowMajorShapeB.length - 1], rowMajorShapeB[rowMajorShapeB.length - 2]};
+                } else {
+                    opRowMajorShapeB = new long[]{rowMajorShapeB[0], rowMajorShapeB[rowMajorShapeB.length - 1], rowMajorShapeB[rowMajorShapeB.length - 2]};
+                }
+            } else {
+                opRowMajorShapeB = rowMajorShapeB;
+            }
+
+            Validator.assertTrue(opRowMajorShapeA[opRowMajorShapeA.length - 1] == opRowMajorShapeB[opRowMajorShapeB.length - 2], "Matrix multiplication shape mismatch: " + ShapeUtils.toString(opRowMajorShapeA) + " x " + ShapeUtils.toString(opRowMajorShapeB));
+            Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
+            Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
+
+            if (opRowMajorShapeA.length == 3 && opRowMajorShapeB.length == 3) {
+                Validator.assertTrue(opRowMajorShapeA[0] == opRowMajorShapeB[0] || opRowMajorShapeA[0] == 1 || opRowMajorShapeB[0] == 1, "Batch size mismatch");
+            }
+
+            resultShapeRowMajor = ShapeUtils.matrixMultiplyShape(opRowMajorShapeA, opRowMajorShapeB);
         }
-        if (transposeB) {
-            opShapeB = new long[]{shapeB[1], shapeB[0]};
-        } else {
-            opShapeB = shapeB;
-        }
-        Validator.assertTrue(opShapeA[1] == opShapeB[0], "Shape mismatch. A.shape[1] != B.shape[0]");
-        Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
-        Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
 
-        long[] resultShape = ShapeUtils.matrixMultiplyShape(opShapeA, opShapeB);
-        DataType dataTypeA = a.getDataType();
-        DataType dataTypeB = b.getDataType();
-        DataType resultDataType = DataType.getLarger(dataTypeA, dataTypeB);
+        DataType aDataType = a.getDataType();
+        DataType bDataType = b.getDataType();
+        DataType resultDataType = DataType.getLarger(aDataType, bDataType);
 
-        CudaTensor result = new CudaTensor(this.backend, resultDataType, resultShape);
-        CudaMemoryHandle resultMemoryHandle = result.getDataContainer().getDeviceMemoryHandle();
+        CudaTensor result = this.backend.createTensor(resultDataType, resultShapeRowMajor);
 
-        int m = Math.toIntExact(opShapeA[0]),
-                n = Math.toIntExact(opShapeB[1]),
-                k = Math.toIntExact(opShapeA[1]);
+        CudaMemoryHandle aPtr = backend.getCudaMemoryManager().ensureOnDevice(a);
+        CudaMemoryHandle bPtr = backend.getCudaMemoryManager().ensureOnDevice(b);
+        CudaMemoryHandle resultPtr = result.getDataContainer().getDeviceMemoryHandle();
 
-        int lda = transposeA ? m : k;
-        int ldb = transposeB ? k : n;
+        long[] shapeColumnMajorA = new long[]{rowMajorShapeA[rowMajorShapeA.length - 1], rowMajorShapeA[rowMajorShapeA.length - 2]};
+        long[] shapeColumnMajorB = new long[]{rowMajorShapeB[rowMajorShapeB.length - 1], rowMajorShapeB[rowMajorShapeB.length - 2]};
 
-        CudaMemoryHandle aMemoryHandle = backend.getCudaMemoryManager().ensureOnDevice(a);
-        CudaMemoryHandle bMemoryHandle = backend.getCudaMemoryManager().ensureOnDevice(b);
-
-        // TODO: MAKE THIS RESPECT STRIDES
+        // cublasSgemm expects column-major matrices, and we have row-major.
+        // Now, because B.T * A.T = C.T and A and B are already transposed when interpreted as column-major matrices, the result is C when interpreted as row-major.
         if (a.getDataType() == DataType.FLOAT32 && b.getDataType() == DataType.FLOAT32) {
-            // float32 by float32 multiplication
-            // Swap A and B because cublasSgemm expects column-major matrices, and we have row-major.
-            // Now, because B.T * A.T = C.T and A and B are already transposed when interpreted as column-major matrices, the result is C when interpreted as row-major.
-            DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(1, DataType.FLOAT32);
-            FloatBuffer factor = memoryHandle.asFloatBuffer();
-            factor.put(1.0f);
-            cublasCheck(cublasGemmEx_new(
-                    CudaBackend.getCublasHandle(),
-                    transposeA ? CUBLAS_OP_T : CUBLAS_OP_N, transposeB ? CUBLAS_OP_T : CUBLAS_OP_N,
-                    n, m, k,
-                    Pointer.to(factor),
-                    bMemoryHandle.getDevicePointer(),
-                    CUDA_R_32F,
-                    lda,
-                    aMemoryHandle.getDevicePointer(),
-                    CUDA_R_32F,
-                    ldb,
-                    Pointer.to(factor),
-                    resultMemoryHandle.getDevicePointer(),
-                    CUDA_R_32F,
-                    n,
-                    CUBLAS_COMPUTE_32F,
-                    CUBLAS_GEMM_DFALT_TENSOR_OP
-            ));
-            memoryHandle.free();
+            if (float32AlphaHandle == null) {
+                float32AlphaHandle = backend.getDirectMemoryManager().alloc(1, DataType.FLOAT32);
+                FloatBuffer factor = float32AlphaHandle.asFloatBuffer();
+                factor.put(1.0f);
+            }
+            if (!transposeA && !transposeB) {
+                cublasCheck(cublasGemmEx_new(
+                        CudaBackend.getCublasHandle(),
+                        CUBLAS_OP_N, CUBLAS_OP_N,
+                        (int) shapeColumnMajorB[0], (int) shapeColumnMajorA[1], (int) shapeColumnMajorB[1],
+                        Pointer.to(float32AlphaHandle.asFloatBuffer()),
+                        bPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorB[0],
+                        aPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorA[0],
+                        Pointer.to(float32AlphaHandle.asFloatBuffer()),
+                        resultPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorB[0],
+                        CUBLAS_COMPUTE_32F,
+                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                ));
+            } else if (!transposeA) {
+                cublasCheck(cublasGemmEx_new(
+                        CudaBackend.getCublasHandle(),
+                        CUBLAS_OP_T, CUBLAS_OP_N,
+                        (int) shapeColumnMajorB[1], (int) shapeColumnMajorA[1], (int) shapeColumnMajorB[0],
+                        Pointer.to(float32AlphaHandle.asFloatBuffer()),
+                        bPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorB[0], // lda = yStride = opShapeColumnMajorB[1] = shapeRowMajorB[0] ... Curse you 1970s Fortran indexing
+                        aPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorA[0],
+                        Pointer.to(float32AlphaHandle.asFloatBuffer()),
+                        resultPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorB[1],
+                        CUBLAS_COMPUTE_32F,
+                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                ));
+            } else if (!transposeB) {
+                cublasCheck(cublasGemmEx_new(
+                        CudaBackend.getCublasHandle(),
+                        CUBLAS_OP_N, CUBLAS_OP_T,
+                        (int) shapeColumnMajorB[0], (int) shapeColumnMajorA[0], (int) shapeColumnMajorB[1],
+                        Pointer.to(float32AlphaHandle.asFloatBuffer()),
+                        bPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorB[0],
+                        aPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorA[0],
+                        Pointer.to(float32AlphaHandle.asFloatBuffer()),
+                        resultPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorB[0],
+                        CUBLAS_COMPUTE_32F,
+                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                ));
+            } else {
+                cublasCheck(cublasGemmEx_new(
+                        CudaBackend.getCublasHandle(),
+                        CUBLAS_OP_T, CUBLAS_OP_T,
+                        (int) shapeColumnMajorB[1], (int) shapeColumnMajorA[0], (int) shapeColumnMajorB[0],
+                        Pointer.to(float32AlphaHandle.asFloatBuffer()),
+                        bPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorB[0],
+                        aPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorA[0],
+                        Pointer.to(float32AlphaHandle.asFloatBuffer()),
+                        resultPtr.getDevicePointer(),
+                        CUDA_R_32F,
+                        (int) shapeColumnMajorB[1],
+                        CUBLAS_COMPUTE_32F,
+                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                ));
+            }
         } else if (a.getDataType() == DataType.FLOAT64 && b.getDataType() == DataType.FLOAT64) {
-            // float64 by float64 multiplication
-            // Also swap here because cublasDgemm expects column-major matrices, and we have row-major.
-            DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(1, DataType.FLOAT64);
-            DoubleBuffer factor = memoryHandle.asDoubleBuffer();
-            factor.put(1.0);
-            cublasCheck(cublasGemmEx_new(
-                    CudaBackend.getCublasHandle(),
-                    transposeA ? CUBLAS_OP_T : CUBLAS_OP_N, transposeB ? CUBLAS_OP_T : CUBLAS_OP_N,
-                    n, m, k,
-                    Pointer.to(factor),
-                    bMemoryHandle.getDevicePointer(),
-                    CUDA_R_64F,
-                    lda,
-                    aMemoryHandle.getDevicePointer(),
-                    CUDA_R_64F,
-                    ldb,
-                    Pointer.to(factor),
-                    resultMemoryHandle.getDevicePointer(),
-                    CUDA_R_64F,
-                    n,
-                    CUBLAS_COMPUTE_64F,
-                    CUBLAS_GEMM_DFALT_TENSOR_OP
-            ));
-            memoryHandle.free();
+            if (float64AlphaHandle == null) {
+                float64AlphaHandle = backend.getDirectMemoryManager().alloc(1, DataType.FLOAT64);
+                DoubleBuffer factor = float64AlphaHandle.asDoubleBuffer();
+                factor.put(1.0);
+            }
+            if (!transposeA && !transposeB) {
+                cublasCheck(cublasGemmEx_new(
+                        CudaBackend.getCublasHandle(),
+                        CUBLAS_OP_N, CUBLAS_OP_N,
+                        (int) shapeColumnMajorB[0], (int) shapeColumnMajorA[1], (int) shapeColumnMajorB[1],
+                        Pointer.to(float64AlphaHandle.asDoubleBuffer()),
+                        bPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorB[0],
+                        aPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorA[0],
+                        Pointer.to(float64AlphaHandle.asDoubleBuffer()),
+                        resultPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorB[0],
+                        CUBLAS_COMPUTE_64F,
+                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                ));
+            } else if (!transposeA) {
+                cublasCheck(cublasGemmEx_new(
+                        CudaBackend.getCublasHandle(),
+                        CUBLAS_OP_T, CUBLAS_OP_N,
+                        (int) shapeColumnMajorB[1], (int) shapeColumnMajorA[1], (int) shapeColumnMajorB[0],
+                        Pointer.to(float64AlphaHandle.asDoubleBuffer()),
+                        bPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorB[0],
+                        aPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorA[0],
+                        Pointer.to(float64AlphaHandle.asDoubleBuffer()),
+                        resultPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorB[1],
+                        CUBLAS_COMPUTE_64F,
+                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                ));
+            } else if (!transposeB) {
+                cublasCheck(cublasGemmEx_new(
+                        CudaBackend.getCublasHandle(),
+                        CUBLAS_OP_N, CUBLAS_OP_T,
+                        (int) shapeColumnMajorB[0], (int) shapeColumnMajorA[0], (int) shapeColumnMajorB[1],
+                        Pointer.to(float64AlphaHandle.asDoubleBuffer()),
+                        bPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorB[0],
+                        aPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorA[0],
+                        Pointer.to(float64AlphaHandle.asDoubleBuffer()),
+                        resultPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorB[0],
+                        CUBLAS_COMPUTE_64F,
+                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                ));
+            } else {
+                cublasCheck(cublasGemmEx_new(
+                        CudaBackend.getCublasHandle(),
+                        CUBLAS_OP_T, CUBLAS_OP_T,
+                        (int) shapeColumnMajorB[1], (int) shapeColumnMajorA[0], (int) shapeColumnMajorB[0],
+                        Pointer.to(float64AlphaHandle.asDoubleBuffer()),
+                        bPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorB[0],
+                        aPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorA[0],
+                        Pointer.to(float64AlphaHandle.asDoubleBuffer()),
+                        resultPtr.getDevicePointer(),
+                        CUDA_R_64F,
+                        (int) shapeColumnMajorB[1],
+                        CUBLAS_COMPUTE_64F,
+                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                ));
+            }
         } else {
             // Fallback kernel for every other data type combination not supported by cublas
-            int xDimSize = (int) shapeA[0];
-            int yDimSize = (int) shapeA[1];
-            int blockDimX = 32, blockDimY = 32;
-            int nBlocksX = Math.toIntExact((xDimSize + blockDimX - 1) / blockDimX);
-            int nBlocksY = Math.toIntExact((yDimSize + blockDimY - 1) / blockDimY);
+            int xDimSize = (int) resultShapeRowMajor[0];
+            int yDimSize = (int) resultShapeRowMajor[1];
 
-            // KERNEL_TEMPLATE void matmul(A *a, B *b, C *c, size_t m, size_t n, size_t k)
+            int xThreads = 32;
+            int yThreads = 32;
+            int xBlocks = (xDimSize + xThreads - 1) / xThreads;
+            int yBlocks = (yDimSize + yThreads - 1) / yThreads;
+
+            int m = (int) opRowMajorShapeA[0];
+            int n = (int) opRowMajorShapeB[1];
+            int k = (int) opRowMajorShapeA[1];
+
+            // KERNEL_TEMPLATE void matmul(A *a, B *b, C *c, size_t m, size_t n, size_t k, uint32_t transposeA, uint32_t transposeB)
             this.matmulKernel.launchBlocking(
-                    KernelNameUtility.getTypePermutation("matmul", dataTypeA, dataTypeB),
+                    KernelNameUtility.getTypePermutation("matmul", aDataType, bDataType),
                     CudaKernelLaunchConfig.builder()
-                            .blockDimX(blockDimX)
-                            .blockDimY(blockDimY)
-                            .gridDimX(nBlocksX)
-                            .gridDimY(nBlocksY)
+                            .blockDimX(xThreads)
+                            .blockDimY(yThreads)
+                            .gridDimX(xBlocks)
+                            .gridDimY(yBlocks)
                             .parameters(
                                     Pointer.to(
-                                            Pointer.to(aMemoryHandle.getDevicePointer()),
-                                            Pointer.to(bMemoryHandle.getDevicePointer()),
-                                            Pointer.to(result.getDataContainer().getDeviceMemoryHandle().getDevicePointer()),
+                                            Pointer.to(aPtr.getDevicePointer()),
+                                            Pointer.to(bPtr.getDevicePointer()),
+                                            Pointer.to(resultPtr.getDevicePointer()),
                                             Pointer.to(new long[]{m}),
                                             Pointer.to(new long[]{n}),
-                                            Pointer.to(new long[]{k})
+                                            Pointer.to(new long[]{k}),
+                                            Pointer.to(new int[]{transposeA ? 1 : 0}),
+                                            Pointer.to(new int[]{transposeB ? 1 : 0})
                                     )
                             )
                             .build()
             );
-
         }
+        if (aPtr.canFree()) // can free will be false if the memory was already on the device
+            aPtr.free();
 
-        if (aMemoryHandle.canFree()) // can free will be false if the memory was already on the device
-            aMemoryHandle.free();
-
-        if (bMemoryHandle.canFree()) // can free will be false if the memory was already on the device
-            bMemoryHandle.free();
+        if (bPtr.canFree()) // can free will be false if the memory was already on the device
+            bPtr.free();
 
         return result;
     }
@@ -182,20 +349,33 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] shapeA = a.getShape();
         long[] shapeB = b.getShape();
-        Validator.assertTrue(shapeB.length == 2, "Only 2D matrices are supported");
-        Validator.assertTrue(shapeA.length == 2, "Only 2D matrices are supported");
+        Validator.assertTrue(shapeA.length == 2 || shapeA.length == 3, "Only 2D or 3D matrices are supported");
+        Validator.assertTrue(shapeB.length == 2 || shapeB.length == 3, "Only 2D or 3D matrices are supported");
         OptionBundle options = ctx.getOptionBundle();
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
         if (transposeA) {
-            shapeA = new long[]{shapeA[1], shapeA[0]};
+            if (shapeA.length == 2) {
+                shapeA = new long[]{shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
+            } else {
+                shapeA = new long[]{shapeA[0], shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
+            }
         }
         if (transposeB) {
-            shapeB = new long[]{shapeB[1], shapeB[0]};
+            if (shapeB.length == 2) {
+                shapeB = new long[]{shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
+            } else {
+                shapeB = new long[]{shapeB[0], shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
+            }
         }
-        Validator.assertTrue(shapeA[1] == shapeB[0], "Shape mismatch. A.shape[1] != B.shape[0]");
+        Validator.assertTrue(shapeA[shapeA.length - 1] == shapeB[shapeB.length - 2], "Matrix multiplication shape mismatch: " + ShapeUtils.toString(shapeA) + " x " + ShapeUtils.toString(shapeB));
         Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
         Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
+
+        if (shapeA.length == 3 && shapeB.length == 3) {
+            Validator.assertTrue(shapeA[0] == shapeB[0] || shapeA[0] == 1 || shapeB[0] == 1, "Batch size mismatch");
+        }
+
         Validator.assertTrue(ShapeUtils.shapeFitsInInt(shapeA), "Shape of A is too large, no dimension must exceed Integer.MAX_VALUE");
         Validator.assertTrue(ShapeUtils.shapeFitsInInt(shapeB), "Shape of B is too large, no dimension must exceed Integer.MAX_VALUE");
         long[] resultShape = ShapeUtils.matrixMultiplyShape(shapeA, shapeB);
@@ -223,14 +403,100 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         // Gradients:
         // dL/dW = G @ X.T
         // dL/dX = W.T @ G
+        OptionBundle options = ctx.getOptionBundle();
+        boolean transposeA = options.getOrDefault("transposeA", false);
+        boolean transposeB = options.getOrDefault("transposeB", false);
+
+        ITensor aValue = a.getValue();
+        ITensor bValue = b.getValue();
 
         if (a.requiresGradients()) {
-            ITensor dLdW = upstreamGradient.matmul(b.getValue().transpose());
+            ITensor dLdW;
+            if (!transposeA) {
+                // dL/dW = G @ X.T      # base case
+                // if transposeB == true:
+                //     dL/dW = G @ X.T.T    # the base case only applies when the transpose was APPLIED to the op input before the matrix multiplication
+                //                          # During the forward pass a "virtual transpose" occurred, but this is not reflected in the graph.
+                //                          # Thus, we need to transpose X again.
+                //     dL/dW = G @ X        # X.T.T = X
+                // else if transposeB == false:
+                //     dL/dW = G @ X.T      # no virtual transpose occurred, because X here is what was actually used in the forward pass
+
+                // interpretation: never transpose G, transpose X if transposeB == false
+                dLdW = upstreamGradient.matmul(bValue, false, !transposeB);
+            } else {
+                // Normally, if this were a transpose op node, this would compute the upstream gradients for
+                // a transpose op, which would transpose it again as part of its gradient computation.
+                // However, since we are merging a defacto transpose op into the matmul op, we would need to transpose
+                // these gradients after dL/dW is computed. We avoid transposing by exploiting the identity:
+                // B.T @ A.T = (A @ B).T
+
+                // Derivation steps:
+                // dL/dW_local = G @ X.T      # base case (fake local gradients)
+                // if transposeB == true:
+                //     dL/dW_local = G @ X.T.T    # virtual transpose occurred, so we need to transpose X again
+                //     dL/dW_local = G @ X        # X.T.T = X
+                //     dL/dW = (G @ X).T          # transpose because of would be transpose op chain rule
+                //     dL/dW = X.T @ G.T          # apply identity
+                // else if transposeB == false:
+                //    dL/dW_local = G @ X.T       # no virtual transpose occurred, because X here is what was actually used in the forward pass
+                //    dL/dW = (G @ X.T).T         # transpose because of would be transpose op chain rule
+                //    dL/dW = X @ G.T             # apply identity
+
+                // interpretation: always transpose G, transpose X if transposeB == true
+                dLdW = bValue.matmul(upstreamGradient, transposeB, true);
+            }
+            // if we are performing a 3d matrix multiplication and 'a' is 3d with batch size 1,
+            // or 'a' is 2d, then we need to sum the gradients over the batch dimension
+            if (aValue.getShape().length == 3 || bValue.getShape().length == 3) {
+                if (aValue.getShape().length == 3 && aValue.getShape()[0] == 1) {
+                    dLdW = dLdW.reduceSum(0, true);
+                } else if (aValue.getShape().length == 2) {
+                    dLdW = dLdW.reduceSum(0, false);
+                }
+            }
             a.accumulateGradient(dLdW);
         }
 
         if (b.requiresGradients()) {
-            ITensor dLdX = a.getValue().transpose().matmul(upstreamGradient);
+            ITensor dLdX;
+            if (!transposeB) {
+                // dL/dX = W.T @ G      # base case
+                // if transposeA == true:
+                //     dL/dX = W.T.T @ G    # virtual transpose occurred, so we need to transpose W again
+                //     dL/dX = W @ G        # W.T.T = W
+                // else if transposeA == false:
+                //     dL/dX = W.T @ G      # no virtual transpose occurred, because W here is what was actually used in the forward pass
+
+                // interpretation: never transpose G, transpose W if transposeA == false
+                dLdX = aValue.matmul(upstreamGradient, !transposeA, false);
+            } else {
+                // See above
+
+                // Derivation steps:
+                // dL/dX_local = W.T @ G    # base case (fake local gradients)
+                // if transposeA == true:
+                //     dL/dX_local = W.T.T @ G    # virtual transpose occurred, so we need to transpose W again
+                //     dL/dX_local = W @ G        # W.T.T = W
+                //     dL/dX = (W @ G).T          # transpose because of would be transpose op chain rule
+                //     dL/dX = G.T @ W.T          # apply identity
+                // else if transposeA == false:
+                //    dL/dX_local = W.T @ G       # no virtual transpose occurred, because W here is what was actually used in the forward pass
+                //    dL/dX = (W.T @ G).T         # transpose because of would be transpose op chain rule
+                //    dL/dX = G.T @ W             # apply identity
+
+                // interpretation: always transpose G, transpose W if transposeA == true
+                dLdX = upstreamGradient.matmul(aValue, true, transposeA);
+            }
+            // if we are performing a 3d matrix multiplication and 'b' is 3d with batch size 1,
+            // or 'b' is 2d, then we need to sum the gradients over the batch dimension
+            if (aValue.getShape().length == 3 || bValue.getShape().length == 3) {
+                if (bValue.getShape().length == 3 && bValue.getShape()[0] == 1) {
+                    dLdX = dLdX.reduceSum(0, true);
+                } else if (bValue.getShape().length == 2) {
+                    dLdX = dLdX.reduceSum(0, false);
+                }
+            }
             b.accumulateGradient(dLdX);
         }
     }

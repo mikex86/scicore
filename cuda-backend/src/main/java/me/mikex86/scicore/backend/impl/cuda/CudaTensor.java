@@ -115,7 +115,7 @@ public class CudaTensor extends AbstractTensor {
     @Override
     public double getDoubleFlat(long flatIndex) {
         validateDataType(DataType.FLOAT64);
-        return dataContainer.getFloat32Flat(flatIndex);
+        return dataContainer.getFloat64Flat(flatIndex);
     }
 
     @Override
@@ -196,59 +196,90 @@ public class CudaTensor extends AbstractTensor {
 
     @Override
     public void setContentsWithOffset(long startFlatIndex, boolean @NotNull [] buffer) {
-        validateDataType(DataType.BOOLEAN);
         this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, byte value) {
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        switch (dataType) {
+            case INT8 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case INT16 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (short) value);
+            case INT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (int) value);
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (long) value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, short value) {
-        validateDataType(DataType.INT16);
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        switch (dataType) {
+            case INT16 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case INT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (int) value);
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (long) value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with short value for data type " + dataType);
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, int value) {
-        validateDataType(DataType.INT32);
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        switch (dataType) {
+            case INT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (long) value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with int value for data type " + dataType);
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, long value) {
-        validateDataType(DataType.INT64);
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        switch (dataType) {
+            case INT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (float) value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with long value for data type " + dataType);
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, float value) {
-        validateDataType(DataType.FLOAT32);
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        switch (dataType) {
+            case FLOAT32 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+            case FLOAT64 -> dataContainer.fillRegion(startFlatIndex, endFlatIndex, (double) value);
+            default ->
+                    throw new IllegalArgumentException("Cannot fill region with float value for data type " + dataType);
+        }
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, double value) {
-        validateDataType(DataType.FLOAT64);
-        this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
+        if (dataType != DataType.FLOAT64) {
+            throw new IllegalArgumentException("Cannot fill region with double value for data type " + dataType);
+        }
+        dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
     public void fillRegion(long startFlatIndex, long endFlatIndex, boolean value) {
-        validateDataType(DataType.BOOLEAN);
         this.dataContainer.fillRegion(startFlatIndex, endFlatIndex, value);
     }
 
     @Override
     public void readFrom(@NotNull InputStream inputStream) throws IOException {
-        // TODO: WE COULD COPY THIS IN CHUNKS TO THE GPU TO SAVE RAM
-        byte[] bytes = inputStream.readAllBytes();
-        DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(bytes.length);
+        byte[] buffer = new byte[1_000_000];
+        DirectMemoryHandle memoryHandle = backend.getDirectMemoryManager().alloc(buffer.length);
         ByteBuffer byteBuffer = memoryHandle.asByteBuffer();
-        byteBuffer.put(bytes);
-        this.dataContainer.setContents(byteBuffer);
+        int read;
+        while ((read = inputStream.read(buffer)) != -1) {
+            byteBuffer.put(buffer, 0, read);
+            this.dataContainer.setContents(byteBuffer);
+        }
         memoryHandle.free();
     }
 
@@ -259,7 +290,7 @@ public class CudaTensor extends AbstractTensor {
 
     @Override
     public @NotNull DirectMemoryHandle getContentsAsDirectMemory() {
-        return dataContainer.getAsDirectBuffer(0, getNumberOfElements());
+        return dataContainer.getAsDirectBuffer();
     }
 
     @Override
