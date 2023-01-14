@@ -104,9 +104,9 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         long bBatchSize = shapeB.length == 3 ? shapeB[0] : 1;
         long batchSize = Math.max(aBatchSize, bBatchSize);
 
-        long aBatchStride = stridesA.length == 3 ? stridesA[0] : 0;
-        long bBatchStride = stridesB.length == 3 ? stridesB[0] : 0;
-        long cBatchStride = resultStrides.length == 3 ? resultStrides[0] : 0;
+        long aBatchStride = stridesA.length == 3 && shapeA[0] != 1 ? stridesA[0] : 0;
+        long bBatchStride = stridesB.length == 3 && shapeB[0] != 1 ? stridesB[0] : 0;
+        long cBatchStride = resultStrides.length == 3 && resultShape[0] != 1 ? resultStrides[0] : 0;
 
         if (batchSize == 1) {
             matmul(MATMUL_LAYOUT_ROW_MAJOR,

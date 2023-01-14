@@ -2,6 +2,7 @@ package me.mikex86.scicore.backend.impl.cuda;
 
 import static jcuda.driver.JCudaDriver.cuGetErrorName;
 import static jcuda.jcublas.JCublas2.cublasGetStatusName;
+import static jcuda.jcublas.cublasStatus.CUBLAS_STATUS_SUCCESS;
 import static jcuda.nvrtc.JNvrtc.nvrtcGetErrorString;
 
 public class Validator {
@@ -15,7 +16,7 @@ public class Validator {
     }
 
     public static void cublasCheck(int result) {
-        if (result != 0) {
+        if (result != CUBLAS_STATUS_SUCCESS) {
             String errorName = cublasGetStatusName(result);
             throw new RuntimeException("cuBLAS error: " + errorName);
         }

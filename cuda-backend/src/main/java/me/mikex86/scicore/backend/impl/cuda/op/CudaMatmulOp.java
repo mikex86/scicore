@@ -28,9 +28,9 @@ import java.util.concurrent.CountDownLatch;
 
 import static jcuda.cudaDataType.CUDA_R_32F;
 import static jcuda.cudaDataType.CUDA_R_64F;
-import static jcuda.jcublas.JCublas2.cublasGemmEx_new;
+import static jcuda.jcublas.JCublas2.*;
 import static jcuda.jcublas.cublasComputeType.*;
-import static jcuda.jcublas.cublasGemmAlgo.CUBLAS_GEMM_DFALT_TENSOR_OP;
+import static jcuda.jcublas.cublasGemmAlgo.*;
 import static jcuda.jcublas.cublasOperation.CUBLAS_OP_N;
 import static jcuda.jcublas.cublasOperation.CUBLAS_OP_T;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cublasCheck;
@@ -57,6 +57,10 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor a, @NotNull ITensor b) {
         long[] rowMajorShapeA = a.getShape();
         long[] rowMajorShapeB = b.getShape();
+
+        long[] stridesA = a.getStrides();
+        long[] stridesB = b.getStrides();
+
         Validator.assertTrue(ShapeUtils.shapeFitsInInt(rowMajorShapeA), "Shape of A is too large, no dimension must exceed Integer.MAX_VALUE");
         Validator.assertTrue(ShapeUtils.shapeFitsInInt(rowMajorShapeB), "Shape of B is too large, no dimension must exceed Integer.MAX_VALUE");
 
@@ -70,10 +74,6 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         {
             Validator.assertTrue(rowMajorShapeA.length == 2 || rowMajorShapeA.length == 3, "Only 2D and 3D tensors are supported");
             Validator.assertTrue(rowMajorShapeB.length == 2 || rowMajorShapeB.length == 3, "Only 2D and 3D tensors are supported");
-
-
-            long[] stridesA = a.getStrides();
-            long[] stridesB = b.getStrides();
 
             // TODO: Support more complex strides
             if (stridesA[stridesA.length - 1] != 1 &&
@@ -124,9 +124,19 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
 
         CudaTensor result = this.backend.createTensor(resultDataType, resultShapeRowMajor);
 
+        long[] resultStrides = result.getStrides();
+
         CudaMemoryHandle aPtr = backend.getCudaMemoryManager().ensureOnDevice(a);
         CudaMemoryHandle bPtr = backend.getCudaMemoryManager().ensureOnDevice(b);
         CudaMemoryHandle resultPtr = result.getDataContainer().getDeviceMemoryHandle();
+
+        long aBatchSize = rowMajorShapeA.length == 3 ? rowMajorShapeA[0] : 1;
+        long bBatchSize = rowMajorShapeB.length == 3 ? rowMajorShapeB[0] : 1;
+        long batchSize = Math.max(aBatchSize, bBatchSize);
+
+        long aBatchStride = stridesA.length == 3 && opRowMajorShapeA[0] != 1 ? stridesA[0] : 0;
+        long bBatchStride = stridesB.length == 3 && opRowMajorShapeB[0] != 1 ? stridesB[0] : 0;
+        long cBatchStride = resultStrides.length == 3 && resultShapeRowMajor[0] != 1 ? resultStrides[0] : 0;
 
         long[] shapeColumnMajorA = new long[]{rowMajorShapeA[rowMajorShapeA.length - 1], rowMajorShapeA[rowMajorShapeA.length - 2]};
         long[] shapeColumnMajorB = new long[]{rowMajorShapeB[rowMajorShapeB.length - 1], rowMajorShapeB[rowMajorShapeB.length - 2]};
@@ -140,7 +150,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                 factor.put(1.0f);
             }
             if (!transposeA && !transposeB) {
-                cublasCheck(cublasGemmEx_new(
+                cublasCheck(cublasGemmStridedBatchedEx_new(
                         CudaBackend.getCublasHandle(),
                         CUBLAS_OP_N, CUBLAS_OP_N,
                         (int) shapeColumnMajorB[0], (int) shapeColumnMajorA[1], (int) shapeColumnMajorB[1],
@@ -148,18 +158,22 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                         bPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorB[0],
+                        (int) bBatchStride,
                         aPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorA[0],
+                        (int) aBatchStride,
                         Pointer.to(float32AlphaHandle.asFloatBuffer()),
                         resultPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorB[0],
+                        (int) cBatchStride,
+                        (int) batchSize,
                         CUBLAS_COMPUTE_32F,
                         CUBLAS_GEMM_DFALT_TENSOR_OP
                 ));
             } else if (!transposeA) {
-                cublasCheck(cublasGemmEx_new(
+                cublasCheck(cublasGemmStridedBatchedEx_new(
                         CudaBackend.getCublasHandle(),
                         CUBLAS_OP_T, CUBLAS_OP_N,
                         (int) shapeColumnMajorB[1], (int) shapeColumnMajorA[1], (int) shapeColumnMajorB[0],
@@ -167,18 +181,22 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                         bPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorB[0], // lda = yStride = opShapeColumnMajorB[1] = shapeRowMajorB[0] ... Curse you 1970s Fortran indexing
+                        (int) bBatchStride,
                         aPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorA[0],
+                        (int) aBatchStride,
                         Pointer.to(float32AlphaHandle.asFloatBuffer()),
                         resultPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorB[1],
+                        (int) cBatchStride,
+                        (int) batchSize,
                         CUBLAS_COMPUTE_32F,
-                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                        CUBLAS_GEMM_ALGO0_TENSOR_OP
                 ));
             } else if (!transposeB) {
-                cublasCheck(cublasGemmEx_new(
+                cublasCheck(cublasGemmStridedBatchedEx_new(
                         CudaBackend.getCublasHandle(),
                         CUBLAS_OP_N, CUBLAS_OP_T,
                         (int) shapeColumnMajorB[0], (int) shapeColumnMajorA[0], (int) shapeColumnMajorB[1],
@@ -186,18 +204,22 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                         bPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorB[0],
+                        (int) bBatchStride,
                         aPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorA[0],
+                        (int) aBatchStride,
                         Pointer.to(float32AlphaHandle.asFloatBuffer()),
                         resultPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorB[0],
+                        (int) cBatchStride,
+                        (int) batchSize,
                         CUBLAS_COMPUTE_32F,
-                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                        CUBLAS_GEMM_ALGO0_TENSOR_OP
                 ));
             } else {
-                cublasCheck(cublasGemmEx_new(
+                cublasCheck(cublasGemmStridedBatchedEx_new(
                         CudaBackend.getCublasHandle(),
                         CUBLAS_OP_T, CUBLAS_OP_T,
                         (int) shapeColumnMajorB[1], (int) shapeColumnMajorA[0], (int) shapeColumnMajorB[0],
@@ -205,15 +227,19 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                         bPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorB[0],
+                        (int) bBatchStride,
                         aPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorA[0],
+                        (int) aBatchStride,
                         Pointer.to(float32AlphaHandle.asFloatBuffer()),
                         resultPtr.getDevicePointer(),
                         CUDA_R_32F,
                         (int) shapeColumnMajorB[1],
+                        (int) cBatchStride,
+                        (int) batchSize,
                         CUBLAS_COMPUTE_32F,
-                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                        CUBLAS_GEMM_ALGO0_TENSOR_OP
                 ));
             }
         } else if (a.getDataType() == DataType.FLOAT64 && b.getDataType() == DataType.FLOAT64) {
@@ -223,7 +249,7 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                 factor.put(1.0);
             }
             if (!transposeA && !transposeB) {
-                cublasCheck(cublasGemmEx_new(
+                cublasCheck(cublasGemmStridedBatchedEx_new(
                         CudaBackend.getCublasHandle(),
                         CUBLAS_OP_N, CUBLAS_OP_N,
                         (int) shapeColumnMajorB[0], (int) shapeColumnMajorA[1], (int) shapeColumnMajorB[1],
@@ -231,18 +257,22 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                         bPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorB[0],
+                        (int) bBatchStride,
                         aPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorA[0],
+                        (int) aBatchStride,
                         Pointer.to(float64AlphaHandle.asDoubleBuffer()),
                         resultPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorB[0],
+                        (int) cBatchStride,
+                        (int) batchSize,
                         CUBLAS_COMPUTE_64F,
-                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                        CUBLAS_GEMM_ALGO0_TENSOR_OP
                 ));
             } else if (!transposeA) {
-                cublasCheck(cublasGemmEx_new(
+                cublasCheck(cublasGemmStridedBatchedEx_new(
                         CudaBackend.getCublasHandle(),
                         CUBLAS_OP_T, CUBLAS_OP_N,
                         (int) shapeColumnMajorB[1], (int) shapeColumnMajorA[1], (int) shapeColumnMajorB[0],
@@ -250,18 +280,22 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                         bPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorB[0],
+                        (int) bBatchStride,
                         aPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorA[0],
+                        (int) aBatchStride,
                         Pointer.to(float64AlphaHandle.asDoubleBuffer()),
                         resultPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorB[1],
+                        (int) cBatchStride,
+                        (int) batchSize,
                         CUBLAS_COMPUTE_64F,
-                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                        CUBLAS_GEMM_ALGO0_TENSOR_OP
                 ));
             } else if (!transposeB) {
-                cublasCheck(cublasGemmEx_new(
+                cublasCheck(cublasGemmStridedBatchedEx_new(
                         CudaBackend.getCublasHandle(),
                         CUBLAS_OP_N, CUBLAS_OP_T,
                         (int) shapeColumnMajorB[0], (int) shapeColumnMajorA[0], (int) shapeColumnMajorB[1],
@@ -269,18 +303,22 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                         bPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorB[0],
+                        (int) bBatchStride,
                         aPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorA[0],
+                        (int) aBatchStride,
                         Pointer.to(float64AlphaHandle.asDoubleBuffer()),
                         resultPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorB[0],
+                        (int) cBatchStride,
+                        (int) batchSize,
                         CUBLAS_COMPUTE_64F,
-                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                        CUBLAS_GEMM_ALGO0_TENSOR_OP
                 ));
             } else {
-                cublasCheck(cublasGemmEx_new(
+                cublasCheck(cublasGemmStridedBatchedEx_new(
                         CudaBackend.getCublasHandle(),
                         CUBLAS_OP_T, CUBLAS_OP_T,
                         (int) shapeColumnMajorB[1], (int) shapeColumnMajorA[0], (int) shapeColumnMajorB[0],
@@ -288,39 +326,48 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                         bPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorB[0],
+                        (int) bBatchStride,
                         aPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorA[0],
+                        (int) aBatchStride,
                         Pointer.to(float64AlphaHandle.asDoubleBuffer()),
                         resultPtr.getDevicePointer(),
                         CUDA_R_64F,
                         (int) shapeColumnMajorB[1],
+                        (int) cBatchStride,
+                        (int) batchSize,
                         CUBLAS_COMPUTE_64F,
-                        CUBLAS_GEMM_DFALT_TENSOR_OP
+                        CUBLAS_GEMM_ALGO0_TENSOR_OP
                 ));
             }
         } else {
             // Fallback kernel for every other data type combination not supported by cublas
-            int xDimSize = (int) resultShapeRowMajor[0];
-            int yDimSize = (int) resultShapeRowMajor[1];
+            int xDimSize = (int) resultShapeRowMajor[resultShapeRowMajor.length - 2];
+            int yDimSize = (int) resultShapeRowMajor[resultShapeRowMajor.length - 1];
+            int zDimSize = (int) batchSize;
 
             int xThreads = 32;
             int yThreads = 32;
+            int zThreads = 1;
             int xBlocks = (xDimSize + xThreads - 1) / xThreads;
             int yBlocks = (yDimSize + yThreads - 1) / yThreads;
+            int zBlocks = (zDimSize + zThreads - 1) / zThreads;
 
-            int m = (int) opRowMajorShapeA[0];
-            int n = (int) opRowMajorShapeB[1];
-            int k = (int) opRowMajorShapeA[1];
+            int m = (int) opRowMajorShapeA[opRowMajorShapeA.length - 2];
+            int n = (int) opRowMajorShapeB[opRowMajorShapeB.length - 1];
+            int k = (int) opRowMajorShapeA[opRowMajorShapeA.length - 1];
 
-            // KERNEL_TEMPLATE void matmul(A *a, B *b, C *c, size_t m, size_t n, size_t k, uint32_t transposeA, uint32_t transposeB)
+            // KERNEL_TEMPLATE void matmul(A *a, B *b, C *c, size_t m, size_t n, size_t k, uint32_t transposeA, uint32_t transposeB, size_t strideA, size_t strideB, size_t strideC, size_t batchSize)
             this.matmulKernel.launchBlocking(
                     KernelNameUtility.getTypePermutation("matmul", aDataType, bDataType),
                     CudaKernelLaunchConfig.builder()
                             .blockDimX(xThreads)
                             .blockDimY(yThreads)
+                            .blockDimZ(zThreads)
                             .gridDimX(xBlocks)
                             .gridDimY(yBlocks)
+                            .gridDimZ(zBlocks)
                             .parameters(
                                     Pointer.to(
                                             Pointer.to(aPtr.getDevicePointer()),
@@ -330,7 +377,11 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
                                             Pointer.to(new long[]{n}),
                                             Pointer.to(new long[]{k}),
                                             Pointer.to(new int[]{transposeA ? 1 : 0}),
-                                            Pointer.to(new int[]{transposeB ? 1 : 0})
+                                            Pointer.to(new int[]{transposeB ? 1 : 0}),
+                                            Pointer.to(new long[]{aBatchStride}),
+                                            Pointer.to(new long[]{bBatchStride}),
+                                            Pointer.to(new long[]{cBatchStride}),
+                                            Pointer.to(new long[]{batchSize})
                                     )
                             )
                             .build()
