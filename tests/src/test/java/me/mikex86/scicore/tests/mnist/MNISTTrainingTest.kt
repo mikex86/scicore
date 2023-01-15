@@ -6,9 +6,6 @@ import me.mikex86.scicore.SciCore
 import me.mikex86.scicore.data.DatasetIterator
 import me.mikex86.scicore.graph.scopedRecording
 import me.mikex86.scicore.nn.optim.Adam
-import me.mikex86.scicore.nn.optim.RMSProp
-import me.mikex86.scicore.nn.optim.Sgd
-import me.mikex86.scicore.nn.optim.SgdWithMomentum
 import me.mikex86.scicore.tensor.DataType
 import me.mikex86.scicore.utils.use
 import me.tongfei.progressbar.ProgressBarBuilder
@@ -31,7 +28,8 @@ private const val DAMPENING_FACTOR = 0.1f
 // The fact that the GC seems to not care about GC-ing memory handles because they are "small" on the Jvm heap (despite referencing large regions of native memory) is a bit concerning.
 fun main() {
     val sciCore = SciCore()
-    sciCore.setBackend(ISciCore.BackendType.CUDA)
+    sciCore.addBackend(ISciCore.BackendType.CPU)
+    sciCore.addBackend(ISciCore.BackendType.CUDA)
     sciCore.seed(123)
 
     val trainSupplier = MnistDataSupplier(sciCore, train = true, shuffle = false)
@@ -69,7 +67,6 @@ fun main() {
                             .use { diffSquared -> diffSquared.reduceSum(-1) }
                             .use { sum -> sum.divide(BATCH_SIZE.toFloat()) }
                             .use { loss ->
-                                loss.elementAsDouble()
                                 optimizer.step(loss)
                                 loss.elementAsDouble()
                             }

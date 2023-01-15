@@ -13,7 +13,7 @@ import javax.swing.JFrame
 
 fun main() {
     val sciCore = SciCore()
-    sciCore.setBackend(ISciCore.BackendType.CPU)
+    sciCore.addBackend(ISciCore.BackendType.CPU)
 
     val net = MnistNet(sciCore)
     net.load(Path.of("mnist.scm"))

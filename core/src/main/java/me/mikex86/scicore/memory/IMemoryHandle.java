@@ -45,6 +45,10 @@ public interface IMemoryHandle<T extends IMemoryHandle<T>> {
      */
     @NotNull T offset(long offset);
 
+    @NotNull default T offset(long offset, @NotNull DataType dataType) {
+        return offset(dataType.getSizeOf(offset));
+    }
+
     /**
      * Creates a reference handle to a subregion of this handle. The parent handle will be responsible for freeing the memory.
      *

@@ -6,7 +6,10 @@ import org.jetbrains.annotations.Nullable;
 
 public class BroadcastingElementWiseOperationKernelCodeGenerator {
 
-    @NotNull
+    @Nullable
+    private final String operator;
+
+    @Nullable
     private final String operation;
 
     private final long @NotNull [] shapeA;
@@ -22,7 +25,8 @@ public class BroadcastingElementWiseOperationKernelCodeGenerator {
 
     private final long @NotNull [] resultStrides;
 
-    private BroadcastingElementWiseOperationKernelCodeGenerator(@NotNull String operation, long @NotNull [] shapeA, long @NotNull [] shapeB, long @NotNull [] resultShape, long @NotNull [] stridesA, long @NotNull [] stridesB, long @NotNull [] resultStrides) {
+    private BroadcastingElementWiseOperationKernelCodeGenerator(@Nullable String operator, @Nullable String operation, long @NotNull [] shapeA, long @NotNull [] shapeB, long @NotNull [] resultShape, long @NotNull [] stridesA, long @NotNull [] stridesB, long @NotNull [] resultStrides) {
+        this.operator = operator;
         this.operation = operation;
         this.shapeA = shapeA;
         this.shapeB = shapeB;
@@ -33,6 +37,9 @@ public class BroadcastingElementWiseOperationKernelCodeGenerator {
     }
 
     public static class Builder {
+
+        @Nullable
+        private String operator;
 
         @Nullable
         private String operation;
@@ -52,6 +59,12 @@ public class BroadcastingElementWiseOperationKernelCodeGenerator {
         @NotNull
         public Builder operation(@NotNull String operation) {
             this.operation = operation;
+            return this;
+        }
+
+        @NotNull
+        public Builder operator(@NotNull String operator) {
+            this.operator = operator;
             return this;
         }
 
@@ -93,8 +106,8 @@ public class BroadcastingElementWiseOperationKernelCodeGenerator {
 
         @NotNull
         public BroadcastingElementWiseOperationKernelCodeGenerator build() {
-            if (operation == null) {
-                throw new IllegalStateException("Operation is not set");
+            if (operation == null && operator == null) {
+                throw new IllegalStateException("Either operation or operator must be set");
             }
             if (shapeA == null) {
                 throw new IllegalStateException("Shape A is not set");
@@ -114,7 +127,7 @@ public class BroadcastingElementWiseOperationKernelCodeGenerator {
             if (resultStrides == null) {
                 throw new IllegalStateException("Result strides is not set");
             }
-            return new BroadcastingElementWiseOperationKernelCodeGenerator(operation, shapeA, shapeB, resultShape, stridesA, stridesB, resultStrides);
+            return new BroadcastingElementWiseOperationKernelCodeGenerator(operator, operation, shapeA, shapeB, resultShape, stridesA, stridesB, resultStrides);
         }
     }
 
@@ -223,8 +236,13 @@ public class BroadcastingElementWiseOperationKernelCodeGenerator {
             builder.append(";\n");
         }
 
-        builder.append("\tout[cIdx] = a[aIdx] ").append(operation).append(" b[bIdx];\n");
-
+        if (operator != null) {
+            builder.append("\tout[cIdx] = a[aIdx] ").append(operator).append(" b[bIdx];\n");
+        } else if (operation != null) {
+            builder.append("\tout[cIdx] = ").append(operation).append("(a[aIdx], b[bIdx]);\n");
+        } else {
+            throw new IllegalStateException("Either operation or operator must be set");
+        }
         builder.append("}");
         return builder.toString();
     }

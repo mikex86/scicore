@@ -168,11 +168,11 @@ public class CudaDataContainer implements ITensorDataContainer {
         }
     }
 
-    public void setContents(long startFlatIndex, @NotNull CudaMemoryHandle srcDevicePtr) {
+    public void setContents(long startFlatIndex, @NotNull CudaMemoryHandle srcDevicePtr, long nBytes) {
         if (startFlatIndex < 0 || startFlatIndex >= deviceMemoryHandle.getSize()) {
             throw new IllegalArgumentException("Cannot set contents of buffer, startFlatIndex is out of bounds");
         }
-        cuCheck(cuMemcpyDtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(startFlatIndex), srcDevicePtr.getDevicePointer(), srcDevicePtr.getSize()));
+        cuCheck(cuMemcpyDtoD(deviceMemoryHandle.getDevicePointer().withByteOffset(getDataType().getSizeOf(startFlatIndex)), srcDevicePtr.getDevicePointer(), nBytes));
     }
 
     @Override
@@ -391,7 +391,7 @@ public class CudaDataContainer implements ITensorDataContainer {
 
     @Override
     public @NotNull DirectMemoryHandle getAsDirectBuffer() {
-        return getAsDirectBuffer(0, deviceMemoryHandle.getSize());
+        return getAsDirectBuffer(0, getNumberOfElements());
     }
 
     @Override

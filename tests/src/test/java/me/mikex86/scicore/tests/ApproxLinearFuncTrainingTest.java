@@ -31,7 +31,7 @@ public abstract class ApproxLinearFuncTrainingTest {
 
     protected ApproxLinearFuncTrainingTest(@NotNull ISciCore.BackendType backendType) {
         sciCore = new SciCore();
-        sciCore.setBackend(backendType);
+        sciCore.addBackend(backendType);
         sciCore.seed(123);
         sciCore.disableBackendFallback();
     }

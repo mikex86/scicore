@@ -24,7 +24,7 @@ private const val N_TRAINING_STEPS = 50000L
 fun main() {
     val sciCore = SciCore()
     sciCore.seed(123)
-    sciCore.setBackend(ISciCore.BackendType.CPU)
+    sciCore.addBackend(ISciCore.BackendType.CPU)
 
     // tiny gpt
     val config = GPTConfig(

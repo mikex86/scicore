@@ -12,6 +12,15 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 public interface ISciCore {
+    static boolean isBackendAvailable(@NotNull BackendType backendType) {
+        try {
+            backendType.newInstance();
+            return true;
+        } catch (RuntimeException t) {
+            return false;
+        }
+    }
+
     @NotNull ITensor zeros(@NotNull DataType dataType, long @NotNull ... shape);
 
     void seed(long seed);
@@ -22,7 +31,7 @@ public interface ISciCore {
 
     @NotNull ITensor gaussian(@NotNull DataType dataType, long @NotNull ... shape);
 
-    void setBackend(@NotNull BackendType backendType);
+    void addBackend(@NotNull BackendType backendType);
 
     @NotNull ISciCoreBackend getBackend();
 

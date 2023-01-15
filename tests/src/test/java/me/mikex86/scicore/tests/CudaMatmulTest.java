@@ -8,7 +8,7 @@ public class CudaMatmulTest {
 
     public static void main(String[] args) {
         SciCore sciCore = new SciCore();
-        sciCore.setBackend(ISciCore.BackendType.CUDA);
+        sciCore.addBackend(ISciCore.BackendType.CUDA);
 
         // transposeA = false, transposeB = false
 //        ITensor a = sciCore.matrix(new float[][]{{1, 2}, {3, 4}, {5, 6}});

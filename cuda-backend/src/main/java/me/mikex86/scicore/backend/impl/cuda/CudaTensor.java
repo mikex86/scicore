@@ -2,9 +2,7 @@ package me.mikex86.scicore.backend.impl.cuda;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.memory.DirectMemoryHandle;
-import me.mikex86.scicore.tensor.AbstractTensor;
-import me.mikex86.scicore.tensor.DataType;
-import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.*;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -144,10 +142,14 @@ public class CudaTensor extends AbstractTensor {
     @Override
     public void setContentsWithOffset(long startFlatIndex, @NotNull ITensor tensor) {
         validateDataType(tensor.getDataType());
-        // TODO: Handle Lazy Tensors and CUDA Tensor Views more efficiently
         if (tensor instanceof CudaTensor cudaTensor) {
-            // device to device copy
-            this.dataContainer.setContents(startFlatIndex, cudaTensor.dataContainer.getDeviceMemoryHandle());
+            this.dataContainer.setContents(startFlatIndex, cudaTensor.dataContainer.getDeviceMemoryHandle(), getDataType().getSizeOf(Math.min(getNumberOfElements(), tensor.getNumberOfElements())));
+        } else if (tensor instanceof LazyTensor lazyTensor && lazyTensor.result() instanceof CudaTensor cudaTensor) {
+            this.dataContainer.setContents(startFlatIndex, cudaTensor.dataContainer.getDeviceMemoryHandle(), getDataType().getSizeOf(Math.min(getNumberOfElements(), tensor.getNumberOfElements())));
+        } else if (tensor instanceof LazyTensor lazyTensor && lazyTensor.result() instanceof View view && view.getDataContainer() instanceof CudaDataContainer cudaDataContainer) {
+            this.dataContainer.setContents(startFlatIndex, cudaDataContainer.getDeviceMemoryHandle().offset(view.getOffset(), view.getDataType()), getDataType().getSizeOf(Math.min(getNumberOfElements(), tensor.getNumberOfElements())));
+        } else if (tensor instanceof View view && view.getDataContainer() instanceof CudaDataContainer cudaDataContainer) {
+            this.dataContainer.setContents(startFlatIndex, cudaDataContainer.getDeviceMemoryHandle().offset(view.getOffset(), view.getDataType()), getDataType().getSizeOf(Math.min(getNumberOfElements(), tensor.getNumberOfElements())));
         } else {
             // general copy
             DirectMemoryHandle memoryHandle = tensor.getContentsAsDirectMemory();

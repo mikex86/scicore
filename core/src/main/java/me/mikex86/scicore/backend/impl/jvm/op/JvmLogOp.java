@@ -24,13 +24,13 @@ public class JvmLogOp implements IDifferentiableUnaryOperation {
         long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
-        ITensor result = backend.createTensor(dataType, shape);
-        for (long i = 0; i < nElements; i++) {
-            double value = input.getAsDoubleFlat(i);
-            result.setByDoubleFlat(Math.log(value), i);
+        try (ITensor result = backend.createTensor(dataType, shape)) {
+            for (long i = 0; i < nElements; i++) {
+                double value = input.getAsDoubleFlat(i);
+                result.setByDoubleFlat(Math.log(value), i);
+            }
+            return result.view(shape, strides);
         }
-        result = result.view(shape, strides);
-        return result;
     }
 
     @Override

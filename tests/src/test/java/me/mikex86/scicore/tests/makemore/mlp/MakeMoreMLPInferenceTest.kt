@@ -11,7 +11,7 @@ private const val BLOCK_SIZE = 3
 
 fun main() {
     val sciCore = SciCore()
-    sciCore.setBackend(ISciCore.BackendType.CPU)
+    sciCore.addBackend(ISciCore.BackendType.CPU)
 
     val net = MakeMoreMLPNet(sciCore)
     net.load(Path("makemore.scm"))

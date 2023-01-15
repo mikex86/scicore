@@ -3,15 +3,12 @@ package me.mikex86.scicore.backend.impl.cuda;
 import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;
 import jcuda.jcublas.cublasHandle;
-import me.mikex86.scicore.backend.impl.cuda.op.CudaCastOp;
-import me.mikex86.scicore.backend.impl.cuda.op.CudaReshapeOp;
+import me.mikex86.scicore.backend.impl.cuda.op.*;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryManager;
-import me.mikex86.scicore.backend.impl.cuda.op.CudaMatmulOp;
-import me.mikex86.scicore.backend.impl.cuda.op.CudaMultiplyOp;
 import me.mikex86.scicore.graph.op.IOperation;
 import me.mikex86.scicore.graph.OperationType;
 import org.apache.logging.log4j.LogManager;
@@ -39,8 +36,17 @@ public class CudaBackend extends AbstractSciCoreBackend {
     {
         operationTable.put(OperationType.MATMUL, new CudaMatmulOp(this));
         operationTable.put(OperationType.MULTIPLY, new CudaMultiplyOp(this));
+        operationTable.put(OperationType.DIVIDE, new CudaDivideOp(this));
+        operationTable.put(OperationType.PLUS, new CudaPlusOp(this));
+        operationTable.put(OperationType.PLUS_INPLACE, new CudaPlusInplaceOp(this));
+        operationTable.put(OperationType.POW, new CudaPowOp(this));
+        operationTable.put(OperationType.MINUS, new CudaMinusOp(this));
+        operationTable.put(OperationType.MINUS_INPLACE, new CudaMinusInplaceOp(this));
         operationTable.put(OperationType.RESHAPE, new CudaReshapeOp(this));
         operationTable.put(OperationType.CAST, new CudaCastOp(this));
+        operationTable.put(OperationType.EXP, new CudaExpOp(this));
+        operationTable.put(OperationType.TANH, new CudaTanhOp(this));
+        operationTable.put(OperationType.RELU, new CudaReluOp(this));
     }
 
     @NotNull

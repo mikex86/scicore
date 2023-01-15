@@ -28,12 +28,12 @@ public class GenCPUTanhOp implements IDifferentiableUnaryOperation {
         long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
-        ITensor result = this.backend.createTensor(dataType, shape);
-        DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
-        DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
-        TanhJNI.tanh(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
-        result = result.view(shape, strides);
-        return result;
+        try (ITensor result = this.backend.createTensor(dataType, shape)) {
+            DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
+            DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
+            TanhJNI.tanh(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
+            return result.view(shape, strides);
+        }
     }
 
     @Override

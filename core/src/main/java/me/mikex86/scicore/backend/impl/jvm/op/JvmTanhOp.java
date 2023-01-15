@@ -26,22 +26,22 @@ public class JvmTanhOp implements IDifferentiableUnaryOperation {
         long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
-        ITensor result = this.backend.createTensor(dataType, shape);
-        if (dataType.isFloatingPoint()) {
-            for (long i = 0; i < nElements; i++) {
-                double value = input.getAsDoubleFlat(i);
-                double tanh = Math.tanh(value);
-                result.setByDoubleFlat(tanh, i);
+        try (ITensor result = this.backend.createTensor(dataType, shape)) {
+            if (dataType.isFloatingPoint()) {
+                for (long i = 0; i < nElements; i++) {
+                    double value = input.getAsDoubleFlat(i);
+                    double tanh = Math.tanh(value);
+                    result.setByDoubleFlat(tanh, i);
+                }
+            } else {
+                for (long i = 0; i < nElements; i++) {
+                    long value = input.getAsLongFlat(i);
+                    long tanh = (long) Math.tanh(value);
+                    result.setByLongFlat(tanh, i);
+                }
             }
-        } else {
-            for (long i = 0; i < nElements; i++) {
-                long value = input.getAsLongFlat(i);
-                long tanh = (long) Math.tanh(value);
-                result.setByLongFlat(tanh, i);
-            }
+            return result.view(shape, strides);
         }
-        result = result.view(shape, strides);
-        return result;
     }
 
     @Override

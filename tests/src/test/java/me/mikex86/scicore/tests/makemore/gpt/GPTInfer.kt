@@ -58,7 +58,7 @@ fun generateText(
 fun main() {
     val sciCore = SciCore()
     sciCore.seed(123)
-    sciCore.setBackend(ISciCore.BackendType.CPU)
+    sciCore.addBackend(ISciCore.BackendType.CPU)
 
 
     val config = GPTConfig(

@@ -30,12 +30,12 @@ public class GenCPUSigmoidOp implements IDifferentiableUnaryOperation {
         long[] strides = x.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = x.getDataType();
-        ITensor result = backend.createTensor(dataType, shape);
-        DirectMemoryHandle inputMemoryHandle = x.getContentsAsDirectMemory();
-        DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
-        SigmoidJNI.sigmoid(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
-        result = result.view(shape, strides);
-        return result;
+        try (ITensor result = backend.createTensor(dataType, shape)) {
+            DirectMemoryHandle inputMemoryHandle = x.getContentsAsDirectMemory();
+            DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
+            SigmoidJNI.sigmoid(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
+            return result.view(shape, strides);
+        }
     }
 
     @Override

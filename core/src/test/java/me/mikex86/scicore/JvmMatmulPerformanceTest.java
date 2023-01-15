@@ -7,7 +7,7 @@ public class JvmMatmulPerformanceTest {
 
     public static void main(String[] args) {
         ISciCore sciCore = new SciCore();
-        sciCore.setBackend(SciCore.BackendType.JVM);
+        sciCore.addBackend(SciCore.BackendType.JVM);
 
         // Matrix multiplication test
         ITensor a = sciCore.uniform(DataType.FLOAT32, 1000, 1000);

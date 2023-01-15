@@ -25,7 +25,7 @@ class GraphVisualizerTest {
     @BeforeEach
     void setUp() {
         sciCore = new SciCore();
-        sciCore.setBackend(SciCore.BackendType.JVM);
+        sciCore.addBackend(SciCore.BackendType.JVM);
     }
 
     @Test

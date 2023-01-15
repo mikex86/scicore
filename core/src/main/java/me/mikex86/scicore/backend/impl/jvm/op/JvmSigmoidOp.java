@@ -26,22 +26,22 @@ public class JvmSigmoidOp implements IDifferentiableUnaryOperation {
         long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
-        ITensor result = this.backend.createTensor(dataType, shape);
-        if (dataType.isFloatingPoint()) {
-            for (long i = 0; i < nElements; i++) {
-                double value = input.getAsDoubleFlat(i);
-                double sigmoid = 1.0 / (1 + Math.exp(-value));
-                result.setByDoubleFlat(sigmoid, i);
+        try (ITensor result = this.backend.createTensor(dataType, shape)) {
+            if (dataType.isFloatingPoint()) {
+                for (long i = 0; i < nElements; i++) {
+                    double value = input.getAsDoubleFlat(i);
+                    double sigmoid = 1.0 / (1 + Math.exp(-value));
+                    result.setByDoubleFlat(sigmoid, i);
+                }
+            } else {
+                for (long i = 0; i < nElements; i++) {
+                    long value = input.getAsLongFlat(i);
+                    long sigmoid = Math.round(1.0 / (1 + Math.exp(-value)));
+                    result.setByLongFlat(sigmoid, i);
+                }
             }
-        } else {
-            for (long i = 0; i < nElements; i++) {
-                long value = input.getAsLongFlat(i);
-                long sigmoid = Math.round(1.0 / (1 + Math.exp(-value)));
-                result.setByLongFlat(sigmoid, i);
-            }
+            return result.view(shape, strides);
         }
-        result = result.view(shape, strides);
-        return result;
     }
 
     @Override

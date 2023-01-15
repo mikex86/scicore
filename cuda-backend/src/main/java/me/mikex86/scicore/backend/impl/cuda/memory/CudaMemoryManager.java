@@ -115,10 +115,17 @@ public class CudaMemoryManager extends AbstractMemoryManager<CudaMemoryHandle> {
                     cudaDataContainer = dataContainer;
                     offset = view.getOffset();
                 }
-//                else if (tensor instanceof LazyTensor lazyTensor && lazyTensor.result() instanceof View view && view.getDataContainer() instanceof CudaDataContainer dataContainer) {
-//                    cudaDataContainer = dataContainer;
-//                    offset = view.getOffset();
-//                }
+                else if (tensor instanceof LazyTensor lazyTensor) {
+                    if (lazyTensor.result() instanceof View view && view.getDataContainer() instanceof CudaDataContainer dataContainer) {
+                        cudaDataContainer = dataContainer;
+                        offset = view.getOffset();
+                    } else if (lazyTensor.result() instanceof CudaTensor cudaTensor) {
+                        cudaDataContainer = cudaTensor.getDataContainer();
+                        offset = 0;
+                    } else {
+                        cudaDataContainer = null;
+                    }
+                }
                 else {
                     cudaDataContainer = null;
                 }

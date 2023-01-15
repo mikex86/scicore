@@ -27,12 +27,12 @@ public class GenCPUReluOp implements IDifferentiableUnaryOperation {
         long[] strides = input.getStrides();
         long nElements = ShapeUtils.getNumElements(shape);
         DataType dataType = input.getDataType();
-        ITensor result = this.backend.createTensor(dataType, shape);
-        DirectMemoryHandle inputHandle = input.getContentsAsDirectMemory();
-        DirectMemoryHandle resultHandle = result.getContentsAsDirectMemory();
-        ReluJNI.relu(inputHandle.getNativePtr(), resultHandle.getNativePtr(), nElements, dataType);
-        result = result.view(shape, strides);
-        return result;
+        try (ITensor result = this.backend.createTensor(dataType, shape)) {
+            DirectMemoryHandle inputHandle = input.getContentsAsDirectMemory();
+            DirectMemoryHandle resultHandle = result.getContentsAsDirectMemory();
+            ReluJNI.relu(inputHandle.getNativePtr(), resultHandle.getNativePtr(), nElements, dataType);
+            return result.view(shape, strides);
+        }
     }
 
     @Override

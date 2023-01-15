@@ -23,7 +23,7 @@ abstract class GradientComputationTest {
 
     GradientComputationTest(@NotNull ISciCore.BackendType backendType) {
         sciCore = new SciCore();
-        sciCore.setBackend(backendType);
+        sciCore.addBackend(backendType);
         sciCore.disableBackendFallback();
     }
 

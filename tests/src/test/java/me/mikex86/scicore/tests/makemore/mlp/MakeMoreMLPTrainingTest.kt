@@ -33,7 +33,7 @@ private const val END_LEARNING_RATE = 0.05f
 
 fun main() {
     val sciCore = SciCore()
-    sciCore.setBackend(ISciCore.BackendType.CPU)
+    sciCore.addBackend(ISciCore.BackendType.CPU)
     sciCore.seed(123)
 
     val namesSupplier = NamesSlidingWindowDatasetSupplier(sciCore, BLOCK_SIZE, training = true, shuffle = true)

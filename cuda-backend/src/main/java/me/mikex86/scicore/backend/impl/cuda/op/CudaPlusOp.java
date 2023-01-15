@@ -1,30 +1,31 @@
 package me.mikex86.scicore.backend.impl.cuda.op;
 
 import jcuda.Pointer;
-import me.mikex86.scicore.backend.impl.cuda.codegen.BroadcastingElementWiseOperationKernelCodeGenerator;
-import me.mikex86.scicore.backend.impl.cuda.codegen.KernelCodeGenerator;
-import me.mikex86.scicore.tensor.DataType;
-import me.mikex86.scicore.tensor.ITensor;
-import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
+import me.mikex86.scicore.backend.impl.cuda.codegen.BroadcastingElementWiseOperationKernelCodeGenerator;
+import me.mikex86.scicore.backend.impl.cuda.codegen.KernelCodeGenerator;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernel;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernelLaunchConfig;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryHandle;
 import me.mikex86.scicore.graph.Graph;
-import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.IGraph;
+import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
+import me.mikex86.scicore.tensor.DataType;
+import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.LazyTensor;
+import me.mikex86.scicore.utils.GradientUtil;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class CudaMultiplyOp implements IDifferentiableBinaryOperation {
+public class CudaPlusOp implements IDifferentiableBinaryOperation {
 
     @NotNull
     private final CudaBackend backend;
 
-    public CudaMultiplyOp(@NotNull CudaBackend backend) {
+    public CudaPlusOp(@NotNull CudaBackend backend) {
         this.backend = backend;
     }
 
@@ -53,8 +54,7 @@ public class CudaMultiplyOp implements IDifferentiableBinaryOperation {
         int threadsPerBlock = 1024;
         int nBlocks = Math.toIntExact((nElements + threadsPerBlock - 1) / threadsPerBlock);
 
-        // KERNEL_TEMPLATE void multiply(A *a, B* b, C *result)
-        CudaKernel multiplyKernel = CudaKernel.jitCompile(
+        CudaKernel kernel = CudaKernel.jitCompile(
                 KernelCodeGenerator
                         .create()
                         .addFunction(
@@ -62,7 +62,7 @@ public class CudaMultiplyOp implements IDifferentiableBinaryOperation {
                                         .builder()
                                         .prefix("extern \"C\" __global__")
                                         .returnType("void")
-                                        .functionName("multiply")
+                                        .functionName("plus")
                                         .parameter(dataTypeA, 1, "a")
                                         .parameter(dataTypeB, 1, "b")
                                         .parameter(resultDataType, 1, "out")
@@ -75,15 +75,15 @@ public class CudaMultiplyOp implements IDifferentiableBinaryOperation {
                                                         .stridesA(stridesA)
                                                         .stridesB(stridesB)
                                                         .resultStrides(resultStrides)
-                                                        .operator("*")
+                                                        .operator("+")
                                                         .build()
                                                         .generateCode()
                                         )
                                         .build()
                         )
-                        .buildCode(), List.of("multiply"));
-        multiplyKernel.launchBlocking(
-                "multiply",
+                        .buildCode(), List.of("plus"));
+        kernel.launchBlocking(
+                "plus",
                 CudaKernelLaunchConfig.builder()
                         .blockDimX(threadsPerBlock)
                         .gridDimX(nBlocks)
@@ -118,37 +118,13 @@ public class CudaMultiplyOp implements IDifferentiableBinaryOperation {
     public void computeGradients(@NotNull Graph.IOperationContext ctx, @NotNull ITensor upstreamGradient, @NotNull IGraph.ITensorNodeWithGradient a, @NotNull IGraph.ITensorNodeWithGradient b) {
         if (a.requiresGradients()) {
             ITensor aValue = a.getValue();
-
-            long[] shapeA = aValue.getShape();
-
-            ITensor gradients = upstreamGradient.multiply(b.getValue());
-
-            long[] gradientShape = gradients.getShape();
-
-            if (ShapeUtils.compareBroadcastRank(gradientShape, shapeA) > 0) {
-                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeA, gradientShape);
-                for (int i = 0; i < nCommonDimensions; i++) {
-                    gradients = gradients.reduceSum(0);
-                }
-            }
+            ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient, aValue.getShape());
             a.accumulateGradient(gradients);
         }
+
         if (b.requiresGradients()) {
             ITensor bValue = b.getValue();
-
-            long[] shapeB = bValue.getShape();
-
-            ITensor gradients = upstreamGradient.multiply(a.getValue());
-
-            long[] gradientShape = gradients.getShape();
-
-            if (ShapeUtils.compareBroadcastRank(gradientShape, shapeB) > 0) {
-                int nCommonDimensions = ShapeUtils.getNumNotCommonDimensions(shapeB, gradientShape);
-                for (int i = 0; i < nCommonDimensions; i++) {
-                    gradients = gradients.reduceSum(0);
-                }
-            }
-
+            ITensor gradients = GradientUtil.sumGradientsOnBroadcastDims(upstreamGradient, bValue.getShape());
             b.accumulateGradient(gradients);
         }
     }

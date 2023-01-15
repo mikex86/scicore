@@ -29,12 +29,12 @@ public class GenCPUExpOp implements IDifferentiableUnaryOperation {
         long nElements = ShapeUtils.getNumElements(shape);
         long[] strides = input.getStrides();
         DataType dataType = input.getDataType();
-        ITensor result = backend.createTensor(dataType, shape);
-        DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
-        DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
-        ExpJNI.exp(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
-        result = result.view(shape, strides);
-        return result;
+        try (ITensor result = backend.createTensor(dataType, shape)) {
+            DirectMemoryHandle inputMemoryHandle = input.getContentsAsDirectMemory();
+            DirectMemoryHandle resultMemoryHandle = result.getContentsAsDirectMemory();
+            ExpJNI.exp(inputMemoryHandle.getNativePtr(), resultMemoryHandle.getNativePtr(), nElements, dataType);
+            return result.view(shape, strides);
+        }
     }
 
     @Override

@@ -31,7 +31,7 @@ abstract class TensorTest {
 
     TensorTest(@NotNull ISciCore.BackendType backendType) {
         this.sciCore = new SciCore();
-        this.sciCore.setBackend(backendType);
+        this.sciCore.addBackend(backendType);
         this.sciCore.disableBackendFallback();
     }
 
@@ -1321,7 +1321,7 @@ abstract class TensorTest {
 
             Stream<Arguments> getMatmul_test_withJvmTensorData() {
                 SciCore jvmSciCore = new SciCore();
-                jvmSciCore.setBackend(ISciCore.BackendType.JVM);
+                jvmSciCore.addBackend(ISciCore.BackendType.JVM);
                 double[][] a = {{1, 2}, {3, 4}};
                 double[][] b = {{5, 6}, {7, 8}};
                 double[][] c = {{19, 22}, {43, 50}};

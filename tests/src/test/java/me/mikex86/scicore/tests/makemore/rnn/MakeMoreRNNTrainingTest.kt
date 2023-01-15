@@ -62,7 +62,7 @@ private fun makePredictions(sciCore: SciCore, model: MakeMoreRnnNet, itos: (Byte
 
 fun main() {
     val sciCore = SciCore()
-    sciCore.setBackend(ISciCore.BackendType.CPU)
+    sciCore.addBackend(ISciCore.BackendType.CPU)
     sciCore.seed(123)
 
     val net = MakeMoreRnnNet(sciCore)

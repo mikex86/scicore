@@ -17,6 +17,9 @@ public class KernelCodeGenerator {
     public static class KernelFunction {
 
         @NotNull
+        private final String prefix;
+
+        @NotNull
         private final String returnType;
 
         @NotNull
@@ -50,7 +53,8 @@ public class KernelCodeGenerator {
 
         }
 
-        private KernelFunction(@NotNull String returnType, @NotNull String functionName, @NotNull List<Parameter> parameters, @NotNull String body) {
+        private KernelFunction(@NotNull String prefix, @NotNull String returnType, @NotNull String functionName, @NotNull List<Parameter> parameters, @NotNull String body) {
+            this.prefix = prefix;
             this.returnType = returnType;
             this.functionName = functionName;
             this.parameters = parameters;
@@ -61,7 +65,7 @@ public class KernelCodeGenerator {
         @NotNull
         public String buildCode() {
             StringBuilder sb = new StringBuilder();
-            sb.append("extern \"C\" __global__ ").append(returnType).append(" ").append(functionName).append("(");
+            sb.append(prefix).append(" ").append(returnType).append(" ").append(functionName).append("(");
             for (int i = 0; i < parameters.size(); i++) {
                 Parameter parameter = parameters.get(i);
                 sb.append(parameter.getType()).append(" ").append(parameter.getName());
@@ -77,8 +81,10 @@ public class KernelCodeGenerator {
         public static class Builder {
 
             @Nullable
-            private String returnType;
+            private String prefix;
 
+            @Nullable
+            private String returnType;
 
             @Nullable
             private String functionName;
@@ -88,6 +94,12 @@ public class KernelCodeGenerator {
 
             @Nullable
             private String body;
+
+            @NotNull
+            public Builder prefix(@NotNull String prefix) {
+                this.prefix = prefix;
+                return this;
+            }
 
             @NotNull
             public Builder returnType(@NotNull String returnType) {
@@ -128,6 +140,9 @@ public class KernelCodeGenerator {
 
             @NotNull
             public KernelFunction build() {
+                if (prefix == null) {
+                    throw new IllegalStateException("Prefix not set");
+                }
                 if (returnType == null) {
                     throw new IllegalStateException("returnType is not set");
                 }
@@ -137,7 +152,7 @@ public class KernelCodeGenerator {
                 if (body == null) {
                     throw new IllegalStateException("body is not set");
                 }
-                return new KernelFunction(returnType, functionName, parameters, body);
+                return new KernelFunction(prefix, returnType, functionName, parameters, body);
             }
 
         }
@@ -158,7 +173,6 @@ public class KernelCodeGenerator {
         return this;
     }
 
-
     private static final String KERNEL_CODE_PREFIX = "typedef char int8_t;\n" +
                                                      "typedef unsigned char uint8_t;\n" +
                                                      "typedef short int16_t;\n" +
@@ -170,7 +184,7 @@ public class KernelCodeGenerator {
 
     @NotNull
     public String buildCode() {
-        StringBuilder sb = new StringBuilder(KERNEL_CODE_PREFIX);
+        StringBuilder sb = new StringBuilder(KERNEL_CODE_PREFIX).append(" ");
         for (KernelFunction kernelFunction : kernelFunctions) {
             sb.append(kernelFunction.buildCode()).append('\n');
         }

@@ -136,10 +136,7 @@ public class SciCore implements ISciCore {
     }
 
     @Override
-    public void setBackend(@NotNull BackendType backendType) {
-        if (!(sciCoreBackend instanceof JvmBackend)) {
-            throw new IllegalStateException("SciCore backend already initialized!");
-        }
+    public void addBackend(@NotNull BackendType backendType) {
         if (backendType == BackendType.JVM) {
             return; // we already have the base JVM layer in #jvmBackend
         }
