@@ -25,13 +25,14 @@ fun main() {
     val sciCore = SciCore()
     sciCore.seed(123)
     sciCore.addBackend(ISciCore.BackendType.CPU)
+//    sciCore.addBackend(ISciCore.BackendType.CUDA)
 
     // tiny gpt
     val config = GPTConfig(
         vocabSize = 50257,
         nLayers = 2,
-        nHeads = 4,
-        nEmbed = 256,
+        nHeads = 8,
+        nEmbed = 1024,
         blockSize = 256,
     )
 
@@ -41,13 +42,15 @@ fun main() {
 
     val lastStep = File("ckpts/").listFiles()
         ?.filter { it.name.contains(".scm") }?.toList()
-        ?.maxOf { it.name.substringAfter("gpt2-").substringBefore(".scm").toLong() }!!
+        ?.maxOfOrNull { it.name.substringAfter("gpt2-").substringBefore(".scm").toLong() } ?: 0L
 
-    model.load(Path.of("ckpts/gpt2-$lastStep.scm")) // load checkpoint
-
-    Gson().fromJson(FileReader("ckpts/gpt2-losses-$lastStep.json"), JsonArray::class.java).let { lossesArray ->
-        for (i in 0 until lastStep) {
-            losses.setFloat(lossesArray[i.toInt()].asFloat, i)
+    if (lastStep != 0L) {
+        println("Loading checkpoint $lastStep")
+        model.load(Path.of("ckpts/gpt2-$lastStep.scm")) // load checkpoint
+        Gson().fromJson(FileReader("ckpts/gpt2-losses-$lastStep.json"), JsonArray::class.java).let { lossesArray ->
+            for (i in 0 until lastStep) {
+                losses.setFloat(lossesArray[i.toInt()].asFloat, i)
+            }
         }
     }
 

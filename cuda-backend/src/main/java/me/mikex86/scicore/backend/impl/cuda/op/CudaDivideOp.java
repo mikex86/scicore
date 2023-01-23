@@ -82,7 +82,8 @@ public class CudaDivideOp implements IDifferentiableBinaryOperation {
                                         .build()
                         )
                         .buildCode(), List.of("divide"));
-        kernel.launchBlocking(
+        kernel.launchOnStream(
+                backend.getStream(),
                 "divide",
                 CudaKernelLaunchConfig.builder()
                         .blockDimX(threadsPerBlock)

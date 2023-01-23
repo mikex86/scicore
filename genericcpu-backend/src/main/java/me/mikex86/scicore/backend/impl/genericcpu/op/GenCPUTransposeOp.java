@@ -1,5 +1,6 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
+import me.mikex86.scicore.graph.OptionBundle;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
@@ -8,6 +9,8 @@ import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
 import me.mikex86.scicore.graph.IGraph;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Arrays;
 
 public class GenCPUTransposeOp implements IDifferentiableUnaryOperation {
 
@@ -20,78 +23,40 @@ public class GenCPUTransposeOp implements IDifferentiableUnaryOperation {
 
     @Override
     public @NotNull ITensor perform(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
-        long[] shape = input.getShape();
-        if (shape.length > 2) {
-            throw new IllegalArgumentException("transpose only supports 2D or lower tensors");
-        }
-        long[] resultShape = getResultShape(input);
+        OptionBundle optionBundle = ctx.getOptionBundle();
+        int dim1 = optionBundle.getInt("dim1").orElseThrow();
+        int dim2 = optionBundle.getInt("dim2").orElseThrow();
 
-        DataType dataType = input.getDataType();
-        ITensor result = this.backend.createTensor(dataType, resultShape);
-
-        long[] resultIndex = new long[resultShape.length];
-        long[] inputIndex = new long[shape.length];
-
-        // TODO: USE STRIDES SWAP
-        if (dataType.isFloatingPoint()) {
-            for (int i = 0; i < resultShape[0]; i++) {
-                for (int j = 0; j < resultShape[1]; j++) {
-                    resultIndex[0] = i;
-                    resultIndex[1] = j;
-                    inputIndex[0] = j;
-                    inputIndex[1] = i;
-                    double inputValue = input.getAsDouble(inputIndex);
-                    result.setByDouble(inputValue, resultIndex);
-                }
-            }
-        } else {
-            for (int i = 0; i < resultShape[0]; i++) {
-                for (int j = 0; j < resultShape[1]; j++) {
-                    resultIndex[0] = i;
-                    resultIndex[1] = j;
-                    inputIndex[0] = j;
-                    inputIndex[1] = i;
-
-                    long inputValue = input.getAsLong(inputIndex);
-                    result.setByLong(inputValue, resultIndex);
-                }
-            }
-        }
-        return result;
+        long[] resultShape = getTransposedShape(input, dim1, dim2);
+        long[] resultStrides = getTransposedStrides(input, dim1, dim2);
+        return input.view(resultShape, resultStrides);
     }
 
     @Override
     public @NotNull ITensor performLazily(@NotNull Graph.IOperationContext ctx, @NotNull ITensor input) {
-        long[] shape = input.getShape();
-        if (shape.length > 2) {
-            throw new IllegalArgumentException("transpose only supports 2D or lower tensors");
-        }
-        long[] resultShape = getResultShape(input);
+        OptionBundle optionBundle = ctx.getOptionBundle();
+        int dim1 = optionBundle.getInt("dim1").orElseThrow();
+        int dim2 = optionBundle.getInt("dim2").orElseThrow();
+        long[] resultShape = getTransposedShape(input, dim1, dim2);
 
         DataType dataType = input.getDataType();
         return new LazyTensor(this.backend, resultShape, dataType);
     }
 
-    private long @NotNull [] getResultShape(@NotNull ITensor input) {
+    private long @NotNull [] getTransposedShape(@NotNull ITensor input, int dim1, int dim2) {
         long[] shape = input.getShape();
-        if (shape.length == 2) {
-            return new long[]{shape[1], shape[0]};
-        } else if (shape.length == 1) {
-            return new long[]{1, shape[0]};
-        } else {
-            throw new IllegalArgumentException("transpose only supports 2D or lower tensors");
-        }
+        long[] resultShape = Arrays.copyOf(shape, shape.length);
+        resultShape[dim1] = shape[dim2];
+        resultShape[dim2] = shape[dim1];
+        return resultShape;
     }
 
-    private long @NotNull [] getTransposedStrides(@NotNull ITensor input) {
+    private long @NotNull [] getTransposedStrides(@NotNull ITensor input, int dim1, int dim2) {
         long[] strides = input.getStrides();
-        if (strides.length == 2) {
-            return new long[]{strides[1], strides[0]};
-        } else if (strides.length == 1) {
-            return new long[]{1, 1};
-        } else {
-            throw new IllegalArgumentException("transpose only supports 2D or lower tensors");
-        }
+        long[] resultStrides = Arrays.copyOf(strides, strides.length);
+        resultStrides[dim1] = strides[dim2];
+        resultStrides[dim2] = strides[dim1];
+        return resultStrides;
     }
 
     @Override

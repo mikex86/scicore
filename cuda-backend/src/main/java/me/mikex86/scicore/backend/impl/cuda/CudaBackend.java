@@ -2,11 +2,12 @@ package me.mikex86.scicore.backend.impl.cuda;
 
 import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;
+import jcuda.driver.CUstream;
 import jcuda.jcublas.cublasHandle;
+import jcuda.runtime.cudaStream_t;
 import me.mikex86.scicore.backend.impl.cuda.op.*;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
-import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.backend.AbstractSciCoreBackend;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryManager;
 import me.mikex86.scicore.graph.op.IOperation;
@@ -17,9 +18,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR;
 import static jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR;
+import static jcuda.driver.CUstream_flags.CU_STREAM_DEFAULT;
 import static jcuda.driver.JCudaDriver.*;
 import static jcuda.jcublas.JCublas.cublasInit;
 import static jcuda.jcublas.JCublas2.cublasCreate;
@@ -47,6 +50,7 @@ public class CudaBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.EXP, new CudaExpOp(this));
         operationTable.put(OperationType.TANH, new CudaTanhOp(this));
         operationTable.put(OperationType.RELU, new CudaReluOp(this));
+        operationTable.put(OperationType.FILL_TRIANGLE, new CudaFillTriangleOp(this));
     }
 
     @NotNull
@@ -134,6 +138,33 @@ public class CudaBackend extends AbstractSciCoreBackend {
     @Override
     public @NotNull CudaTensor createTensor(@NotNull DataType dataType, long @NotNull [] shape) {
         return new CudaTensor(this, dataType, shape);
+    }
+
+
+    @NotNull
+    private final cudaStream_t stream = new cudaStream_t();
+
+    @NotNull
+    private final CUstream currentStream = new CUstream(stream);
+
+    {
+        cuCheck(cuStreamCreate(currentStream, CU_STREAM_DEFAULT));
+    }
+
+    @Override
+    public void synchronize() {
+        CUstream stream = Objects.requireNonNull(currentStream);
+        cuCheck(cuStreamSynchronize(stream));
+    }
+
+    @NotNull
+    public CUstream getStream() {
+        return currentStream;
+    }
+
+    @NotNull
+    public cudaStream_t getStreamHandle() {
+        return stream;
     }
 
     @NotNull

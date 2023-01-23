@@ -72,7 +72,7 @@ public class LazyTensor extends AbstractTensor implements IDerivedTensor {
             IGraphRecorder graphRecorder = backend.getOperationRecorder();
             try (Graph graph = graphRecorder.getExecutionGraphTo(backend, this)) {
                 GraphExecutor graphExecutor = new GraphExecutor();
-                graphExecutor.execute(graph);
+                graphExecutor.execute(backend, graph);
             }
         }
         return lazyResult;

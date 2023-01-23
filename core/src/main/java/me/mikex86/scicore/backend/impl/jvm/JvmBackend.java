@@ -42,6 +42,7 @@ public class JvmBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.LESS_THAN, new JvmLessThanOp(this));
         operationTable.put(OperationType.CONCAT, new JvmConcatOp(this));
         operationTable.put(OperationType.STACK, new JvmStackOp(this));
+        operationTable.put(OperationType.FILL_TRIANGLE, new JvmFillTriangleOp(this));
     }
 
     @Override

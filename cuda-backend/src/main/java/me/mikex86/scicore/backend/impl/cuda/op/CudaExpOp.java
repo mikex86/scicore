@@ -3,7 +3,6 @@ package me.mikex86.scicore.backend.impl.cuda.op;
 import jcuda.Pointer;
 import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
-import me.mikex86.scicore.backend.impl.cuda.codegen.BroadcastingElementWiseOperationKernelCodeGenerator;
 import me.mikex86.scicore.backend.impl.cuda.codegen.KernelCodeGenerator;
 import me.mikex86.scicore.backend.impl.cuda.codegen.UnaryOperationKernelGenerator;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernel;
@@ -11,13 +10,10 @@ import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernelLaunchConfig;
 import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryHandle;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
-import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
-import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
-import me.mikex86.scicore.utils.GradientUtil;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -70,7 +66,8 @@ public class CudaExpOp implements IDifferentiableUnaryOperation {
                                             .build()
                             )
                             .buildCode(), List.of("exp_kernel"));
-            kernel.launchBlocking(
+            kernel.launchOnStream(
+                    backend.getStream(),
                     "exp_kernel",
                     CudaKernelLaunchConfig.builder()
                             .blockDimX(threadsPerBlock)

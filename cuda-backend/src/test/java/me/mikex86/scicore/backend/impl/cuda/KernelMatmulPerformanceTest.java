@@ -4,6 +4,7 @@ import jcuda.Pointer;
 import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;
 import jcuda.driver.CUdeviceptr;
+import jcuda.driver.CUstream;
 import jcuda.jcurand.curandGenerator;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernel;
@@ -69,8 +70,11 @@ public class KernelMatmulPerformanceTest {
             int nBlocksX = Math.toIntExact((xDimSize + blockDimX - 1) / blockDimX);
             int nBlocksY = Math.toIntExact((yDimSize + blockDimY - 1) / blockDimY);
 
+            CUstream stream = new CUstream();
+            cuCheck(cuStreamCreate(stream, 0));
             // KERNEL_TEMPLATE void matmul(A *a, B *b, C *c, size_t m, size_t n, size_t k)
-            matmulKernel.launchBlocking(
+            matmulKernel.launchOnStream(
+                    stream,
                     KernelNameUtility.getTypePermutation("matmul", DataType.FLOAT32, DataType.FLOAT32),
                     CudaKernelLaunchConfig.builder()
                             .blockDimX(blockDimX)
@@ -89,6 +93,8 @@ public class KernelMatmulPerformanceTest {
                             )
                             .build()
             );
+            cuCheck(cuStreamSynchronize(stream));
+            cuCheck(cuStreamDestroy(stream));
 
             long end = System.nanoTime();
             double tflops = ((2 * m * n * k) / ((end - start) / 1e9)) / 1e12;

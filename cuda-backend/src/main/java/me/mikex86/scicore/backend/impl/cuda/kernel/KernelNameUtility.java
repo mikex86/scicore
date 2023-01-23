@@ -14,6 +14,11 @@ public class KernelNameUtility {
     }
 
     @NotNull
+    public static String getForDataType(@NotNull String functionName, @NotNull DataType dataType) {
+        return functionName + "_" + getShortName(dataType);
+    }
+
+    @NotNull
     private static String getShortName(@NotNull DataType dataType) {
         return switch (dataType) {
             case INT8 -> "i8";
@@ -33,6 +38,15 @@ public class KernelNameUtility {
             for (DataType b : dataTypes) {
                 permutations.add(getTypePermutation(functionName, a, b));
             }
+        }
+        return permutations;
+    }
+
+    @NotNull
+    public static List<String> getForAllDataTypes(@NotNull String functionName, @NotNull List<DataType> dataTypes) {
+        List<String> permutations = new ArrayList<>(dataTypes.size());
+        for (DataType a : dataTypes) {
+            permutations.add(getForDataType(functionName, a));
         }
         return permutations;
     }

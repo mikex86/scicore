@@ -11,7 +11,6 @@ import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryHandle;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
-import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
@@ -19,7 +18,6 @@ import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Optional;
 
 public class CudaReluOp implements IDifferentiableUnaryOperation {
 
@@ -67,7 +65,8 @@ public class CudaReluOp implements IDifferentiableUnaryOperation {
                                             .build()
                             )
                             .buildCode(), List.of("relu_kernel"));
-            kernel.launchBlocking(
+            kernel.launchOnStream(
+                    backend.getStream(),
                     "relu_kernel",
                     CudaKernelLaunchConfig.builder()
                             .blockDimX(threadsPerBlock)
@@ -121,7 +120,8 @@ public class CudaReluOp implements IDifferentiableUnaryOperation {
                                         .build()
                         )
                         .buildCode(), List.of("relu_gradients_kernel"));
-        kernel.launchBlocking(
+        kernel.launchOnStream(
+                backend.getStream(),
                 "relu_gradients_kernel",
                 CudaKernelLaunchConfig.builder()
                         .blockDimX(threadsPerBlock)

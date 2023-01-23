@@ -20,11 +20,9 @@ import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.awt.*;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import static jcuda.cudaDataType.CUDA_R_32F;
 import static jcuda.cudaDataType.CUDA_R_64F;
@@ -33,6 +31,7 @@ import static jcuda.jcublas.cublasComputeType.*;
 import static jcuda.jcublas.cublasGemmAlgo.*;
 import static jcuda.jcublas.cublasOperation.CUBLAS_OP_N;
 import static jcuda.jcublas.cublasOperation.CUBLAS_OP_T;
+import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cublasCheck;
 
 public class CudaMatmulOp implements IDifferentiableBinaryOperation {
@@ -140,6 +139,8 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
 
         long[] shapeColumnMajorA = new long[]{rowMajorShapeA[rowMajorShapeA.length - 1], rowMajorShapeA[rowMajorShapeA.length - 2]};
         long[] shapeColumnMajorB = new long[]{rowMajorShapeB[rowMajorShapeB.length - 1], rowMajorShapeB[rowMajorShapeB.length - 2]};
+
+        cuCheck(cublasSetStream(CudaBackend.getCublasHandle(), backend.getStreamHandle()));
 
         // cublasSgemm expects column-major matrices, and we have row-major.
         // Now, because B.T * A.T = C.T and A and B are already transposed when interpreted as column-major matrices, the result is C when interpreted as row-major.
@@ -359,7 +360,8 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
             int k = (int) opRowMajorShapeA[opRowMajorShapeA.length - 1];
 
             // KERNEL_TEMPLATE void matmul(A *a, B *b, C *c, size_t m, size_t n, size_t k, uint32_t transposeA, uint32_t transposeB, size_t strideA, size_t strideB, size_t strideC, size_t batchSize)
-            this.matmulKernel.launchBlocking(
+            this.matmulKernel.launchOnStream(
+                    backend.getStream(),
                     KernelNameUtility.getTypePermutation("matmul", aDataType, bDataType),
                     CudaKernelLaunchConfig.builder()
                             .blockDimX(xThreads)

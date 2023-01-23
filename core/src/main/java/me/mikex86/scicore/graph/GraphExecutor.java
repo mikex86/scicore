@@ -1,5 +1,6 @@
 package me.mikex86.scicore.graph;
 
+import me.mikex86.scicore.backend.ISciCoreBackend;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
 import org.jetbrains.annotations.NotNull;
@@ -13,9 +14,7 @@ public class GraphExecutor {
 
     private static int numOperations = 0;
 
-    // TODO: REVISIT WHETHER INPLACE OPERATIONS CAN BREAK THE BACKWARDS PASS OF OPERATIONS WHICH DEPEND ON THE SAME TENSOR, BUT IN THE PAST, WHEN IT HAD A DIFFERENT VALUE
-
-    public void execute(@NotNull Graph graph) {
+    public void execute(@NotNull ISciCoreBackend backend, @NotNull Graph graph) {
         IGraph.ITensorNode outputNode = (IGraph.ITensorNode) graph.getOutputNode();
         Queue<IGraph.IGraphNode> toVisit = new LinkedList<>();
         toVisit.add(outputNode);
@@ -48,6 +47,7 @@ public class GraphExecutor {
                 }
             }
         }
+        backend.synchronize();
     }
 
     public static int getNumOperations() {

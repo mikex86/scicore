@@ -31,6 +31,12 @@ class CausalSelfAttention(private val sciCore: ISciCore, private val config: GPT
 
     private val residDropout = Dropout(sciCore, config.dropout)
 
+    init {
+        if (config.nEmbed % config.nHeads != 0) {
+            throw IllegalArgumentException("Embedding size must be divisible by the number of heads")
+        }
+    }
+
     override fun forward(x: ITensor): ITensor {
         val (batchSize, seqLen, embedDim) = x.shape
         var attnV: ITensor? = null
@@ -66,17 +72,9 @@ class CausalSelfAttention(private val sciCore: ISciCore, private val config: GPT
                 }
             }
             .use { att ->
-                val attnMaskMul = sciCore.zeros(DataType.FLOAT32, seqLen, seqLen)
-                val attnMaskAdd = sciCore.zeros(DataType.FLOAT32, seqLen, seqLen)
                 // triangle mask for causal attention
-                for (i in 0 until seqLen) {
-                    for (j in 0..i) {
-                        attnMaskMul.setFloat(1f, i, j)
-                    }
-                    for (j in i + 1 until seqLen) {
-                        attnMaskAdd.setFloat(Float.NEGATIVE_INFINITY, i, j)
-                    }
-                }
+                val attnMaskMul = sciCore.triangle(DataType.FLOAT32, seqLen, seqLen, 0.0, 1.0)
+                val attnMaskAdd = sciCore.triangle(DataType.FLOAT32, seqLen, seqLen, 1e-6, 0.0)
                 attnMaskMul.use {
                     attnMaskAdd.use {
                         att * attnMaskMul + attnMaskAdd

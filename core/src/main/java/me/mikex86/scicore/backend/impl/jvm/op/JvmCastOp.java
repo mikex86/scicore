@@ -32,14 +32,14 @@ public class JvmCastOp implements IDifferentiableSingleParametricOperation<Integ
         long[] shape = input.getShape();
         long[] strides = input.getStrides();
         DataType dataType = dataTypeOpt.get();
-        ITensor result = this.backend.createTensor(dataType, shape);
-        long numElements = input.getNumberOfElements();
-        // TODO: This is not just horrible, but also slow
-        for (int i = 0; i < numElements; i++) {
-            result.setByDoubleFlat(input.getAsDoubleFlat(i), i);
+        try (ITensor result = this.backend.createTensor(dataType, shape)) {
+            long numElements = input.getNumberOfElements();
+            // TODO: This is not just horrible, but also slow
+            for (int i = 0; i < numElements; i++) {
+                result.setByDoubleFlat(input.getAsDoubleFlat(i), i);
+            }
+            return result.view(shape, strides);
         }
-        result = result.view(shape, strides);
-        return result;
     }
 
     @Override

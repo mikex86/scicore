@@ -14,10 +14,14 @@ public enum OperationType {
     CONCAT(COPY, GENERIC), STACK(COPY, GENERIC), // Copy ops
     COMPARE_ELEMENTS(COMPARISON, BINARY), LESS_THAN(COMPARISON, BINARY), // Comparison ops
     CAST(MISC, UNARY), // Misc ops
+
+    FILL_TRIANGLE(FILL, GENERIC), // Fill ops
+
     PLUS_INPLACE(ARITHMETIC, BINARY, true), MINUS_INPLACE(ARITHMETIC, BINARY, true); // Inplace ops (TODO: FIX)
 
+
     public enum Category {
-        ARITHMETIC, RESHAPE, INDEXING, COPY, COMPARISON, MISC, INPLACE
+        ARITHMETIC, RESHAPE, INDEXING, COPY, COMPARISON, MISC, FILL, INPLACE
     }
 
     public enum Arity {

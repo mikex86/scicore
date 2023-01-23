@@ -751,25 +751,28 @@ public abstract class AbstractTensor implements ITensor {
     @Override
     @NotNull
     public ITensor transpose() {
-        ISciCoreBackend backend = getSciCoreBackend();
-        IGraphRecorder operationRecorder = backend.getOperationRecorder();
-        return operationRecorder.recordOperation(OperationType.TRANSPOSE, backend, this);
+        long[] shape = getShape();
+        return transpose(shape.length - 1, shape.length - 2);
     }
 
     @NotNull
     @Override
     public ITensor transpose(int dim1, int dim2) {
-        long[] shape = getShape();
-        long[] newShape = Arrays.copyOf(shape, shape.length);
-        long temp = newShape[dim1];
-        newShape[dim1] = newShape[dim2];
-        newShape[dim2] = temp;
-        long[] strides = getStrides();
-        long[] newStrides = Arrays.copyOf(strides, strides.length);
-        temp = newStrides[dim1];
-        newStrides[dim1] = newStrides[dim2];
-        newStrides[dim2] = temp;
-        return view(newShape, newStrides);
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor dim1Scalar = backend.createTensor(DataType.INT32, new long[0]);
+             ITensor dim2Scalar = backend.createTensor(DataType.INT32, new long[0])) {
+            dim1Scalar.setIntFlat(dim1, 0);
+            dim2Scalar.setIntFlat(dim2, 0);
+            return operationRecorder
+                    .recordOperation(OperationType.TRANSPOSE,
+                            OptionBundle.of(backend,
+                                    Map.of(
+                                            "dim1", dim1Scalar,
+                                            "dim2", dim2Scalar
+                                    )),
+                            this);
+        }
     }
 
     @Override

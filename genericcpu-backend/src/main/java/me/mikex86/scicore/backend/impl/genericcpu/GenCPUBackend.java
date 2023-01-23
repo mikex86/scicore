@@ -41,6 +41,7 @@ public class GenCPUBackend extends AbstractSciCoreBackend {
         operationTable.put(OperationType.MINUS_INPLACE, new GenCPUMinusInplaceOp(this));
         operationTable.put(OperationType.CONCAT, new GenCPUConcatOp(this));
         operationTable.put(OperationType.STACK, new GenCPUStackOp(this));
+        operationTable.put(OperationType.FILL_TRIANGLE, new GenCPUFillTriangleOp(this));
     }
 
     static {

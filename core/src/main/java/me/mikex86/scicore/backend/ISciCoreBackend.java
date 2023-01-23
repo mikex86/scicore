@@ -20,4 +20,7 @@ public interface ISciCoreBackend {
 
     @NotNull ISciCore.BackendType getBackendType();
 
+    default void synchronize() {
+    }
+
 }

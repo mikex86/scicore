@@ -168,6 +168,8 @@ public interface ISciCore {
      */
     void disableBackendFallback();
 
+    @NotNull ITensor triangle(@NotNull DataType dataType, long dim0, long dim1, double topValue, double bottomValue);
+
     enum BackendType {
 
         JVM {

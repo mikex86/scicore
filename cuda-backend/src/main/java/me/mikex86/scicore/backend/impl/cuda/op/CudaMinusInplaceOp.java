@@ -13,7 +13,6 @@ import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.op.IInplaceOperation;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
-import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.utils.GradientUtil;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -82,7 +81,8 @@ public class CudaMinusInplaceOp implements IDifferentiableBinaryOperation, IInpl
                                         .build()
                         )
                         .buildCode(), List.of("minus"));
-        kernel.launchBlocking(
+        kernel.launchOnStream(
+                backend.getStream(),
                 "minus",
                 CudaKernelLaunchConfig.builder()
                         .blockDimX(threadsPerBlock)

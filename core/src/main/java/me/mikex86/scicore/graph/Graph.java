@@ -110,6 +110,8 @@ public class Graph implements IGraph {
      */
     @NotNull
     private Set<ITensor> collectGradientResults() {
+        backend.synchronize();
+
         Set<ITensor> gradients = Collections.newSetFromMap(new IdentityHashMap<>());
 
         Queue<IGraphNode> nodesToVisit = new LinkedList<>();

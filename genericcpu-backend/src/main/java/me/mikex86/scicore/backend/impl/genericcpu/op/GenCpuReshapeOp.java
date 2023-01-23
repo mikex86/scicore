@@ -63,10 +63,16 @@ public class GenCpuReshapeOp implements IDifferentiableTrinaryOperation {
         if (shapeTensor.getShape().length != 1) {
             throw new IllegalArgumentException("shape must be a 1D tensor");
         }
+
         int numDims = Math.toIntExact(shapeTensor.getShape()[0]);
         long[] shape = new long[numDims];
         for (int i = 0; i < numDims; i++) {
             shape[i] = shapeTensor.getLong(i);
+        }
+        long shapeNumElements = ShapeUtils.getNumElements(shape);
+        long tensorNumberOfElements = inputTensor.getNumberOfElements();
+        if (shapeNumElements > tensorNumberOfElements) {
+            throw new IllegalArgumentException("Cannot reshape tensor with " + tensorNumberOfElements + " elements to shape " + Arrays.toString(shape));
         }
         return new LazyTensor(backend, shape, inputTensor.getDataType());
     }

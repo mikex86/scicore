@@ -81,7 +81,8 @@ public class CudaPlusInplaceOp implements IDifferentiableBinaryOperation, IInpla
                                         .build()
                         )
                         .buildCode(), List.of("plus"));
-        kernel.launchBlocking(
+        kernel.launchOnStream(
+                backend.getStream(),
                 "plus",
                 CudaKernelLaunchConfig.builder()
                         .blockDimX(threadsPerBlock)

@@ -11,7 +11,6 @@ import me.mikex86.scicore.backend.impl.cuda.memory.CudaMemoryHandle;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.op.IDifferentiableUnaryOperation;
-import me.mikex86.scicore.memory.DirectMemoryHandle;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
@@ -67,7 +66,8 @@ public class CudaTanhOp implements IDifferentiableUnaryOperation {
                                             .build()
                             )
                             .buildCode(), List.of("tanh_kernel"));
-            kernel.launchBlocking(
+            kernel.launchOnStream(
+                    backend.getStream(),
                     "tanh_kernel",
                     CudaKernelLaunchConfig.builder()
                             .blockDimX(threadsPerBlock)
@@ -117,7 +117,8 @@ public class CudaTanhOp implements IDifferentiableUnaryOperation {
                                         .build()
                         )
                         .buildCode(), List.of("tanh_gradients_kernel"));
-        kernel.launchBlocking(
+        kernel.launchOnStream(
+                backend.getStream(),
                 "tanh_gradients_kernel",
                 CudaKernelLaunchConfig.builder()
                         .blockDimX(threadsPerBlock)

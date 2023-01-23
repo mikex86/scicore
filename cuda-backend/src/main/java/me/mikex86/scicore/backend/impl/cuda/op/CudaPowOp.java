@@ -4,7 +4,6 @@ import jcuda.Pointer;
 import me.mikex86.scicore.backend.impl.cuda.CudaBackend;
 import me.mikex86.scicore.backend.impl.cuda.CudaTensor;
 import me.mikex86.scicore.backend.impl.cuda.codegen.BroadcastingElementWiseOperationKernelCodeGenerator;
-import me.mikex86.scicore.backend.impl.cuda.codegen.DataTypeUtils;
 import me.mikex86.scicore.backend.impl.cuda.codegen.KernelCodeGenerator;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernel;
 import me.mikex86.scicore.backend.impl.cuda.kernel.CudaKernelLaunchConfig;
@@ -15,7 +14,6 @@ import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
-import me.mikex86.scicore.utils.GradientUtil;
 import me.mikex86.scicore.utils.ShapeUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
@@ -84,7 +82,8 @@ public class CudaPowOp implements IDifferentiableBinaryOperation {
                                         .build()
                         )
                         .buildCode(), List.of("pow_kernel"));
-        kernel.launchBlocking(
+        kernel.launchOnStream(
+                backend.getStream(),
                 "pow_kernel",
                 CudaKernelLaunchConfig.builder()
                         .blockDimX(threadsPerBlock)

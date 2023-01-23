@@ -82,7 +82,8 @@ public class CudaMinusOp implements IDifferentiableBinaryOperation {
                                         .build()
                         )
                         .buildCode(), List.of("minus"));
-        kernel.launchBlocking(
+        kernel.launchOnStream(
+                backend.getStream(),
                 "minus",
                 CudaKernelLaunchConfig.builder()
                         .blockDimX(threadsPerBlock)

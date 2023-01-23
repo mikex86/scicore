@@ -102,12 +102,10 @@ public class CudaKernel {
         );
     }
 
-    private void launchBlocking(@NotNull CUfunction function, @NotNull CudaKernelLaunchConfig config) {
+    private void launchOnStream(@NotNull CUstream stream, @NotNull CUfunction function, @NotNull CudaKernelLaunchConfig config) {
         if (disposed) {
             throw new IllegalStateException("Cuda kernel already freed!");
         }
-        CUstream stream = new CUstream();
-        cuCheck(cuStreamCreate(stream, 0));
         cuCheck(
                 cuLaunchKernel(
                         function,
@@ -116,16 +114,14 @@ public class CudaKernel {
                         config.sharedMemBytes(), stream, config.arguments(), null
                 )
         );
-        cuCheck(cuStreamSynchronize(stream));
-        cuCheck(cuStreamDestroy(stream));
     }
 
-    public void launchBlocking(@NotNull String functionName, @NotNull CudaKernelLaunchConfig config) {
+    public void launchOnStream(@NotNull CUstream stream, @NotNull String functionName, @NotNull CudaKernelLaunchConfig config) {
         Optional<CUfunction> functionOpt = getFunction(functionName);
         if (functionOpt.isEmpty()) {
             throw new IllegalArgumentException("Function not found: " + functionName);
         }
-        launchBlocking(functionOpt.get(), config);
+        launchOnStream(stream, functionOpt.get(), config);
     }
 
     public void disposed() {

@@ -54,7 +54,7 @@ public class CudaMultiplyOp implements IDifferentiableBinaryOperation {
         int nBlocks = Math.toIntExact((nElements + threadsPerBlock - 1) / threadsPerBlock);
 
         // KERNEL_TEMPLATE void multiply(A *a, B* b, C *result)
-        CudaKernel multiplyKernel = CudaKernel.jitCompile(
+        CudaKernel kernel = CudaKernel.jitCompile(
                 KernelCodeGenerator
                         .create()
                         .addFunction(
@@ -82,7 +82,8 @@ public class CudaMultiplyOp implements IDifferentiableBinaryOperation {
                                         .build()
                         )
                         .buildCode(), List.of("multiply"));
-        multiplyKernel.launchBlocking(
+        kernel.launchOnStream(
+                backend.getStream(),
                 "multiply",
                 CudaKernelLaunchConfig.builder()
                         .blockDimX(threadsPerBlock)

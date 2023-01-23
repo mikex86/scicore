@@ -61,20 +61,29 @@ public class SciCore implements ISciCore {
     @NotNull
     public ITensor uniform(@NotNull DataType dataType, long @NotNull ... shape) {
         // TODO: CREATE FILL_UNIFORM OPERATION THAT CAN BE ACCELERATED
-        // TODO: USE setContents(buffer)
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(dataType, shape);
         long numberOfElements = tensor.getNumberOfElements();
         switch (dataType) {
             case FLOAT32 -> {
-                for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setFloatFlat(random.nextFloat(), i);
+                DirectMemoryHandle handle = directMemoryManager.alloc(numberOfElements, DataType.FLOAT32);
+                FloatBuffer buffer = handle.asFloatBuffer();
+                for (int i = 0; i < numberOfElements; i++) {
+                    buffer.put(random.nextFloat());
                 }
+                buffer.flip();
+                tensor.setContents(buffer);
+                handle.free();
             }
             case FLOAT64 -> {
-                for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setDoubleFlat(random.nextDouble(), i);
+                DirectMemoryHandle handle = directMemoryManager.alloc(numberOfElements, DataType.FLOAT64);
+                DoubleBuffer buffer = handle.asDoubleBuffer();
+                for (int i = 0; i < numberOfElements; i++) {
+                    buffer.put(random.nextDouble());
                 }
+                buffer.flip();
+                tensor.setContents(buffer);
+                handle.free();
             }
             default -> throw new IllegalArgumentException("Unsupported data type: " + dataType);
         }
@@ -83,29 +92,45 @@ public class SciCore implements ISciCore {
 
     @Override
     public @NotNull ITensor randint(@NotNull DataType dataType, long min, long max, long @NotNull ... shape) {
+        // TODO: CREATE RAND_INT OPERATION THAT CAN BE ACCELERATED
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(dataType, shape);
         long numberOfElements = tensor.getNumberOfElements();
         switch (dataType) {
             case INT8 -> {
-                for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setByteFlat((byte) (random.nextInt((int) (max - min)) + min), i);
+                DirectMemoryHandle handle = directMemoryManager.alloc(numberOfElements, DataType.INT8);
+                ByteBuffer buffer = handle.asByteBuffer();
+                for (int i = 0; i < numberOfElements; i++) {
+                    buffer.put((byte) (random.nextInt((int) (max - min)) + min));
                 }
+                buffer.flip();
+                tensor.setContents(buffer);
             }
             case INT16 -> {
-                for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setShortFlat((short) (random.nextInt((int) (max - min)) + min), i);
+                DirectMemoryHandle handle = directMemoryManager.alloc(numberOfElements, DataType.INT16);
+                ShortBuffer buffer = handle.asShortBuffer();
+                for (int i = 0; i < numberOfElements; i++) {
+                    buffer.put((short) (random.nextInt((int) (max - min)) + min));
                 }
+                buffer.flip();
+                tensor.setContents(buffer);
             }
             case INT32 -> {
-                for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setIntFlat(random.nextInt((int) ((max - min) + min)), i);
+                DirectMemoryHandle handle = directMemoryManager.alloc(numberOfElements, DataType.INT32);
+                IntBuffer buffer = handle.asIntBuffer();
+                for (int i = 0; i < numberOfElements; i++) {
+                    buffer.put(random.nextInt((int) (max - min)) + (int) min);
                 }
+                tensor.setContents(buffer);
             }
             case INT64 -> {
-                for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setLongFlat(random.nextLong() % (max - min) + min, i);
+                DirectMemoryHandle handle = directMemoryManager.alloc(numberOfElements, DataType.INT64);
+                LongBuffer buffer = handle.asLongBuffer();
+                for (int i = 0; i < numberOfElements; i++) {
+                    buffer.put(random.nextLong() % (max - min) + min);
                 }
+                buffer.flip();
+                tensor.setContents(buffer);
             }
         }
         return tensor;
@@ -115,20 +140,29 @@ public class SciCore implements ISciCore {
     @NotNull
     public ITensor gaussian(@NotNull DataType dataType, long @NotNull ... shape) {
         // TODO: CREATE FILL_GAUSSIAN OPERATION THAT CAN BE ACCELERATED
-        // TODO: USE setContents(buffer)
         ISciCoreBackend backend = getBackend();
         ITensor tensor = backend.createTensor(dataType, shape);
         long numberOfElements = tensor.getNumberOfElements();
         switch (dataType) {
             case FLOAT32 -> {
+                DirectMemoryHandle handle = directMemoryManager.alloc(numberOfElements, DataType.FLOAT32);
+                FloatBuffer buffer = handle.asFloatBuffer();
                 for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setFloatFlat((float) random.nextGaussian(), i);
+                    buffer.put((float) random.nextGaussian());
                 }
+                buffer.flip();
+                tensor.setContents(buffer);
+                handle.free();
             }
             case FLOAT64 -> {
+                DirectMemoryHandle handle = directMemoryManager.alloc(numberOfElements, DataType.FLOAT64);
+                DoubleBuffer buffer = handle.asDoubleBuffer();
                 for (long i = 0; i < numberOfElements; i++) {
-                    tensor.setDoubleFlat(random.nextGaussian(), i);
+                    buffer.put(random.nextGaussian());
                 }
+                buffer.flip();
+                tensor.setContents(buffer);
+                handle.free();
             }
             default -> throw new IllegalArgumentException("Unsupported data type for gaussian: " + dataType);
         }
@@ -712,6 +746,17 @@ public class SciCore implements ISciCore {
     @Override
     public void disableBackendFallback() {
         operationRegistry.disableFallthrough();
+    }
+
+    @Override
+    public @NotNull ITensor triangle(@NotNull DataType dataType, long dim0, long dim1, double topValue, double bottomValue) {
+        ITensor result = zeros(dataType, dim0, dim1);
+        IGraphRecorder graphRecorder = sciCoreBackend.getOperationRecorder();
+        graphRecorder.recordOperation(OperationType.FILL_TRIANGLE, OptionBundle.of(sciCoreBackend, Map.of(
+                "topValue", scalar(topValue),
+                "bottomValue", scalar(bottomValue)
+        )), result);
+        return result;
     }
 
     private boolean isTraining = true;
