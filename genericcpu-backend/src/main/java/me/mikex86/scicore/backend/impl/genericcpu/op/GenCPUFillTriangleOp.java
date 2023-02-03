@@ -48,6 +48,6 @@ public class GenCPUFillTriangleOp implements IUnaryOperation {
 
     @Override
     public @NotNull ITensor performLazily(Graph.@NotNull IOperationContext ctx, @NotNull ITensor input) {
-        return perform(ctx, input);
+        return new LazyTensor(backend, input.getShape(), input.getDataType());
     }
 }

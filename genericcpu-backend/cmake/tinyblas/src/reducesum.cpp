@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <stdexcept>
+#include <iostream>
 #include "shapeutils.h"
 
 template<typename T>
@@ -13,15 +14,18 @@ void tblas_reducesum(const T *a, T *c,
         // reduce all dimensions
         if (!keepDims) {
             if (!(nDimsC == 0 || (nDimsC == 1 && shapeC[0] == 1))) {
-                throw std::invalid_argument("tblas_reducesum: when reducing all dimensions and keepDims is false, the output shape must be a scalar");
+                throw std::invalid_argument(
+                        "tblas_reducesum: when reducing all dimensions and keepDims is false, the output shape must be a scalar");
             }
         } else {
             if (nDimsC != nDimsA) {
-                throw std::invalid_argument("tblas_reducesum: when reducing all dimensions and keepDims is true, the number of output dimensions must be the same as the number of input dimensions");
+                throw std::invalid_argument(
+                        "tblas_reducesum: when reducing all dimensions and keepDims is true, the number of output dimensions must be the same as the number of input dimensions");
             }
             for (size_t i = 0; i < nDimsC; i++) {
                 if (shapeC[i] != 1) {
-                    throw std::invalid_argument("tblas_reducesum: when reducing all dimensions and keepDims is true, the output shape must be 1 in all dimensions");
+                    throw std::invalid_argument(
+                            "tblas_reducesum: when reducing all dimensions and keepDims is true, the output shape must be 1 in all dimensions");
                 }
             }
         }
@@ -87,6 +91,121 @@ void tblas_reducesum(const T *a, T *c,
         }
     }
 }
+
+#ifdef __AVX__
+
+#include "vectorize_avx.h"
+
+template<>
+void tblas_reducesum(const float *a, float *c, size_t *shapeA, size_t *stridesA, size_t nDimsA, size_t *shapeC,
+                     size_t *stridesC, size_t nDimsC, int64_t dimension, bool keepDims) {
+    if (dimension == -1) {
+        // reduce all dimensions
+        if (!keepDims) {
+            if (!(nDimsC == 0 || (nDimsC == 1 && shapeC[0] == 1))) {
+                throw std::invalid_argument(
+                        "tblas_reducesum: when reducing all dimensions and keepDims is false, the output shape must be a scalar");
+            }
+        } else {
+            if (nDimsC != nDimsA) {
+                throw std::invalid_argument(
+                        "tblas_reducesum: when reducing all dimensions and keepDims is true, the number of output dimensions must be the same as the number of input dimensions");
+            }
+            for (size_t i = 0; i < nDimsC; i++) {
+                if (shapeC[i] != 1) {
+                    throw std::invalid_argument(
+                            "tblas_reducesum: when reducing all dimensions and keepDims is true, the output shape must be 1 in all dimensions");
+                }
+            }
+        }
+        size_t nElementsA = 1;
+        for (int i = 0; i < nDimsA; i++) {
+            nElementsA *= shapeA[i];
+        }
+        for (size_t i = 0; i < nElementsA; i++) {
+            c[0] += a[i];
+        }
+    } else {
+        // reduce one dimension
+        if (dimension < 0 || dimension >= nDimsA) {
+            throw std::invalid_argument("tblas_reducesum: dimension out of range");
+        }
+        // check n dims
+        if (!keepDims) {
+            if (nDimsC != nDimsA - 1) {
+                throw std::invalid_argument("tblas_reducesum: nDimsC != nDimsA - 1");
+            }
+        } else {
+            if (nDimsC != nDimsA) {
+                throw std::invalid_argument("tblas_reducesum: nDimsC != nDimsA");
+            }
+        }
+        // check shape if shapeC is expected reduced shape.
+        // if keepDims is true, shapeC at dimension is expected to be 1.
+        // if keepDims is false, dimension is expected to be removed.
+        for (int i = 0, j = 0; i < nDimsA; i++) {
+            if (i == dimension) {
+                if (keepDims) {
+                    if (shapeC[i + j] != 1) {
+                        throw std::invalid_argument("tblas_reducesum: shapeC[dimension] != 1 when keepDims=true");
+                    }
+                } else {
+                    j++;
+                }
+            } else {
+                if (shapeC[i - j] != shapeA[i]) {
+                    throw std::invalid_argument("tblas_reducesum: shapeC[i + j] != shapeA[i]");
+                }
+            }
+        }
+        auto *completeIndex = new size_t[nDimsA];
+        memset(completeIndex, 0, sizeof(size_t) * nDimsA);
+        auto *reducedIndex = new size_t[nDimsC];
+        memset(reducedIndex, 0, sizeof(size_t) * nDimsC);
+        while (true) {
+            float sum = 0;
+            if (stridesA[dimension] != 1) {
+                for (size_t i = 0; i < shapeA[dimension]; i++) {
+                    completeIndex[dimension] = i;
+                    size_t aIndexFlat = getFlatIndex(completeIndex, stridesA, nDimsA);
+                    sum += a[aIndexFlat];
+                }
+            } else {
+                size_t aIndexFlat = getFlatIndex(completeIndex, stridesA, nDimsA);
+                size_t nElements = shapeA[dimension];
+                size_t nVectors = nElements / 8;
+                size_t nRemaining = nElements % 8;
+                __m256 sumVector = _mm256_setzero_ps();
+                for (size_t i = 0; i < nVectors; i++) {
+                    __m256 aVector = _mm256_loadu_ps(a + aIndexFlat);
+                    sumVector = _mm256_add_ps(sumVector, aVector);
+                    aIndexFlat += 8;
+                }
+                float sumArray[8];
+                _mm256_storeu_ps(sumArray, sumVector);
+
+                for (float i: sumArray) {
+                    sum += i;
+                }
+                for (size_t i = 0; i < nRemaining; i++) {
+                    sum += a[aIndexFlat];
+                    aIndexFlat++;
+                }
+                completeIndex[dimension] = aIndexFlat;
+            }
+            size_t cIndexFlat = getFlatIndex(reducedIndex, stridesC, nDimsC);
+            c[cIndexFlat] = sum;
+            if (!incrementIndex(reducedIndex, shapeC, nDimsC)) {
+                break;
+            }
+            if (!incrementIndex(completeIndex, shapeA, nDimsA)) {
+                break;
+            }
+        }
+    }
+}
+
+#endif
 
 void tblas_reducesum(const int8_t *a, int8_t *c, size_t *shapeA, size_t *stridesA, size_t nDimsA, size_t *shapeC,
                      size_t *stridesC, size_t nDimsC, int64_t dimension, bool keepDims) {

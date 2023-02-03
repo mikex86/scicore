@@ -12,7 +12,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.nio.*;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -56,6 +55,10 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
         }
         return view(shape, ShapeUtils.makeStrides(shape));
     }
+
+    @NotNull
+    ITensor flatten(int dimension);
+
 
     @NotNull ITensor concat(@NotNull ITensor tensor, int dim);
 
@@ -817,6 +820,8 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
 
     @NotNull ITensor transpose(int dim1, int dim2);
 
+    @NotNull ITensor contiguous();
+
     @Override
     boolean equals(Object other);
 
@@ -1050,5 +1055,4 @@ public interface ITensor extends IValue, IDisposable, AutoCloseable {
      * @throws IOException if an I/O error occurs.
      */
     void readFrom(@NotNull InputStream inputStream) throws IOException;
-
 }

@@ -53,7 +53,7 @@ public class DAGGraphRenderPlanFactory {
                 GraphRenderPlan.IGraphNode existingNode = graphNodes.get(input);
                 if (existingNode == null) {
                     if (input instanceof Graph.TensorDeclarationGraphNode tensorDeclarationGraphNode) {
-                        GraphRenderPlan.IGraphNode.DataNode dataNode = toGraphNode(tensorDeclarationGraphNode);
+                        GraphRenderPlan.IGraphNode.DataNode dataNode = toGraphNode(tensorDeclarationGraphNode, graph);
                         graphNodes.put(input, dataNode);
                         graphInputs.add(dataNode);
                         nodeToRowIndex.put(dataNode, 0);
@@ -113,14 +113,14 @@ public class DAGGraphRenderPlanFactory {
         return new GraphRenderPlan(rowStack);
     }
 
-    @NotNull
-    private static GraphRenderPlan.IGraphNode.DataNode toGraphNode(@NotNull Graph.TensorDeclarationGraphNode tensorNode) {
+    private static GraphRenderPlan.IGraphNode.@NotNull DataNode toGraphNode(@NotNull Graph.TensorDeclarationGraphNode tensorNode, @NotNull IGraph graph) {
         ITensor value = tensorNode.getValue();
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("dataType", value.getDataType().toString());
         attributes.put("shape", ShapeUtils.toString(value.getShape()));
         attributes.put("isScalar", Boolean.toString(value.isScalar()));
         attributes.put("backend", value.getSciCoreBackend().getBackendType().name());
+        //graph.getGradient(value).ifPresent(gradient -> attributes.put("gradient", gradient.toString()));
         if (value.isScalar()) {
             attributes.put("value", value.element(Object.class).toString());
         }

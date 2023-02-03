@@ -1,5 +1,6 @@
 package me.mikex86.scicore.backend;
 
+import me.mikex86.scicore.memory.DirectMemoryManager;
 import me.mikex86.scicore.tensor.DataType;
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.tensor.ITensor;
@@ -19,6 +20,8 @@ public interface ISciCoreBackend {
     @NotNull IGraphRecorder getOperationRecorder();
 
     @NotNull ISciCore.BackendType getBackendType();
+
+    @NotNull DirectMemoryManager getDirectMemoryManager();
 
     default void synchronize() {
     }

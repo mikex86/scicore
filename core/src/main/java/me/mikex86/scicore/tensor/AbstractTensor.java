@@ -776,6 +776,13 @@ public abstract class AbstractTensor implements ITensor {
     }
 
     @Override
+    public @NotNull ITensor contiguous() {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        return operationRecorder.recordOperation(OperationType.CONTIGUOUS, backend, this);
+    }
+
+    @Override
     public @NotNull ITensor view(long @NotNull [] shape, long @NotNull [] strides) {
         ISciCoreBackend backend = getSciCoreBackend();
         IGraphRecorder operationRecorder = backend.getOperationRecorder();
@@ -788,6 +795,18 @@ public abstract class AbstractTensor implements ITensor {
                 stridesTensor.setLongFlat(strides[i], i);
             }
             return operationRecorder.recordOperation(OperationType.RESHAPE, backend, this, shapeTensor, stridesTensor);
+        }
+    }
+
+    @Override
+    public @NotNull ITensor flatten(int dimension) {
+        ISciCoreBackend backend = getSciCoreBackend();
+        IGraphRecorder operationRecorder = backend.getOperationRecorder();
+        try (ITensor startDimScalar = backend.createTensor(DataType.INT32, new long[0]);
+             ITensor endDimScalar = backend.createTensor(DataType.INT32, new long[0])) {
+            startDimScalar.setIntFlat(dimension, 0);
+            endDimScalar.setIntFlat(dimension + 1, 0);
+            return operationRecorder.recordOperation(OperationType.FLATTEN, OptionBundle.of(backend, Map.of("start_dim", startDimScalar, "end_dim", endDimScalar)), this);
         }
     }
 

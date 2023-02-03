@@ -1,6 +1,7 @@
 package me.mikex86.scicore.graph;
 
 import me.mikex86.scicore.backend.ISciCoreBackend;
+import me.mikex86.scicore.profiling.Profiler;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
 import org.jetbrains.annotations.NotNull;
@@ -15,6 +16,7 @@ public class GraphExecutor {
     private static int numOperations = 0;
 
     public void execute(@NotNull ISciCoreBackend backend, @NotNull Graph graph) {
+        Profiler.startScope("execute");
         IGraph.ITensorNode outputNode = (IGraph.ITensorNode) graph.getOutputNode();
         Queue<IGraph.IGraphNode> toVisit = new LinkedList<>();
         toVisit.add(outputNode);
@@ -38,15 +40,18 @@ public class GraphExecutor {
                 if (operationGraphNode.hasOutput()) {
                     ITensor nodeOutput = operationGraphNode.getOutput();
                     if (nodeOutput instanceof LazyTensor lazyTensor && !lazyTensor.hasResult()) {
+                        Profiler.startScope(operationGraphNode.getOperationType().name());
                         ITensor output = operationGraphNode.perform();
                         lazyTensor.setResult(output);
                         numOperations++;
+                        Profiler.endScope(operationGraphNode.getOperationType().name());
                     }
                 } else {
                     throw new IllegalStateException("operation graph node has no output.");
                 }
             }
         }
+        Profiler.endScope("execute");
         backend.synchronize();
     }
 

@@ -37,6 +37,14 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
         this.nElements = nElements;
     }
 
+    public GenCPUTensorDataContainer(@NotNull DirectMemoryManager memoryManager, @NotNull DirectMemoryHandle memoryHandle, long nElements, @NotNull DataType dataType) {
+        this.memoryManager = memoryManager;
+        this.memoryHandle = memoryHandle;
+        this.dataSize = dataType.getSizeOf(nElements);
+        this.dataType = dataType;
+        this.nElements = nElements;
+    }
+
     private void checkDisposed() {
         if (disposed) {
             throw new IllegalStateException("GenCpuTensorDataContainer has already been disposed");

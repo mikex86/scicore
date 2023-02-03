@@ -10,6 +10,7 @@ import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.graph.OptionBundle;
 import me.mikex86.scicore.utils.ShapeUtils;
+import me.mikex86.scicore.utils.TensorContentUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
@@ -44,7 +45,32 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         boolean transposeA = options.getOrDefault("transposeA", false);
         boolean transposeB = options.getOrDefault("transposeB", false);
 
-        // TODO: Support more complex strides
+        DirectMemoryHandle aPtr = backend.getDirectMemoryManager().ensureDirect(a);
+        DirectMemoryHandle bPtr = backend.getDirectMemoryManager().ensureDirect(b);
+
+        // Because we are still using BLAS signatures that were specified in the 1970s, we unfortunately
+        // cannot support arbitrary strides. Whenever we encounter a tensor with strides that are not
+        // either the last two dims transposed or standard contiguous, we need to make a copy of the
+        // tensor with standard contiguous strides. This is horrible, but this is also how PyTorch does
+        // it, so this will my excuse to not feel bad about it.
+        if (!stridesSupportedBySgemm(a.getShape(), a.getStrides())) {
+            DirectMemoryHandle prevAPtr = aPtr;
+            aPtr = TensorContentUtils.relayout(backend, aPtr, a.getShape(), a.getStrides(), ShapeUtils.makeStrides(a.getShape()), a.getDataType());
+            if (prevAPtr.canFree()) {
+                prevAPtr.free();
+            }
+            stridesA = ShapeUtils.makeStrides(shapeA);
+        }
+
+        if (!stridesSupportedBySgemm(b.getShape(), b.getStrides())) {
+            DirectMemoryHandle prevBPtr = bPtr;
+            bPtr = TensorContentUtils.relayout(backend, bPtr, b.getShape(), b.getStrides(), ShapeUtils.makeStrides(b.getShape()), b.getDataType());
+            if (prevBPtr.canFree()) {
+                prevBPtr.free();
+            }
+            stridesB = ShapeUtils.makeStrides(shapeB);
+        }
+
         if (stridesA[stridesA.length - 1] != 1 &&
             stridesA[stridesA.length - 1] == shapeA[shapeA.length - 1]
             && stridesA[stridesA.length - 2] == 1) {
@@ -96,8 +122,6 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         int lda = transposeA ? m : k;
         int ldb = transposeB ? k : n;
 
-        DirectMemoryHandle aPtr = backend.getDirectMemoryManager().ensureDirect(a);
-        DirectMemoryHandle bPtr = backend.getDirectMemoryManager().ensureDirect(b);
         DirectMemoryHandle resultPtr = result.getContentsAsDirectMemory();
 
         long aBatchSize = shapeA.length == 3 ? shapeA[0] : 1;
@@ -109,6 +133,9 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         long cBatchStride = resultStrides.length == 3 && resultShape[0] != 1 ? resultStrides[0] : 0;
 
         if (batchSize == 1) {
+            // Emulate strides with making lda and ldb the right stride values to get leading dim strides
+            // change the layout between row major and column major to make the strides work out
+            // This only works when one of the dimensions is 1, which we can make the column in the layout we choose.
             matmul(MATMUL_LAYOUT_ROW_MAJOR,
                     transposeA ? MATMUL_OP_TRANSPOSE : MATMUL_OP_NONE,
                     transposeB ? MATMUL_OP_TRANSPOSE : MATMUL_OP_NONE,
@@ -129,15 +156,17 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
                 final long batchIndex = i;
                 boolean finalTransposeA = transposeA;
                 boolean finalTransposeB = transposeB;
+                DirectMemoryHandle finalAPtr = aPtr;
+                DirectMemoryHandle finalBPtr = bPtr;
                 batchExecutor.execute(() -> {
                     matmul(MATMUL_LAYOUT_ROW_MAJOR,
                             finalTransposeA ? MATMUL_OP_TRANSPOSE : MATMUL_OP_NONE,
                             finalTransposeB ? MATMUL_OP_TRANSPOSE : MATMUL_OP_NONE,
                             m, n, k,
-                            aPtr.offset(aDataType.getSizeOf((batchIndex % aBatchSize) * aBatchStride)).getNativePtr(),
+                            finalAPtr.offset(aDataType.getSizeOf((batchIndex % aBatchSize) * aBatchStride)).getNativePtr(),
                             getMatmulDataType(aDataType),
                             lda,
-                            bPtr.offset(bDataType.getSizeOf((batchIndex % bBatchSize) * bBatchStride)).getNativePtr(),
+                            finalBPtr.offset(bDataType.getSizeOf((batchIndex % bBatchSize) * bBatchStride)).getNativePtr(),
                             getMatmulDataType(bDataType),
                             ldb,
                             resultPtr.offset(resultDataType.getSizeOf(batchIndex * cBatchStride)).getNativePtr(),
@@ -204,6 +233,17 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
             throw new IllegalArgumentException("Cannot perform matrix multiplication on non-numeric data types");
         }
         return new LazyTensor(this.backend, resultShape, resultDataType);
+    }
+
+    private static boolean stridesSupportedBySgemm(long[] shape, long[] strides) {
+        if (ShapeUtils.equals(ShapeUtils.makeStrides(shape), strides)) {
+            return true;
+        }
+        if (strides.length == 2) {
+            return strides[0] == 1 && strides[1] == shape[0];
+        } else {
+            return strides[0] == shape[1] * shape[2] && strides[1] == shape[2] && strides[2] == 1;
+        }
     }
 
     @Override

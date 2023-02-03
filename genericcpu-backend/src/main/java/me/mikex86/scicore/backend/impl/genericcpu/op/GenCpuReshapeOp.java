@@ -1,21 +1,16 @@
 package me.mikex86.scicore.backend.impl.genericcpu.op;
 
 import me.mikex86.scicore.backend.impl.genericcpu.GenCPUBackend;
-import me.mikex86.scicore.backend.impl.jvm.JvmBackend;
 import me.mikex86.scicore.graph.Graph;
 import me.mikex86.scicore.graph.IGraph;
-import me.mikex86.scicore.graph.op.IDifferentiableBinaryOperation;
-import me.mikex86.scicore.graph.op.IDifferentiableSingleParametricOperation;
 import me.mikex86.scicore.graph.op.IDifferentiableTrinaryOperation;
 import me.mikex86.scicore.tensor.ITensor;
 import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.tensor.View;
 import me.mikex86.scicore.utils.ShapeUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.Objects;
 
 public class GenCpuReshapeOp implements IDifferentiableTrinaryOperation {
 

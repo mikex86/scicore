@@ -32,7 +32,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
         this.backend = backend;
     }
 
-    GenCPUTensor(@NotNull GenCPUBackend backend, @NotNull GenCPUTensorDataContainer dataContainer, long @NotNull [] shape) {
+    public GenCPUTensor(@NotNull GenCPUBackend backend, @NotNull GenCPUTensorDataContainer dataContainer, long @NotNull [] shape) {
         this.numElements = ShapeUtils.getNumElements(shape);
         this.backend = backend;
         this.dataContainer = dataContainer;

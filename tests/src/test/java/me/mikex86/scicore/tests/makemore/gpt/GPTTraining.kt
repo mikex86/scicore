@@ -8,6 +8,7 @@ import me.mikex86.scicore.SciCore
 import me.mikex86.scicore.data.DatasetIterator
 import me.mikex86.scicore.graph.scopedRecording
 import me.mikex86.scicore.nn.optim.Adam
+import me.mikex86.scicore.profiling.Profiler
 import me.mikex86.scicore.tensor.DataType
 import me.mikex86.scicore.tensor.get
 import me.mikex86.scicore.tests.makemore.gpt.data.TokenizedBinaryTokenStreamer
@@ -30,10 +31,10 @@ fun main() {
     // tiny gpt
     val config = GPTConfig(
         vocabSize = 50257,
-        nLayers = 2,
-        nHeads = 8,
-        nEmbed = 1024,
-        blockSize = 256,
+        nLayers = 1,
+        nHeads = 2,
+        nEmbed = 64,
+        blockSize = 1024,
     )
 
     val model = GPTModel(sciCore, config)
@@ -76,6 +77,7 @@ fun main() {
                     .use { logits -> sciCore.crossEntropy(logits.view(-1, logits.shape.last()), y.view(-1)) }
                     .use { loss ->
                         optimizer.step(loss)
+                        Profiler.printStats()
                         loss.elementAsDouble()
                     }
                 losses.setFloat(lossValue.toFloat(), step)

@@ -3,6 +3,7 @@ package me.mikex86.scicore.nn.optim;
 import me.mikex86.scicore.ISciCore;
 import me.mikex86.scicore.graph.IGraph;
 import me.mikex86.scicore.tensor.ITensor;
+import me.mikex86.scicore.tensor.LazyTensor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.IdentityHashMap;
@@ -21,7 +22,7 @@ public class Adam implements IOptimizer {
     private final float learningRateDecayFactor;
 
     @NotNull
-    private final List<ITensor> parameters;
+    public final List<ITensor> parameters;
 
     private int nSteps = 0;
 
@@ -66,6 +67,9 @@ public class Adam implements IOptimizer {
 
     @Override
     public void step(@NotNull ITensor loss) {
+        if (loss instanceof LazyTensor lazyTensor) {
+            lazyTensor.result(); // Force evaluation of lazy tensor
+        }
         try (IGraph graph = sciCore.getBackpropagationGraphUpTo(loss, parameters)) {
             sciCore.getBackend().getOperationRecorder().recordWithScope(() -> {
                 graph.backward();

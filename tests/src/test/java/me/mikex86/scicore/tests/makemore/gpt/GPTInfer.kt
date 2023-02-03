@@ -63,10 +63,10 @@ fun main() {
 
     val config = GPTConfig(
         vocabSize = 50257,
-        nLayers = 2,
-        nHeads = 4,
-        nEmbed = 256,
-        blockSize = 256,
+        nLayers = 1,
+        nHeads = 2,
+        nEmbed = 64,
+        blockSize = 1024,
     )
 
     val tokenizer = GPTTokenizer.getEncoder(
@@ -75,11 +75,11 @@ fun main() {
     )
 
     val model = GPTModel(sciCore, config)
-    model.load(Path.of("ckpts/gpt2-12300.scm"))
+    model.load(Path.of("ckpts/gpt2-3000.scm"))
 
     val prompt = "What is the meaning of life? The meaning of life is "
     val numTokens = 20
-    val output = generateText(sciCore, prompt, numTokens, model, tokenizer, false, 0.5f)
+    val output = generateText(sciCore, prompt, numTokens, model, tokenizer, false, 0.9f)
     println("Prompt: $prompt")
     println("Completion: $output")
 }
