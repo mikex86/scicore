@@ -11,6 +11,8 @@ import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.tensor.View;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
+
 public class JvmFlattenOp implements IDifferentiableUnaryOperation {
 
     @NotNull
@@ -23,7 +25,8 @@ public class JvmFlattenOp implements IDifferentiableUnaryOperation {
     @Override
     public @NotNull ITensor perform(Graph.@NotNull IOperationContext ctx, @NotNull ITensor input) {
         OptionBundle optionBundle = ctx.getOptionBundle();
-        int dim = optionBundle.getInt("dimension").orElseThrow();
+        int startDim = optionBundle.getInt("start_dim").orElseThrow();
+        int endDim = optionBundle.getInt("end_dim").orElseThrow();
         long[] shape = input.getShape();
         long[] strides = input.getStrides();
 
@@ -37,25 +40,47 @@ public class JvmFlattenOp implements IDifferentiableUnaryOperation {
         }
         ctx.saveForBackward("shape", shapeTensor);
         ctx.saveForBackward("strides", stridesTensor);
-        long[] newShape = new long[shape.length - dim];
-        long[] newStrides = new long[strides.length - dim];
-        long newStride = 1;
-        for (int i = 0; i < newShape.length; i++) {
-            newShape[i] = shape[i + dim];
-            newStrides[i] = newStride;
-            newStride *= newShape[i];
+
+        int nDimensionFlattened = endDim - startDim;
+        long[] newShape = new long[shape.length - nDimensionFlattened];
+        Arrays.fill(newShape, 1);
+        long[] newStrides = new long[strides.length - nDimensionFlattened];
+
+        for (int i = 0; i < shape.length; i++) {
+            if (i < startDim) {
+                newShape[i] = shape[i];
+                newStrides[i] = strides[i];
+            } else if (i > endDim) {
+                newShape[i - nDimensionFlattened] = shape[i];
+                newStrides[i - nDimensionFlattened] = strides[i];
+            } else {
+                newShape[startDim] *= shape[i];
+                newStrides[startDim] = strides[i];
+            }
         }
+
         return new View(backend, input.getDataContainer(), newShape, 0, newStrides);
     }
 
     @Override
     public @NotNull ITensor performLazily(Graph.@NotNull IOperationContext ctx, @NotNull ITensor input) {
         OptionBundle optionBundle = ctx.getOptionBundle();
-        int dim = optionBundle.getInt("dimension").orElseThrow();
-        if (dim < 0 || dim >= input.getShape().length) {
-            throw new IllegalArgumentException("Invalid dim: " + dim);
+        int startDim = optionBundle.getInt("start_dim").orElseThrow();
+        int endDim = optionBundle.getInt("end_dim").orElseThrow();
+        long[] shape = input.getShape();
+        long[] newShape = new long[shape.length - (endDim - startDim)];
+        Arrays.fill(newShape, 1);
+
+        for (int i = 0; i < shape.length; i++) {
+            if (i < startDim) {
+                newShape[i] = shape[i];
+            } else if (i > endDim) {
+                newShape[i - (endDim - startDim)] = shape[i];
+            } else {
+                newShape[startDim] *= shape[i];
+            }
         }
-        return new LazyTensor(backend, input.getShape(), input.getDataType());
+        return new LazyTensor(backend, newShape, input.getDataType());
     }
 
     @Override

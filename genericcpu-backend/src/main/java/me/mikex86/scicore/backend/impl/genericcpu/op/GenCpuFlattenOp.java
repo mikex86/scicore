@@ -11,6 +11,8 @@ import me.mikex86.scicore.tensor.LazyTensor;
 import me.mikex86.scicore.tensor.View;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
+
 public class GenCpuFlattenOp implements IDifferentiableUnaryOperation {
 
     @NotNull
@@ -41,13 +43,14 @@ public class GenCpuFlattenOp implements IDifferentiableUnaryOperation {
 
         int nDimensionFlattened = endDim - startDim;
         long[] newShape = new long[shape.length - nDimensionFlattened];
+        Arrays.fill(newShape, 1);
         long[] newStrides = new long[strides.length - nDimensionFlattened];
 
         for (int i = 0; i < shape.length; i++) {
             if (i < startDim) {
                 newShape[i] = shape[i];
                 newStrides[i] = strides[i];
-            } else if (i >= endDim) {
+            } else if (i > endDim) {
                 newShape[i - nDimensionFlattened] = shape[i];
                 newStrides[i - nDimensionFlattened] = strides[i];
             } else {
@@ -66,10 +69,12 @@ public class GenCpuFlattenOp implements IDifferentiableUnaryOperation {
         int endDim = optionBundle.getInt("end_dim").orElseThrow();
         long[] shape = input.getShape();
         long[] newShape = new long[shape.length - (endDim - startDim)];
+        Arrays.fill(newShape, 1);
+
         for (int i = 0; i < shape.length; i++) {
             if (i < startDim) {
                 newShape[i] = shape[i];
-            } else if (i >= endDim) {
+            } else if (i > endDim) {
                 newShape[i - (endDim - startDim)] = shape[i];
             } else {
                 newShape[startDim] *= shape[i];
