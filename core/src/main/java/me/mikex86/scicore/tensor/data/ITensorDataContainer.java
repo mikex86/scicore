@@ -143,4 +143,14 @@ public interface ITensorDataContainer extends IDisposable {
     long getDataSize();
 
     long getNumberOfElements();
+
+    /**
+     * Increments the reference count of the data container.
+     */
+    void incRc();
+
+    /**
+     * Decrements the reference count of the data container.
+     */
+    void decRc();
 }

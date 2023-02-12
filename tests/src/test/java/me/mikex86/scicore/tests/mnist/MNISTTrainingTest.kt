@@ -6,6 +6,7 @@ import me.mikex86.scicore.SciCore
 import me.mikex86.scicore.data.DatasetIterator
 import me.mikex86.scicore.graph.scopedRecording
 import me.mikex86.scicore.nn.optim.Adam
+import me.mikex86.scicore.nn.optim.Sgd
 import me.mikex86.scicore.tensor.DataType
 import me.mikex86.scicore.utils.use
 import me.tongfei.progressbar.ProgressBarBuilder
@@ -19,7 +20,7 @@ private const val BATCH_SIZE = 32
 
 private const val N_TRAINING_STEPS = 60_000L
 private const val N_TEST_STEPS = 20_000L
-private const val LEARNING_RATE = 0.001f
+private const val LEARNING_RATE = 0.01f
 private const val RMS_DECAY_FACTOR = 0.999f
 private const val MOMENTUM_FACTOR = 0.9f
 private const val DAMPENING_FACTOR = 0.1f
@@ -29,7 +30,7 @@ private const val DAMPENING_FACTOR = 0.1f
 fun main() {
     val sciCore = SciCore()
     sciCore.addBackend(ISciCore.BackendType.CPU)
-    sciCore.addBackend(ISciCore.BackendType.CUDA)
+//    sciCore.addBackend(ISciCore.BackendType.CUDA)
     sciCore.seed(123)
 
     val trainSupplier = MnistDataSupplier(sciCore, train = true, shuffle = false)
@@ -40,9 +41,9 @@ fun main() {
 
     val net = MnistNet(sciCore)
 
-//    val optimizer = Sgd(sciCore, LEARNING_RATE, net.parameters())
+    val optimizer = Sgd(sciCore, LEARNING_RATE, net.parameters())
 //    val optimizer = SgdWithMomentum(sciCore, LEARNING_RATE, MOMENTUM_FACTOR, DAMPENING_FACTOR, net.parameters())
-    val optimizer = Adam(sciCore, LEARNING_RATE, MOMENTUM_FACTOR, RMS_DECAY_FACTOR, net.parameters())
+//    val optimizer = Adam(sciCore, LEARNING_RATE, MOMENTUM_FACTOR, RMS_DECAY_FACTOR, net.parameters())
 
     println("Start training...")
 

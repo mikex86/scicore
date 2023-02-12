@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Math.min;
 
@@ -28,6 +29,9 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
 
     private final long nElements;
 
+    @NotNull
+    private final AtomicInteger refCount = new AtomicInteger(0);
+
     public GenCPUTensorDataContainer(@NotNull DirectMemoryManager memoryManager, long nElements, @NotNull DataType dataType) {
         this.memoryManager = memoryManager;
         long nBytes = dataType.getSizeOf(nElements);
@@ -43,6 +47,14 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
         this.dataSize = dataType.getSizeOf(nElements);
         this.dataType = dataType;
         this.nElements = nElements;
+    }
+
+    public void incRc() {
+        refCount.incrementAndGet();
+    }
+
+    public void decRc() {
+        refCount.decrementAndGet();
     }
 
     private void checkDisposed() {
@@ -529,7 +541,10 @@ public class GenCPUTensorDataContainer implements ITensorDataContainer {
     @Override
     public void dispose() {
         if (this.disposed) {
-            throw new IllegalStateException("Data container already disposed");
+            return;
+        }
+        if (this.refCount.get() != 0) {
+            return;
         }
         this.memoryHandle.free();
         this.disposed = true;

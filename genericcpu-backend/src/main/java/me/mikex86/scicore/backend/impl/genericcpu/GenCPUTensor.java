@@ -27,12 +27,14 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     public GenCPUTensor(@NotNull GenCPUBackend backend, @NotNull DataType dataType, long @NotNull [] shape) {
         this.numElements = ShapeUtils.getNumElements(shape);
         this.dataContainer = new GenCPUTensorDataContainer(backend.getMemoryManager(), this.numElements, dataType);
+        this.dataContainer.incRc();
         this.strides = ShapeUtils.makeStrides(shape);
         this.shape = shape;
         this.backend = backend;
     }
 
     public GenCPUTensor(@NotNull GenCPUBackend backend, @NotNull GenCPUTensorDataContainer dataContainer, long @NotNull [] shape) {
+        dataContainer.incRc();
         this.numElements = ShapeUtils.getNumElements(shape);
         this.backend = backend;
         this.dataContainer = dataContainer;
@@ -164,10 +166,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
 
     @Override
     public void setContentsWithOffset(long startFlatIndex, @NotNull ByteBuffer buffer) {
-        // set with bytes can be called no matter the data type, while for other types this will fail.
-        // so here we have to convert element-level indices to byte-level indices.
-        long byteIndex = getDataType().getSizeOf(startFlatIndex);
-        this.dataContainer.setContents(byteIndex, buffer);
+        this.dataContainer.setContents(startFlatIndex, buffer);
     }
 
     @Override
@@ -319,6 +318,7 @@ public class GenCPUTensor extends AbstractTensor implements ITensor {
     @Override
     public void dispose() {
         super.dispose();
+        this.dataContainer.decRc();
         this.dataContainer.dispose();
     }
 }

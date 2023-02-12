@@ -14,6 +14,7 @@ import me.mikex86.scicore.utils.TensorContentUtils;
 import me.mikex86.scicore.utils.Validator;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -71,18 +72,6 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
             stridesB = ShapeUtils.makeStrides(shapeB);
         }
 
-        if (stridesA[stridesA.length - 1] != 1 &&
-            stridesA[stridesA.length - 1] == shapeA[shapeA.length - 1]
-            && stridesA[stridesA.length - 2] == 1) {
-            transposeA = !transposeA;
-        }
-
-        if (stridesB[stridesB.length - 1] != 1 &&
-            stridesB[stridesB.length - 1] == shapeB[shapeB.length - 1]
-            && stridesB[stridesB.length - 2] == 1) {
-            transposeB = !transposeB;
-        }
-
         if (transposeA) {
             if (shapeA.length == 2) {
                 shapeA = new long[]{shapeA[shapeA.length - 1], shapeA[shapeA.length - 2]};
@@ -96,6 +85,27 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
             } else {
                 shapeB = new long[]{shapeB[0], shapeB[shapeB.length - 1], shapeB[shapeB.length - 2]};
             }
+        }
+
+        // check if input has transposed strides
+        if (isTransposedStrides(shapeA, stridesA)) {
+            transposeA = !transposeA;
+
+            // Swap the last two strides
+            long[] newStrides = Arrays.copyOf(stridesA, stridesA.length); // new instance to not modify original tensor strides
+            newStrides[newStrides.length - 1] = stridesA[stridesA.length - 2];
+            newStrides[newStrides.length - 2] = stridesA[stridesA.length - 1];
+            stridesA = newStrides;
+        }
+
+        if (isTransposedStrides(shapeB, stridesB)) {
+            transposeB = !transposeB;
+
+            // Swap the last two strides
+            long[] newStrides = Arrays.copyOf(stridesB, stridesB.length); // new instance to not modify original tensor strides
+            newStrides[newStrides.length - 1] = stridesB[stridesB.length - 2];
+            newStrides[newStrides.length - 2] = stridesB[stridesB.length - 1];
+            stridesB = newStrides;
         }
 
         Validator.assertTrue(shapeA[shapeA.length - 1] == shapeB[shapeB.length - 2], "Matrix multiplication shape mismatch: " + ShapeUtils.toString(shapeA) + " x " + ShapeUtils.toString(shapeB));
@@ -190,6 +200,17 @@ public class GenCPUMatMulOp implements IDifferentiableBinaryOperation {
         }
 
         return result;
+    }
+
+    private static boolean isTransposedStrides(long[] shape, long[] strides) {
+        // note that dimensions in shape are permuted if indeed transposed, but strides are not!
+        if (shape.length == 2) {
+            return strides[0] == 1 && strides[1] == shape[0];
+        } else if (shape.length == 3) {
+            return strides[1] == 1 && strides[2] == shape[1];
+        } else {
+            throw new IllegalArgumentException("Only 2D and 3D matrices are supported");
+        }
     }
 
     @Override

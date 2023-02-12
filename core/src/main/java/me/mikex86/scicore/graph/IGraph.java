@@ -96,8 +96,7 @@ public interface IGraph extends IDisposable, AutoCloseable {
         void requestGradients();
 
         /**
-         * @return true if gradients have been requested for this node. This does not mean gradients don't have to be computed though, as gradients up to this node might
-         * still be required as downstream gradients.
+         * @return true if gradients have been requested for this node.
          */
         boolean requestsGradients();
 

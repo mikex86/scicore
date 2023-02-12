@@ -531,6 +531,16 @@ public class JvmTensor extends AbstractTensor implements ITensor {
             return 0;
         }
 
+        @Override
+        public void incRc() {
+            // Do nothing, as jvm arrays have to be gced anyway
+        }
+
+        @Override
+        public void decRc() {
+            // Do nothing, as jvm arrays have to be gced anyway
+        }
+
         public long @NotNull [] getShape() {
             return shape;
         }

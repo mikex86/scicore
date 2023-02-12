@@ -9,6 +9,7 @@ import me.mikex86.scicore.tensor.data.ITensorDataContainer;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static jcuda.driver.JCudaDriver.*;
 import static me.mikex86.scicore.backend.impl.cuda.Validator.cuCheck;
@@ -407,6 +408,19 @@ public class CudaDataContainer implements ITensorDataContainer {
     @Override
     public long getNumberOfElements() {
         return this.nElements;
+    }
+
+    @NotNull
+    private final AtomicInteger rc = new AtomicInteger(0);
+
+    @Override
+    public void incRc() {
+        this.rc.incrementAndGet();
+    }
+
+    @Override
+    public void decRc() {
+        this.rc.decrementAndGet();
     }
 
     @NotNull

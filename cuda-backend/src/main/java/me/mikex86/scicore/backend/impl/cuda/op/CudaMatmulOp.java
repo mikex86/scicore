@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
+import java.util.Arrays;
 import java.util.List;
 
 import static jcuda.cudaDataType.CUDA_R_32F;
@@ -70,52 +71,60 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
         long[] opRowMajorShapeA;
         long[] opRowMajorShapeB;
         long[] resultShapeRowMajor;
-        {
-            Validator.assertTrue(rowMajorShapeA.length == 2 || rowMajorShapeA.length == 3, "Only 2D and 3D tensors are supported");
-            Validator.assertTrue(rowMajorShapeB.length == 2 || rowMajorShapeB.length == 3, "Only 2D and 3D tensors are supported");
 
-            // TODO: Support more complex strides
-            if (stridesA[stridesA.length - 1] != 1 &&
-                stridesA[stridesA.length - 1] == rowMajorShapeA[rowMajorShapeA.length - 1]
-                && stridesA[stridesA.length - 2] == 1) {
-                transposeA = !transposeA;
-            }
+        Validator.assertTrue(rowMajorShapeA.length == 2 || rowMajorShapeA.length == 3, "Only 2D and 3D tensors are supported");
+        Validator.assertTrue(rowMajorShapeB.length == 2 || rowMajorShapeB.length == 3, "Only 2D and 3D tensors are supported");
 
-            if (stridesB[stridesB.length - 1] != 1 &&
-                stridesB[stridesB.length - 1] == rowMajorShapeB[rowMajorShapeB.length - 1]
-                && stridesB[stridesB.length - 2] == 1) {
-                transposeB = !transposeB;
-            }
-
-            if (transposeA) {
-                if (rowMajorShapeA.length == 2) {
-                    opRowMajorShapeA = new long[]{rowMajorShapeA[rowMajorShapeA.length - 1], rowMajorShapeA[rowMajorShapeA.length - 2]};
-                } else {
-                    opRowMajorShapeA = new long[]{rowMajorShapeA[0], rowMajorShapeA[rowMajorShapeA.length - 1], rowMajorShapeA[rowMajorShapeA.length - 2]};
-                }
+        if (transposeA) {
+            if (rowMajorShapeA.length == 2) {
+                opRowMajorShapeA = new long[]{rowMajorShapeA[rowMajorShapeA.length - 1], rowMajorShapeA[rowMajorShapeA.length - 2]};
             } else {
-                opRowMajorShapeA = rowMajorShapeA;
+                opRowMajorShapeA = new long[]{rowMajorShapeA[0], rowMajorShapeA[rowMajorShapeA.length - 1], rowMajorShapeA[rowMajorShapeA.length - 2]};
             }
-            if (transposeB) {
-                if (rowMajorShapeB.length == 2) {
-                    opRowMajorShapeB = new long[]{rowMajorShapeB[rowMajorShapeB.length - 1], rowMajorShapeB[rowMajorShapeB.length - 2]};
-                } else {
-                    opRowMajorShapeB = new long[]{rowMajorShapeB[0], rowMajorShapeB[rowMajorShapeB.length - 1], rowMajorShapeB[rowMajorShapeB.length - 2]};
-                }
-            } else {
-                opRowMajorShapeB = rowMajorShapeB;
-            }
-
-            Validator.assertTrue(opRowMajorShapeA[opRowMajorShapeA.length - 1] == opRowMajorShapeB[opRowMajorShapeB.length - 2], "Matrix multiplication shape mismatch: " + ShapeUtils.toString(opRowMajorShapeA) + " x " + ShapeUtils.toString(opRowMajorShapeB));
-            Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
-            Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
-
-            if (opRowMajorShapeA.length == 3 && opRowMajorShapeB.length == 3) {
-                Validator.assertTrue(opRowMajorShapeA[0] == opRowMajorShapeB[0] || opRowMajorShapeA[0] == 1 || opRowMajorShapeB[0] == 1, "Batch size mismatch");
-            }
-
-            resultShapeRowMajor = ShapeUtils.matrixMultiplyShape(opRowMajorShapeA, opRowMajorShapeB);
+        } else {
+            opRowMajorShapeA = rowMajorShapeA;
         }
+        if (transposeB) {
+            if (rowMajorShapeB.length == 2) {
+                opRowMajorShapeB = new long[]{rowMajorShapeB[rowMajorShapeB.length - 1], rowMajorShapeB[rowMajorShapeB.length - 2]};
+            } else {
+                opRowMajorShapeB = new long[]{rowMajorShapeB[0], rowMajorShapeB[rowMajorShapeB.length - 1], rowMajorShapeB[rowMajorShapeB.length - 2]};
+            }
+        } else {
+            opRowMajorShapeB = rowMajorShapeB;
+        }
+
+        // check if input has transposed strides
+        if (isTransposedStrides(opRowMajorShapeA, stridesA)) {
+            transposeA = !transposeA;
+
+            // Swap the last two strides
+            long[] newStrides = Arrays.copyOf(stridesA, stridesA.length); // new instance to not modify original tensor strides
+            newStrides[newStrides.length - 1] = stridesA[stridesA.length - 2];
+            newStrides[newStrides.length - 2] = stridesA[stridesA.length - 1];
+            stridesA = newStrides;
+        }
+
+        if (isTransposedStrides(opRowMajorShapeB, stridesB)) {
+            transposeB = !transposeB;
+
+            // Swap the last two strides
+            long[] newStrides = Arrays.copyOf(stridesB, stridesB.length); // new instance to not modify original tensor strides
+            newStrides[newStrides.length - 1] = stridesB[stridesB.length - 2];
+            newStrides[newStrides.length - 2] = stridesB[stridesB.length - 1];
+            stridesB = newStrides;
+        }
+
+        Validator.assertTrue(opRowMajorShapeA[opRowMajorShapeA.length - 1] == opRowMajorShapeB[opRowMajorShapeB.length - 2], "Matrix multiplication shape mismatch: " + ShapeUtils.toString(opRowMajorShapeA) + " x " + ShapeUtils.toString(opRowMajorShapeB));
+        Validator.assertTrue(a.getDataType().isNumeric(), "Data type of A is not numeric");
+        Validator.assertTrue(b.getDataType().isNumeric(), "Data type of B is not numeric");
+
+        if (opRowMajorShapeA.length == 3 && opRowMajorShapeB.length == 3) {
+            Validator.assertTrue(opRowMajorShapeA[0] == opRowMajorShapeB[0] || opRowMajorShapeA[0] == 1 || opRowMajorShapeB[0] == 1, "Batch size mismatch");
+        }
+
+        resultShapeRowMajor = ShapeUtils.matrixMultiplyShape(opRowMajorShapeA, opRowMajorShapeB);
+
 
         DataType aDataType = a.getDataType();
         DataType bDataType = b.getDataType();
@@ -396,6 +405,17 @@ public class CudaMatmulOp implements IDifferentiableBinaryOperation {
             bPtr.free();
 
         return result;
+    }
+
+    private static boolean isTransposedStrides(long[] shape, long[] strides) {
+        // note that dimensions in shape are permuted if indeed transposed, but strides are not!
+        if (shape.length == 2) {
+            return strides[0] == 1 && strides[1] == shape[0];
+        } else if (shape.length == 3) {
+            return strides[1] == 1 && strides[2] == shape[1];
+        } else {
+            throw new IllegalArgumentException("Only 2D and 3D matrices are supported");
+        }
     }
 
     @Override

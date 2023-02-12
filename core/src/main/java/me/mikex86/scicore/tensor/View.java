@@ -22,6 +22,7 @@ public class View extends AbstractTensor {
     private final ISciCoreBackend backend;
 
     public View(@NotNull ISciCoreBackend backend, @NotNull ITensorDataContainer viewed, long @NotNull [] shape, long offset, long[] localStrides) {
+        viewed.incRc();
         this.backend = backend;
         this.numElements = ShapeUtils.getNumElements(shape);
         this.viewed = viewed;
@@ -280,7 +281,9 @@ public class View extends AbstractTensor {
 
     @Override
     public void dispose() {
-        // Do nothing, not even call super.dispose() which would mark the tensor as disposed, which we don't want
+        super.dispose();
+        this.viewed.decRc();
+        this.viewed.dispose();
     }
 
     @Override
